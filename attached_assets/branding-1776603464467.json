@@ -1,0 +1,140 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "DM Sans",
+      "role": "body"
+    },
+    {
+      "family": "Instrument Serif",
+      "role": "heading"
+    }
+  ],
+  "colors": {
+    "primary": "#F0EAE1",
+    "secondary": "#E8561B",
+    "accent": "#E9591C",
+    "background": "#F8F4EF",
+    "textPrimary": "#0D0D0D",
+    "link": "#F5D8C9"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "DM Sans",
+      "heading": "Instrument Serif"
+    },
+    "fontStacks": {
+      "heading": [
+        "__Instrument_Serif_1f5468",
+        "__Instrument_Serif_Fallback_1f5468",
+        "Instrument Serif",
+        "Georgia",
+        "serif"
+      ],
+      "body": [
+        "__DM_Sans_e64f39",
+        "__DM_Sans_Fallback_e64f39",
+        "system-ui",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "__DM_Sans_e64f39",
+        "__DM_Sans_Fallback_e64f39",
+        "system-ui",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "72px",
+      "h2": "48px",
+      "body": "17px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "10px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#E9591C",
+      "textColor": "#FFFFFF",
+      "borderRadius": "9999px",
+      "borderRadiusCorners": {
+        "topLeft": "9999px",
+        "topRight": "9999px",
+        "bottomRight": "9999px",
+        "bottomLeft": "9999px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#F8F6F1",
+      "textColor": "#0D0D0D",
+      "borderColor": "#E1DAD0",
+      "borderRadius": "9999px",
+      "borderRadiusCorners": {
+        "topLeft": "9999px",
+        "topRight": "9999px",
+        "bottomRight": "9999px",
+        "bottomLeft": "9999px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "File saved at: attached_assets/logo.jpg",
+    "favicon": null,
+    "ogImage": null,
+    "logoHref": "File saved at: attached_assets/logoHref.html",
+    "logoAlt": "SpecFlow"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Selected #0 because it is visible, located in the header, and links to the homepage, matching the brand 'SpecFlow AI'.",
+    "confidence": 0.9,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 0,
+      "text": "Generate your first spec for free",
+      "reasoning": "Button #0 has a vibrant brand color (#E9591C) and action-oriented text ('Generate your first spec for free'), making it the primary CTA."
+    },
+    "secondary": {
+      "index": 1,
+      "text": "Book a demo",
+      "reasoning": "Button #1 has a different background color (#F8F6F1) and serves as a secondary action ('Book a demo'), which complements the primary CTA."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "medium",
+    "targetAudience": "tech professionals and AI developers"
+  },
+  "designSystem": {
+    "framework": "tailwind",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 0,
+        "selectedLogoReasoning": "Selected #0 because it is visible, located in the header, and links to the homepage, matching the brand 'SpecFlow AI'.",
+        "confidence": 0.9
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

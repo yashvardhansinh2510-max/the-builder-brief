@@ -1,0 +1,42 @@
+The Build Brief
+build.specflow.ai
+
+What it is
+A weekly newsletter for founders, PMs, and indie hackers. Every issue is one startup idea that could become a billion-dollar company — with the complete blueprint to build v1 this weekend using AI. Not a tools roundup. Not industry news. The idea is the product. You open it on Friday and you’ve shipped something by Monday.
+
+Who it’s for
+People who want to build real companies but don’t know what to build. Early-stage founders validating directions. PMs who want to go solo. Indie hackers who are tired of building toys. Anyone who looks at Airbnb, Notion, or Linear and thinks “I could have built that” — but needs the spark and the plan simultaneously.
+
+What every issue contains
+	1.	The Idea — a specific, named startup concept. Not a category. A company. e.g. “RentShield” not “proptech.”
+	2.	The Problem — the exact pain, with real numbers if possible
+	3.	Why Now — 3 bullets on why this window is open today and not 3 years ago
+	4.	Market Intelligence — TAM, competitive gap, who’s NOT serving this yet
+	5.	Build Blueprint — 6 concrete steps to ship v1. Starts from zero, ends at a working product
+	6.	Claude Prompts — 3–5 copy-paste prompts engineered for this specific build. The newsletter’s signature feature
+	7.	First Revenue Path — exactly how to charge the first customer. Pricing model, acquisition tactic, timeline
+	8.	First 10 Customers — a specific, unglamorous, works-in-real-life strategy to get the first 10 paying users
+
+The 8 ideas in the vault
+#008 — RentShield (B2B SaaS · $40B TAM)
+Renters have zero leverage in lease negotiations. AI reads 10,000 comparable leases and tells you exactly what to push back on before you sign. First revenue in 14 days.
+#007 — RefundRadar (Fintech · $12B TAM)
+Every company overpays on SaaS by an average of 28%. An AI agent audits invoices, finds overcharges, and files for refunds automatically — takes 30% of whatever it recovers. First revenue in 7 days.
+#006 — TrialMatch (Health · $8B TAM)
+62% of clinical trial slots go unfilled while millions of qualifying patients never hear about them. Match patients to trials using their existing medical records. First revenue in 30 days.
+#005 — ContractPulse (B2B SaaS · $18B TAM)
+Procurement teams miss vendor contract renewals constantly. Auto-renew clauses cost companies billions annually. AI monitors all contracts, alerts before renewals, and writes renegotiation briefs automatically. First revenue in 14 days.
+#004 — VoiceClone for Executives (AI-Native · $6B TAM)
+Every C-suite exec needs a LinkedIn presence but has zero time. AI trains on their past writing, interviews, and emails to ghostwrite in their exact voice — indistinguishable from them. First revenue in 7 days.
+#003 — SkillGap Oracle (Education · $22B TAM)
+Hiring managers reject candidates without knowing if a 3-week course would close the gap. AI maps the exact learning path from where someone is today to where a specific job requires them to be. First revenue in 21 days.
+#002 — PermitFlow (Real Estate · $30B TAM)
+Construction permits take 6–18 months and kill projects. AI reads municipal codes, pre-fills permit applications perfectly, and tells contractors exactly what approvals they need before breaking ground. First revenue in 14 days.
+#001 — GriefSupport AI (Consumer · $5B TAM)
+Grief therapy has a 6-week waitlist. An AI trained on grief counseling frameworks provides always-on support between therapy sessions — not a replacement, a bridge. First revenue in 10 days.
+
+The tone
+Direct. No fluff. Reads like a YC partner giving you office hours — they tell you what’s real, what’s hard, and exactly what to do next. Every word earns its place. The reader should finish each issue feeling like they just got handed insider information.
+
+The promise
+Every Friday, one idea. By Monday, you could be live.​​​​​​​​​​​​​​​​
