@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { issues } from "@/lib/data";
+import { usePageTracking } from "@/hooks/useAnalytics";
 
 const categories = ["All", "B2B SaaS", "Fintech", "Health", "AI-Native", "Education", "Real Estate", "Consumer"];
 
@@ -16,6 +17,7 @@ const fadeUp = {
 };
 
 export default function Archive() {
+  usePageTracking("/archive");
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, AlertCircle } from "lucide-react";
 import logoPath from "@assets/logo.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSubscribe } from "@/hooks/useSubscribe";
+import { usePageTracking } from "@/hooks/useAnalytics";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -42,12 +44,14 @@ const faq = [
 ];
 
 export default function About() {
+  usePageTracking("/about");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "success">("idle");
+  const { status, subscribe } = useSubscribe("about");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) { setStatus("success"); setEmail(""); setTimeout(() => setStatus("idle"), 5000); }
+    subscribe(email);
+    if (status !== "loading") setEmail("");
   };
 
   return (
@@ -172,9 +176,12 @@ export default function About() {
               <Button
                 data-testid="button-about-subscribe"
                 type="submit"
+                disabled={status === "loading"}
                 className="rounded-full h-12 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
               >
-                {status === "success" ? <><Check className="w-4 h-4 mr-1.5" />Done</> : "Subscribe"}
+                {status === "success" ? <><Check className="w-4 h-4 mr-1.5" />Done</> :
+                 status === "exists" ? <>Already in ✓</> :
+                 status === "loading" ? "Joining…" : "Subscribe"}
               </Button>
             </div>
           </form>

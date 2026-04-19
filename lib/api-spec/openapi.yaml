@@ -3,20 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: The Build Brief API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: subscribers
+    description: Newsletter subscriber operations
+  - name: analytics
+    description: Analytics operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +27,108 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /subscribers:
+    post:
+      operationId: createSubscriber
+      tags: [subscribers]
+      summary: Subscribe to the newsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriberBody"
+      responses:
+        "201":
+          description: Subscribed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriberResponse"
+        "409":
+          description: Already subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /subscribers/stats:
+    get:
+      operationId: getSubscriberStats
+      tags: [subscribers]
+      summary: Get subscriber statistics (admin only)
+      responses:
+        "200":
+          description: Subscriber statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriberStats"
+
+  /subscribers/unsubscribe:
+    post:
+      operationId: unsubscribe
+      tags: [subscribers]
+      summary: Unsubscribe from the newsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnsubscribeBody"
+      responses:
+        "200":
+          description: Unsubscribed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analytics/pageview:
+    post:
+      operationId: trackPageview
+      tags: [analytics]
+      summary: Track a page view
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackPageviewBody"
+      responses:
+        "201":
+          description: Tracked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /analytics/stats:
+    get:
+      operationId: getAnalyticsStats
+      tags: [analytics]
+      summary: Get analytics statistics (admin only)
+      responses:
+        "200":
+          description: Analytics statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +139,114 @@ components:
       required:
         - status
 
+    CreateSubscriberBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        source:
+          type: string
+          default: homepage
+      required:
+        - email
+
+    UnsubscribeBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+        - email
+
+    SubscriberResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        source:
+          type: string
+        confirmed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - source
+        - confirmed
+        - createdAt
+
+    SubscriberStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        confirmed:
+          type: integer
+        unsubscribed:
+          type: integer
+        todaySignups:
+          type: integer
+        weekSignups:
+          type: integer
+      required:
+        - total
+        - confirmed
+        - unsubscribed
+        - todaySignups
+        - weekSignups
+
+    TrackPageviewBody:
+      type: object
+      properties:
+        page:
+          type: string
+        referrer:
+          type: string
+      required:
+        - page
+
+    AnalyticsStats:
+      type: object
+      properties:
+        totalViews:
+          type: integer
+        todayViews:
+          type: integer
+        topPages:
+          type: array
+          items:
+            type: object
+            properties:
+              page:
+                type: string
+              count:
+                type: integer
+            required:
+              - page
+              - count
+      required:
+        - totalViews
+        - todayViews
+        - topPages
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
