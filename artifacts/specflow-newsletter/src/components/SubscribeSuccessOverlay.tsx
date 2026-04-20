@@ -90,7 +90,12 @@ export function SubscribeSuccessOverlay({ onDismiss }: SubscribeSuccessOverlayPr
       played.current = true;
       playSuccessChime();
     }
-  }, []);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onDismiss]);
 
   return (
     <motion.div
@@ -104,6 +109,9 @@ export function SubscribeSuccessOverlay({ onDismiss }: SubscribeSuccessOverlayPr
       }}
     >
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="subscribe-success-title"
         initial={{ scale: 0.82, opacity: 0, y: 28 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 16 }}
@@ -126,6 +134,7 @@ export function SubscribeSuccessOverlay({ onDismiss }: SubscribeSuccessOverlayPr
         </div>
 
         <motion.h2
+          id="subscribe-success-title"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.28, duration: 0.45 }}
@@ -140,7 +149,7 @@ export function SubscribeSuccessOverlay({ onDismiss }: SubscribeSuccessOverlayPr
           transition={{ delay: 0.38, duration: 0.45 }}
           className="text-muted-foreground leading-relaxed mb-8 relative z-10 max-w-xs mx-auto"
         >
-          Your archive is unlocked. Create your free account to read every blueprint.
+          You're on the list. Create your free account to unlock the archive and read every blueprint.
         </motion.p>
 
         <motion.div
