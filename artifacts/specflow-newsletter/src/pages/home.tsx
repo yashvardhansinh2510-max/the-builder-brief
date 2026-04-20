@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import {
@@ -531,6 +531,7 @@ function BottomCTASection({ onSuccess }: { onSuccess: () => void }) {
 export default function Home() {
   usePageTracking("/");
   const [showOverlay, setShowOverlay] = useState(false);
+  const handleSubscribeSuccess = useCallback(() => setShowOverlay(true), []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -576,12 +577,12 @@ export default function Home() {
       </motion.nav>
 
       <main className="pb-24">
-        <HeroSection onSuccess={() => setShowOverlay(true)} />
+        <HeroSection onSuccess={handleSubscribeSuccess} />
         <StatsBar />
         <BentoSection />
         <ArchivePreviewSection />
         <AudienceSection />
-        <BottomCTASection onSuccess={() => setShowOverlay(true)} />
+        <BottomCTASection onSuccess={handleSubscribeSuccess} />
       </main>
 
       <footer className="border-t border-border/40 py-12 px-6 mt-24">
