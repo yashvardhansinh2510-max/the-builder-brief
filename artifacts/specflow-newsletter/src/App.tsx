@@ -14,7 +14,6 @@ import NotFound from "@/pages/not-found";
 const queryClient = new QueryClient();
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function stripBase(path: string): string {
@@ -134,6 +133,45 @@ function UserPortalPage() {
   );
 }
 
+function IssuePageGated() {
+  return (
+    <>
+      <Show when="signed-in">
+        <IssuePage />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
+function ArchiveGated() {
+  return (
+    <>
+      <Show when="signed-in">
+        <Archive />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
+function AboutGated() {
+  return (
+    <>
+      <Show when="signed-in">
+        <About />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -159,7 +197,6 @@ function ClerkProviderWithRoutes() {
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       localization={{
         signIn: {
@@ -186,9 +223,9 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-in{/*rest}" component={SignInPage} />
             <Route path="/sign-up{/*rest}" component={SignUpPage} />
             <Route path="/user-portal" component={UserPortalPage} />
-            <Route path="/archive" component={Archive} />
-            <Route path="/issue/:slug" component={IssuePage} />
-            <Route path="/about" component={About} />
+            <Route path="/archive" component={ArchiveGated} />
+            <Route path="/issue/:slug" component={IssuePageGated} />
+            <Route path="/about" component={AboutGated} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />
