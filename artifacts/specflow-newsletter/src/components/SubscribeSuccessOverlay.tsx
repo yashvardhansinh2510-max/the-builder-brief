@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,9 +52,12 @@ function Confetti() {
 
 function playSuccessChime() {
   try {
-    const ctx = new AudioContext();
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
     // C5, E5, G5
     const notes = [523.25, 659.25, 783.99];
+    const lastStop = ctx.currentTime + (notes.length - 1) * 0.13 + 0.38;
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -69,6 +72,7 @@ function playSuccessChime() {
       osc.start(t);
       osc.stop(t + 0.38);
     });
+    setTimeout(() => ctx.close().catch(() => {}), (lastStop - ctx.currentTime) * 1000 + 100);
   } catch {
     // Web Audio not available — silent fail is fine
   }
