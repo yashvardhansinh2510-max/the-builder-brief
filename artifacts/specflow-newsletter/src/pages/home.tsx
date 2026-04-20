@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import {
   ArrowRight, Check, Zap, Target, Compass, BookOpen,
   Code2, DollarSign, Users2, TrendingUp, Lightbulb,
-  Rocket, LineChart, Users, Code, AlertCircle
+  Rocket, LineChart, Users, Code, AlertCircle, Lock
 } from "lucide-react";
 import logoPath from "@assets/logo.jpg";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { issues } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { useSubscribe } from "@/hooks/useSubscribe";
 import { usePageTracking } from "@/hooks/useAnalytics";
+import { Show } from "@clerk/react";
+import { SubscribeSuccessOverlay } from "@/components/SubscribeSuccessOverlay";
 
 const contents = [
   { title: "The Idea", desc: "A specific named startup concept — not a category, a company.", icon: Lightbulb },
@@ -39,7 +41,7 @@ const stats = [
   { value: "100%", label: "free, always" },
 ];
 
-function HeroSection() {
+function HeroSection({ onSuccess }: { onSuccess: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
@@ -47,6 +49,12 @@ function HeroSection() {
 
   const { status, subscribe } = useSubscribe("hero");
   const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    if (status === "success" || status === "exists") {
+      onSuccess();
+    }
+  }, [status, onSuccess]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +68,7 @@ function HeroSection() {
       opacity: 1,
       y: 0,
       filter: "blur(0px)",
-      transition: { duration: 0.7, delay: 0.1 + i * 0.12, ease: [0.25, 0.46, 0.45, 0.94] },
+      transition: { duration: 0.7, delay: 0.1 + i * 0.12, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
     }),
   };
 
@@ -73,7 +81,7 @@ function HeroSection() {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
         className="relative z-10"
       >
         <motion.div
@@ -171,7 +179,7 @@ function StatsBar() {
             key={s.label}
             initial={{ opacity: 0, y: 16 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
             className="bg-card/40 px-8 py-8 text-center"
           >
             <p className="font-serif text-3xl md:text-4xl mb-1.5">{s.value}</p>
@@ -191,7 +199,7 @@ function BentoSection() {
     hidden: { opacity: 0, y: 30, scale: 0.97 },
     visible: (i: number) => ({
       opacity: 1, y: 0, scale: 1,
-      transition: { duration: 0.55, delay: i * 0.065, ease: [0.25, 0.46, 0.45, 0.94] },
+      transition: { duration: 0.55, delay: i * 0.065, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
     }),
   };
 
@@ -201,7 +209,7 @@ function BentoSection() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
         className="text-center mb-12"
       >
         <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">Every issue</p>
@@ -289,7 +297,7 @@ function BentoSection() {
                   className="h-full bg-primary/40 rounded-full"
                   initial={{ width: 0 }}
                   animate={inView ? { width: `${100 - n * 10}%` } : { width: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4 + n * 0.06, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  transition={{ duration: 0.8, delay: 0.4 + n * 0.06, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
                 />
               </div>
             ))}
@@ -375,7 +383,7 @@ function ArchivePreviewSection() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
         className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10"
       >
         <div>
@@ -394,7 +402,7 @@ function ArchivePreviewSection() {
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5, delay: idx * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, delay: idx * 0.07, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
           >
             <Link href={`/issue/${issue.slug}`} className="group block bg-card border border-card-border rounded-2xl p-6 h-full hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
@@ -423,7 +431,7 @@ function AudienceSection() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
         className="text-center mb-12"
       >
         <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">Who reads it</p>
@@ -439,7 +447,7 @@ function AudienceSection() {
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
             className="bg-card/60 border border-border/50 rounded-2xl p-7 text-center"
           >
@@ -455,9 +463,15 @@ function AudienceSection() {
   );
 }
 
-function BottomCTASection() {
+function BottomCTASection({ onSuccess }: { onSuccess: () => void }) {
   const { status, subscribe } = useSubscribe("bottom-cta");
   const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    if (status === "success" || status === "exists") {
+      onSuccess();
+    }
+  }, [status, onSuccess]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -471,7 +485,7 @@ function BottomCTASection() {
         initial={{ opacity: 0, y: 28 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
         className="bg-card border border-border rounded-[2.5rem] p-10 md:p-20 text-center relative overflow-hidden"
       >
         <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-primary/6 blur-[100px] pointer-events-none" />
@@ -516,9 +530,16 @@ function BottomCTASection() {
 
 export default function Home() {
   usePageTracking("/");
+  const [showOverlay, setShowOverlay] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
+      <AnimatePresence>
+        {showOverlay && (
+          <SubscribeSuccessOverlay onDismiss={() => setShowOverlay(false)} />
+        )}
+      </AnimatePresence>
+
       {/* NAV */}
       <motion.nav
         initial={{ opacity: 0, y: -10 }}
@@ -531,8 +552,18 @@ export default function Home() {
           <span className="font-serif text-xl font-medium tracking-tight">The Build Brief</span>
         </Link>
         <div className="flex items-center gap-6">
-          <Link href="/archive" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">Archive</Link>
-          <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
+          <Show when="signed-out">
+            <Link href="/archive" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Archive <Lock className="w-3 h-3 text-muted-foreground/50" />
+            </Link>
+            <Link href="/about" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              About <Lock className="w-3 h-3 text-muted-foreground/50" />
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <Link href="/archive" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">Archive</Link>
+            <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
+          </Show>
           <Link href="/sign-up">
             <Button
               variant="default"
@@ -545,12 +576,12 @@ export default function Home() {
       </motion.nav>
 
       <main className="pb-24">
-        <HeroSection />
+        <HeroSection onSuccess={() => setShowOverlay(true)} />
         <StatsBar />
         <BentoSection />
         <ArchivePreviewSection />
         <AudienceSection />
-        <BottomCTASection />
+        <BottomCTASection onSuccess={() => setShowOverlay(true)} />
       </main>
 
       <footer className="border-t border-border/40 py-12 px-6 mt-24">
