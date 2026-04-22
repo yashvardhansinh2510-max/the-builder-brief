@@ -1,6 +1,6 @@
 # The Build Brief — Platform Overhaul Design
 **Date:** 2026-04-22  
-**Scope:** Bug fixes, brand pivot, tier experience differentiation, Claude AI Advisor  
+**Scope:** Bug fixes, brand pivot, tier experience differentiation, Claude AI Advisor, three distinct dashboards, Pro/Max design language split  
 **Payments:** Excluded — handled separately  
 **Approach:** Surgical fixes + additive features (no rewrites)
 
@@ -404,11 +404,11 @@ The pricing cards show features that conflict with the new positioning:
 | `components/PortalSkeleton.tsx` | **New** — loading state for all gated routes |
 | `components/FounderChat.tsx` | **New** — Claude AI Advisor chat UI |
 | `hooks/useSubscriberCount.ts` | **New** — shared hook for live subscriber count from `/api/subscribers/stats` |
-| `pages/user-portal.tsx` | Fix all banned copy; fix telemetry logs; remove newsletter framing; fix missing logoPath import; use live subscriber count |
-| `pages/pro-portal.tsx` | Fix copy; add logoPath import; replace fake telemetry stats with real data; add first-load cinematic entrance; add scroll animations; add `<FounderChat />` |
-| `pages/max-portal.tsx` | Fix all hardcoded colors; add logoPath import; fix copy; add breathing gradient; add spring physics; add `<FounderChat />` |
+| `pages/user-portal.tsx` | Three-tier conditional UX: Free/Pro/Max hero, bento, tab style, sidebar, animation config; fix telemetry copy; fix logoPath import; live subscriber count; chatUsageThisMonth state |
+| `pages/pro-portal.tsx` | Pro theme fix (hardcoded hex → tokens); fix copy; add logoPath import; real telemetry stats; North design language (tight radius, monospace, dense); cinematic entrance; scroll animations; `<FounderChat />` |
+| `pages/max-portal.tsx` | Max theme fix (all hardcoded hex → tokens); fix copy; add logoPath import; South design language (spacious, rectangular, serif, spring physics); breathing gradient; `<FounderChat />` |
 | `pages/archive.tsx` | Rename to "Signal Archive"; fix copy |
-| `pages/home.tsx` | Major copy rewrite — newsletter → incubator platform; dynamic subscriber count; dynamic Friday drop indicator |
+| `pages/home.tsx` | Copy rewrite — newsletter → incubator platform; dynamic subscriber count; dynamic Friday drop indicator |
 | `components/PricingSection.tsx` | Update tier descriptions, email cadence, add AI Advisor to features and comparison table |
 
 ### Backend (`artifacts/api-server/src/`)
@@ -422,7 +422,246 @@ The pricing cards show features that conflict with the new positioning:
 
 ---
 
-## 10. Out of Scope
+## 9. Pro Portal Theme Fix
+
+`pro-portal.tsx` has hardcoded hex values in specific sections that break dark mode and feel disconnected from the theme system.
+
+**Replacement map:**
+
+| Hardcoded value | CSS variable replacement |
+|----------------|-------------------------|
+| `bg-[#1A1A1A] text-white` (competitor section) | `bg-foreground text-background` |
+| `text-white/60` | `text-background/60` |
+| `text-white/80` | `text-background/80` |
+| `bg-white/5` | `bg-background/5` |
+| `border-white/10` | `border-background/10` |
+
+**Pro Portal overall design direction (distinct from Max):**
+
+Pro = **North**. Dense, tactical, terminal-native. YC hacker house energy.
+- Card backgrounds: `bg-card/80` (darker, heavier weight than Free's `bg-card/40`)
+- Border radius: reduce from `rounded-[3rem]` → `rounded-2xl` throughout — more rectangular, less friendly
+- Typography: monospace font for all data labels and stats (`font-mono`)
+- Spacing: tighter — `space-y-24` not `space-y-40` between sections
+- Badges: replace rounded pills with square-cornered chips — `rounded-none` or `rounded-sm`
+- All section headers use the pattern: `UPPERCASE_LABEL` then large serif title
+- Color: primary orange is saturated and used actively — not just accents
+
+---
+
+## 10. Three-Tier Dashboard Experience (Single Page, Conditional Feel)
+
+`user-portal.tsx` is a **single page** for all users. The URL, structure, and component tree stay the same. What changes based on `tier` is: copy, animation config, UI block rendering, and visual treatment. A Free user, Pro user, and Max user looking at `/dashboard` should feel like they are in completely different rooms.
+
+### Implementation pattern
+
+At the top of `user-portal.tsx`, derive a `dashboardConfig` object from `tier`:
+
+```ts
+const dashboardConfig = {
+  free: {
+    heroTitle: (name: string) => `Good to have you back, ${name}.`,
+    heroSub: "The next drop lands Friday. Your blueprints are waiting. The only question is — what are you building this week?",
+    animDuration: 0.5,
+    animDelay: 0.06,
+    tabStyle: "pill",         // rounded pill tabs
+    showUpgradeCTAs: true,
+    showCommandBoard: false,
+    showInnerCircleBar: false,
+  },
+  pro: {
+    heroTitle: (name: string) => `Back at it, ${name}.`,
+    heroSub: "Daily briefing is live. Vault is open. You've got signals to run through — let's go.",
+    animDuration: 0.3,
+    animDelay: 0.04,
+    tabStyle: "underline",    // underlined text tabs, no pill
+    showUpgradeCTAs: false,
+    showCommandBoard: true,
+    showInnerCircleBar: false,
+  },
+  max: {
+    heroTitle: (name: string) => `Good morning, ${name}.`,
+    heroSub: "",               // Max hero has no subheading — just the name and date
+    animDuration: 0.8,
+    animDelay: 0.1,
+    tabStyle: "ghost",         // minimal ghost tabs with underline on active
+    showUpgradeCTAs: false,
+    showCommandBoard: false,
+    showInnerCircleBar: true,
+  },
+  incubator: { /* same as max */ }
+};
+
+const config = dashboardConfig[tier] ?? dashboardConfig.free;
+```
+
+### Free Tier Dashboard — "Look what's possible"
+
+**Hero:** Current design — warm welcome, subheading about Friday drop, glow orb. No changes except telemetry copy fix.
+
+**Portal Advantages bento:** Current design — shows locked icons, upgrade CTA overlay on Arsenal tab.
+
+**Tabs:** Rounded pill tabs in `bg-card/50 border border-border/40` container — current style.
+
+**Sidebar:** Shows upgrade CTA blocks, roadmap with "Unlock Days 11–21" button, Friday drop teaser.
+
+**Animation:** `fadeUp` at `duration: 0.5`, `delay: i * 0.06`. Standard.
+
+**Energy:** "You can see the shape of what's on the other side. When you're ready."
+
+---
+
+### Pro Tier Dashboard — "You're in execution mode"
+
+**Hero:** Different copy (`config.heroTitle` + `config.heroSub`). The hero card gets a subtle scan-line overlay (same CSS animation as the telemetry terminal — `animate-scanline`). The pulsing dot in the top left becomes amber/orange and slightly larger (`w-2 h-2` not `w-1.5 h-1.5`). The right side of the hero shows a **3-stat command strip** instead of the milestone reward card:
+
+```tsx
+{tier === "pro" && (
+  <div className="flex gap-6 p-6 rounded-2xl bg-background/40 border border-primary/20 font-mono">
+    <div>
+      <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Streak</p>
+      <p className="text-2xl font-bold text-primary">{streak}d</p>
+    </div>
+    <div className="w-px bg-border/40" />
+    <div>
+      <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Vault</p>
+      <p className="text-2xl font-bold">OPEN</p>
+    </div>
+    <div className="w-px bg-border/40" />
+    <div>
+      <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Briefings</p>
+      <p className="text-2xl font-bold">DAILY</p>
+    </div>
+  </div>
+)}
+```
+
+**Portal Advantages bento:** Replace the section title with `"Command Board"`. The copy inside each bento card is different — more operational:
+- "Weekly Signal" card: `"Friday blueprint is live. Tap to read."` (if Friday) or `"Next signal drops Friday 09:00."` (otherwise)
+- Daily Signals card: `"Today's operator briefing is ready."`
+- Milestone Vault card: `"${streak}-day streak. Next unlock at day 30."`
+
+**Tabs:** Underline style — no pill container. Just horizontally arranged text labels with an animated underline on active:
+```tsx
+className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all border-b-2 ${
+  activeTab === tab.id
+    ? "border-primary text-primary"
+    : "border-transparent text-muted-foreground hover:text-foreground"
+}`}
+```
+
+**Sidebar:** The upgrade CTA block is replaced with a **"Today's Briefing"** card — shows `dailyEdge.title` and `dailyEdge.content` (already fetched). The roadmap shows the full 21-day path (no lock). The Friday drop teaser stays.
+
+**Animation:** `duration: 0.3`, `delay: i * 0.04`. Faster, more responsive. `useInView` scroll reveals on every section (already planned in §5.2).
+
+**Energy:** "You're building. Here's your status board."
+
+---
+
+### Max Tier Dashboard — "You've arrived. Here's what matters."
+
+**Hero:** Completely different. No glow orb. No subheading. Just:
+```tsx
+{tier === "max" && (
+  <motion.div
+    initial={{ opacity: 0, filter: "blur(8px)" }}
+    animate={{ opacity: 1, filter: "blur(0px)" }}
+    transition={{ duration: 1.2, ease: "easeOut" }}
+    className="py-16"
+  >
+    <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground/60 mb-4">
+      {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+    </p>
+    <h1 className="font-serif text-6xl md:text-8xl leading-[1.0] mb-8">
+      Good morning,<br /><span className="italic text-primary">{firstName}.</span>
+    </h1>
+    <div className="flex gap-8 pt-8 border-t border-border/20">
+      <div>
+        <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-1">AI Advisor</p>
+        <p className="font-serif text-lg">Active — {20 - (chatUsageThisMonth)} sessions remaining</p>
+      </div>
+      <div className="w-px bg-border/20" />
+      <div>
+        <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-1">Next Call</p>
+        <p className="font-serif text-lg italic">Book via Inner Circle</p>
+      </div>
+    </div>
+  </motion.div>
+)}
+```
+
+**Portal Advantages bento:** Hidden entirely for Max users — replaced with `"This Week's Intelligence"` — a minimal 3-card row:
+```tsx
+{tier === "max" && (
+  <div className="grid grid-cols-3 gap-6">
+    {[
+      { label: "Friday Signal", val: latestIssue.title, sub: latestIssue.category },
+      { label: "AI Advisor", val: `${20 - chatUsageThisMonth} sessions`, sub: "this month" },
+      { label: "Streak", val: `${streak} days`, sub: "consecutive" },
+    ].map(item => (
+      <div key={item.label} className="p-8 border border-border/20 rounded-none">
+        <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-4">{item.label}</p>
+        <p className="font-serif text-3xl mb-1">{item.val}</p>
+        <p className="text-xs text-muted-foreground">{item.sub}</p>
+      </div>
+    ))}
+  </div>
+)}
+```
+
+**Tabs:** Ghost style — no container. Text labels with a very subtle border-bottom on hover. Active is just `text-primary` with no background.
+
+**Sidebar:** Replace the upgrade CTA block and the Friday drop teaser entirely. Replace with:
+1. **"Your 100-Day Arc"** — a minimal progress tracker using the same `roadmapSteps` data but displayed as a simple text list, not a visual stepper
+2. **"Your AI Advisor"** — a direct CTA card linking to the `<FounderChat />` section: `"You have 20 sessions this month. Use them."` with a scroll-to button
+
+**Animation:** `duration: 0.8`, `delay: i * 0.1`. Slow, intentional. Spring physics on hover: `whileHover={{ scale: 1.01 }}` with `type: "spring", stiffness: 100, damping: 25`. Everything breathes.
+
+**Cards:** `rounded-none` or `rounded-sm` borders instead of the `rounded-[3rem]` pills — editorial, rectangular.
+
+**Energy:** "You have the full room. Here's what to do with it this week."
+
+---
+
+### What stays the same across all tiers
+- The 5 content tabs (Playbook, Foundry Path, Vault Archive, Alliance, Arsenal)
+- The tab content inside each panel
+- All modals (issue viewer, lesson viewer, alliance member, etc.)
+- The PortalNav
+- The footer
+
+### New state needed in `user-portal.tsx`
+`chatUsageThisMonth` — fetch from `portalState.chatUsage[currentMonthKey]` in the same initial data load that fetches streak/completedSteps. Defaults to `0` if not set. Only needed for Max hero display.
+
+---
+
+## 11. Pro vs Max Design Language — The Principles
+
+These must feel like two different philosophies, not two different color schemes.
+
+**Pro = North. Dense. Tactical. Executing.**
+- Border radius: `rounded-xl` or `rounded-2xl` — never `rounded-[3rem]`
+- Typography mix: serif for headings, `font-mono` for all data/stats/labels
+- Spacing: tight. Sections breathe less. Information is the density.
+- Animations: fast (0.2–0.4s), easeOut. Responsive, not theatrical.
+- Interactive states: `hover:border-primary/40` — functional feedback
+- Badges/chips: square corners `rounded-sm` or `rounded-none`
+- Card backgrounds: `bg-card/80` — heavier, more present
+
+**Max = South. Spacious. Editorial. Decided.**
+- Border radius: `rounded-none` for key containers — architectural, not bubbly
+- Typography: serif dominant at every level. Data labels are small-caps serif, not monospace.
+- Spacing: generous. `py-32 md:py-48` between sections. Each section is a considered moment.
+- Animations: slow (0.8–1.2s), easeOut or spring. Intentional, never rushed.
+- Interactive states: `whileHover={{ scale: 1.01 }}` spring — weight, not snap
+- Badges/chips: no border-radius, thin border, tight tracking — `px-3 py-1 border border-primary/30 text-[9px] tracking-[0.3em]`
+- Card backgrounds: `bg-card/20` — lighter, more transparent, space-forward
+
+These principles apply to both the portals AND the tier-conditional sections of the dashboard.
+
+---
+
+## 12. Files Changed (Updated)
 - Payment gateway changes (Stripe/Razorpay subscription mode) — handled separately
 - New issue/blueprint content
 - Incubator dashboard page changes
