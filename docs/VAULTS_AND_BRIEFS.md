@@ -58,7 +58,7 @@ Publish a vault (admin only).
 ## Scheduling
 
 - **Daily Briefs:** Generated at 6 AM UTC every day for Pro/Max users
-- **Weekly Vaults:** Generated every Sunday at 8 AM UTC
+- **Weekly Vaults:** Generated every Friday at 8 AM UTC
 
 ## Model
 
