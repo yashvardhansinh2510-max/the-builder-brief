@@ -6,6 +6,7 @@ import leadsRouter from "./leads";
 import paymentsRouter from "./payments";
 import engineRouter from "./engine";
 import briefsRouter from "./briefs";
+import vaultsRouter from "./vaults";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(leadsRouter);
 router.use(paymentsRouter);
 router.use(engineRouter);
 router.use("/api/briefs", briefsRouter);
+router.use("/api/vaults", vaultsRouter);
 
 export default router;
