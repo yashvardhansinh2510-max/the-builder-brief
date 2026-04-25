@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@specflow/db";
 import { vaults } from "@specflow/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { isAdmin } from "../middleware/auth";
 
 const router = Router();
 
@@ -36,6 +37,28 @@ router.get("/:id", async (req, res) => {
     res.json(vault[0]);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch vault" });
+  }
+});
+
+// POST /vaults/:id/publish - Admin only
+router.post("/:id/publish", isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date();
+
+    const [updated] = await db
+      .update(vaults)
+      .set({ isPublished: true, publishedAt: now })
+      .where(eq(vaults.id, parseInt(id)))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: "Vault not found" });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to publish vault" });
   }
 });
 
