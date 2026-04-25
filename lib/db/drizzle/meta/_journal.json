@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1776779644297,
+      "tag": "0000_colorful_triathlon",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777134174567,
+      "tag": "0001_create_articles_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777134471409,
+      "tag": "0002_articles_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777134838274,
+      "tag": "0003_create_personalization_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777171661000,
+      "tag": "0004_create_daily_briefs_table",
+      "breakpoints": true
+    }
+  ]
+}
