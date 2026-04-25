@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { db } from "@specflow/db";
 import { subscribers, dailyBriefs } from "@specflow/db/schema";
 import { buildDailyContextForUser } from "../services/context";
+import { generateWeeklyVault } from "../services/vault";
 
 export function initSchedulers() {
   // Daily brief generation: 6 AM UTC every day
@@ -37,6 +38,25 @@ export function initSchedulers() {
       console.log("[Scheduler] Daily briefs complete");
     } catch (error) {
       console.error("[Scheduler] Failed to fetch users", error);
+    }
+  });
+
+  // Weekly vault generation: Every Sunday at 8 AM UTC
+  cron.schedule("0 8 * * 0", async () => {
+    console.log("[Scheduler] Generating weekly vault...");
+
+    try {
+      // Get the start of last week
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const lastSunday = new Date(today);
+      lastSunday.setDate(today.getDate() - dayOfWeek);
+      const weekStartDate = lastSunday.toISOString().split("T")[0];
+
+      await generateWeeklyVault(weekStartDate);
+      console.log("[Scheduler] Weekly vault complete");
+    } catch (error) {
+      console.error("[Scheduler] Failed to generate vault", error);
     }
   });
 
