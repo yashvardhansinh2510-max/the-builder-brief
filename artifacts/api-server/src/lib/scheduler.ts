@@ -41,17 +41,18 @@ export function initSchedulers() {
     }
   });
 
-  // Weekly vault generation: Every Sunday at 8 AM UTC
-  cron.schedule("0 8 * * 0", async () => {
+  // Weekly vault generation: Every Friday at 8 AM UTC
+  cron.schedule("0 8 * * 5", async () => {
     console.log("[Scheduler] Generating weekly vault...");
 
     try {
-      // Get the start of last week
+      // Get the start of last week (calculate last Friday)
       const today = new Date();
       const dayOfWeek = today.getDay();
-      const lastSunday = new Date(today);
-      lastSunday.setDate(today.getDate() - dayOfWeek);
-      const weekStartDate = lastSunday.toISOString().split("T")[0];
+      const daysBack = (dayOfWeek - 5 + 7) % 7; // Go back to last Friday
+      const lastFriday = new Date(today);
+      lastFriday.setDate(today.getDate() - daysBack);
+      const weekStartDate = lastFriday.toISOString().split("T")[0];
 
       await generateWeeklyVault(weekStartDate);
       console.log("[Scheduler] Weekly vault complete");
