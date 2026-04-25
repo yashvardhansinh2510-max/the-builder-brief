@@ -1,8 +1,9 @@
 import cron from "node-cron";
-import { db } from "@specflow/db";
-import { subscribers, dailyBriefs } from "@specflow/db/schema";
+import { db } from "@workspace/db";
+import { subscribersTable, dailyBriefsTable } from "@workspace/db/schema";
 import { buildDailyContextForUser } from "../services/context";
 import { generateWeeklyVault } from "../services/vault";
+import { sendDailyBriefingForUser } from "./email";
 
 export function initSchedulers() {
   // Daily brief generation: 6 AM UTC every day
@@ -13,7 +14,7 @@ export function initSchedulers() {
       // Get all Pro and Max users
       const proMaxUsers = await db
         .select()
-        .from(subscribers)
+        .from(subscribersTable)
         .where((s) => s.tier.inArray(["Pro", "Max"]));
 
       for (const user of proMaxUsers) {
@@ -21,17 +22,19 @@ export function initSchedulers() {
           const context = await buildDailyContextForUser(user.id);
           const today = new Date().toISOString().split("T")[0];
 
-          await db.insert(dailyBriefs).values({
+          const [brief] = await db.insert(dailyBriefsTable).values({
             subscriberId: user.id,
             briefDate: today,
             summary: context.summary,
             highlights: context.highlights,
             sourceArticleIds: [],
-          });
+          }).returning();
 
-          console.log(`✓ Generated brief for user ${user.id}`);
+          await sendDailyBriefingForUser(user.email, brief.summary, brief.highlights || [], brief.id);
+
+          console.log(`✓ Generated and sent brief for user ${user.id}`);
         } catch (error) {
-          console.error(`✗ Failed to generate brief for user ${user.id}`, error);
+          console.error(`✗ Failed to process brief for user ${user.id}`, error);
         }
       }
 

@@ -2,8 +2,10 @@ import { useState } from "react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+export type SubscribeStatus = "idle" | "loading" | "pending-confirmation" | "error" | "exists";
+
 export function useSubscribe(source = "homepage") {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error" | "exists">("idle");
+  const [status, setStatus] = useState<SubscribeStatus>("idle");
 
   async function subscribe(email: string) {
     if (!email) return;
@@ -20,8 +22,8 @@ export function useSubscribe(source = "homepage") {
         return;
       }
       if (!res.ok) throw new Error("Failed");
-      setStatus("success");
-      setTimeout(() => setStatus("idle"), 6000);
+      setStatus("pending-confirmation");
+      setTimeout(() => setStatus("idle"), 8000);
     } catch {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 4000);

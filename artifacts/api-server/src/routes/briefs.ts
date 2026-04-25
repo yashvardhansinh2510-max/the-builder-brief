@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db } from "@specflow/db";
-import { dailyBriefs, personalization } from "@specflow/db/schema";
+import { db } from "@workspace/db";
+import { dailyBriefsTable, personalizationTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { buildDailyContextForUser } from "../services/context";
 
@@ -14,7 +14,7 @@ router.get("/today", async (req, res) => {
     const today = new Date().toISOString().split("T")[0];
     const existingBrief = await db
       .select()
-      .from(dailyBriefs)
+      .from(dailyBriefsTable)
       .where(
         (b) => eq(b.subscriberId, subscriberId) && eq(b.briefDate, today)
       )
@@ -26,7 +26,7 @@ router.get("/today", async (req, res) => {
 
     const context = await buildDailyContextForUser(subscriberId);
     const [brief] = await db
-      .insert(dailyBriefs)
+      .insert(dailyBriefsTable)
       .values({
         subscriberId,
         briefDate: today,
@@ -50,7 +50,7 @@ router.post("/personalization", async (req, res) => {
     const { interests, focusAreas, contextStyle } = req.body;
 
     const [updated] = await db
-      .insert(personalization)
+      .insert(personalizationTable)
       .values({
         subscriberId,
         interests,
@@ -58,7 +58,7 @@ router.post("/personalization", async (req, res) => {
         contextStyle,
       })
       .onConflictDoUpdate({
-        target: personalization.subscriberId,
+        target: personalizationTable.subscriberId,
         set: { interests, focusAreas, contextStyle },
       })
       .returning();

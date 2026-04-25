@@ -7,6 +7,8 @@ export const subscribersTable = pgTable("subscribers", {
   email: text("email").notNull().unique(),
   source: text("source").notNull().default("homepage"),
   confirmed: boolean("confirmed").notNull().default(false),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  confirmationToken: text("confirmation_token").unique(),
   unsubscribed: boolean("unsubscribed").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

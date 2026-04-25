@@ -1,0 +1,72 @@
+export const featuredVentures = [
+  {
+    id: "v1",
+    name: "SmarterContracts",
+    founder: "Alex Rivera",
+    revenue: "$1.2M ARR",
+    growth: "+420%",
+    status: "Winner",
+    category: "LegalTech",
+    whyItWon: "Applied the Redline Automation blueprint from Issue #004. Closed 8 enterprise pilots in 30 days by targeting mid-market legal ops teams underserved by expensive CLM software. Zero paid ads — 100% cold outbound using AI-personalized briefs.",
+    tags: ["Issue #004", "AI-Native", "B2B"],
+    stage: "Series A",
+    timeToRevenue: "11 days",
+    keyMetric: "NRR: 142%"
+  },
+  {
+    id: "v2",
+    name: "TrialMatch",
+    founder: "Sarah Chen",
+    revenue: "$85k MRR",
+    growth: "+150%",
+    status: "Rising Star",
+    category: "HealthTech",
+    whyItWon: "Used the CRO Partner Distribution loop from Issue #006 to land a master services agreement with a top-10 pharma provider within 60 days of launch. Replaced a $2M/year manual recruitment workflow.",
+    tags: ["Issue #006", "Health", "Scaling"],
+    stage: "Seed",
+    timeToRevenue: "22 days",
+    keyMetric: "CAC: $180 | LTV: $14,400"
+  },
+  {
+    id: "v3",
+    name: "RefundRadar",
+    founder: "James Okonkwo",
+    revenue: "$210k ARR",
+    growth: "+310%",
+    status: "Winner",
+    category: "FinTech",
+    whyItWon: "Built the SaaS audit engine from Issue #007. First paying customer was a 200-person SaaS company recovering $44k in unused seat overcharges on day 8. Scaled to 40 clients on contingency model — zero upfront cost barrier.",
+    tags: ["Issue #007", "Fintech", "PLG"],
+    stage: "Pre-Seed",
+    timeToRevenue: "8 days",
+    keyMetric: "Avg. recovery per client: $38k"
+  },
+  {
+    id: "v4",
+    name: "PermitFlow",
+    founder: "Priya Nair",
+    revenue: "$490k ARR",
+    growth: "+280%",
+    status: "Winner",
+    category: "PropTech",
+    whyItWon: "Implemented the zoning ingestion blueprint from Issue #002. Partnered with 3 commercial construction firms in LA in week one. Reduced permit rejection rates from 34% to under 4% for clients — retention is near-perfect.",
+    tags: ["Issue #002", "PropTech", "B2B"],
+    stage: "Seed",
+    timeToRevenue: "14 days",
+    keyMetric: "Churn rate: 0.8%/mo"
+  },
+  {
+    id: "v5",
+    name: "Persona Engine",
+    founder: "David Lim",
+    revenue: "$62k MRR",
+    growth: "+190%",
+    status: "Rising Star",
+    category: "AI-Native",
+    whyItWon: "Took the authority engine framework from Issue #004 and productized it for VC-backed founders with limited time. Ships 25+ LinkedIn posts per month per client using a voice-clone fine-tune. Average client grew from 2k to 18k followers in 90 days.",
+    tags: ["Issue #004", "AI", "Creator Economy"],
+    stage: "Bootstrapped",
+    timeToRevenue: "6 days",
+    keyMetric: "Avg. follower growth: +16k in 90d"
+  }
+];

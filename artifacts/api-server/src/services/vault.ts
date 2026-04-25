@@ -1,5 +1,5 @@
-import { db } from "@specflow/db";
-import { articles, vaults } from "@specflow/db/schema";
+import { db } from "@workspace/db";
+import { articlesTable, vaultsTable } from "@workspace/db/schema";
 import { eq, and, gte, lt } from "drizzle-orm";
 import { curateWeeklyVault } from "../lib/openai";
 
@@ -9,8 +9,8 @@ export async function generateWeeklyVault(
   // Check if vault already exists for this week
   const existing = await db
     .select()
-    .from(vaults)
-    .where(eq(vaults.vaultWeek, weekStartDate))
+    .from(vaultsTable)
+    .where(eq(vaultsTable.vaultWeek, weekStartDate))
     .limit(1);
 
   if (existing.length > 0) {
@@ -25,11 +25,11 @@ export async function generateWeeklyVault(
 
   const weekArticles = await db
     .select()
-    .from(articles)
+    .from(articlesTable)
     .where(
       and(
-        gte(articles.createdAt, weekStart),
-        lt(articles.createdAt, weekEnd)
+        gte(articlesTable.createdAt, weekStart),
+        lt(articlesTable.createdAt, weekEnd)
       )
     );
 
@@ -46,7 +46,7 @@ export async function generateWeeklyVault(
   const vaultContent = await curateWeeklyVault(articleTexts, weekStartDate);
 
   // Store in DB
-  await db.insert(vaults).values({
+  await db.insert(vaultsTable).values({
     vaultWeek: weekStartDate,
     title: vaultContent.title,
     description: vaultContent.description,

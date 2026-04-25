@@ -14,6 +14,8 @@ export const dailyBriefsTable = pgTable("daily_briefs", {
   sourceArticleIds: integer("source_article_ids").array(), // article IDs used to generate this
   generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
   viewedAt: timestamp("viewed_at", { withTimezone: true }),
+  openCount: integer("open_count").default(0),
+  clickCount: integer("click_count").default(0),
 });
 
 export const insertDailyBriefSchema = createInsertSchema(dailyBriefsTable).omit({

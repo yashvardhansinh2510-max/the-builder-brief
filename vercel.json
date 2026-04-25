@@ -1,0 +1,10 @@
+{
+  "buildCommand": "pnpm --filter @workspace/specflow-newsletter run build",
+  "outputDirectory": "artifacts/specflow-newsletter/dist/public",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" }
+  ],
+  "crons": [
+    { "path": "/api/cron/newsletter", "schedule": "0 9 * * 5" }
+  ]
+}

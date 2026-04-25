@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { Link } from "wouter";
+import { useSearch } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import {
   ArrowRight, Check, Zap, Target, Compass, BookOpen,
   Code2, DollarSign, Users2, TrendingUp, Lightbulb,
-  Rocket, LineChart, Users, Code, AlertCircle, Lock
+  Rocket, LineChart, Users, Code, AlertCircle
 } from "lucide-react";
 import logoPath from "@assets/logo.jpg";
 import { Button } from "@/components/ui/button";
@@ -13,8 +15,6 @@ import { issues } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { useSubscribe } from "@/hooks/useSubscribe";
 import { usePageTracking } from "@/hooks/useAnalytics";
-import { Show } from "@clerk/react";
-import { SubscribeSuccessOverlay } from "@/components/SubscribeSuccessOverlay";
 
 const contents = [
   { title: "The Idea", desc: "A specific named startup concept — not a category, a company.", icon: Lightbulb },
@@ -41,7 +41,7 @@ const stats = [
   { value: "100%", label: "free, always" },
 ];
 
-function HeroSection({ onSuccess }: { onSuccess: () => void }) {
+function HeroSection() {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
@@ -49,12 +49,23 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
 
   const { status, subscribe } = useSubscribe("hero");
   const [email, setEmail] = useState("");
+  const search = useSearch();
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (status === "success" || status === "exists") {
-      onSuccess();
+    const params = new URLSearchParams(search);
+    if (params.get("confirmed") === "true") {
+      toast({
+        title: "You're confirmed!",
+        description: "You'll receive your first blueprint this Friday.",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [status, onSuccess]);
+    if (params.get("unsubscribed") === "true") {
+      toast({ title: "Unsubscribed", description: "You've been removed from the list." });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [search, toast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +92,7 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="relative z-10"
       >
         <motion.div
@@ -149,15 +160,25 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
                 disabled={status === "loading"}
                 className="rounded-full h-14 px-8 text-base font-semibold bg-foreground hover:bg-foreground/90 text-background transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                {status === "success" ? <><Check className="w-4 h-4 mr-2" />Subscribed</> :
+                {status === "pending-confirmation" ? <><Check className="w-4 h-4 mr-2" />Check your inbox!</> :
                  status === "exists" ? <>Already subscribed ✓</> :
                  status === "loading" ? "Subscribing…" : "Get the brief"}
               </Button>
             </div>
           </form>
+          {status === "pending-confirmation" && (
+            <p className="text-sm text-green-600 flex items-center justify-center gap-1.5 mb-3">
+              <Check className="w-3.5 h-3.5" /> Check your inbox to confirm!
+            </p>
+          )}
+          {status === "exists" && (
+            <p className="text-sm text-amber-600 flex items-center justify-center gap-1.5 mb-3">
+              <AlertCircle className="w-3.5 h-3.5" /> You're already subscribed.
+            </p>
+          )}
           {status === "error" && (
             <p className="text-sm text-destructive flex items-center justify-center gap-1.5 mb-3">
-              <AlertCircle className="w-3.5 h-3.5" /> Something went wrong — try again.
+              <AlertCircle className="w-3.5 h-3.5" /> Something went wrong. Try again.
             </p>
           )}
           <p className="text-sm text-muted-foreground">Join 15,000+ founders, PMs, and indie hackers. Free forever.</p>
@@ -179,7 +200,7 @@ function StatsBar() {
             key={s.label}
             initial={{ opacity: 0, y: 16 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+            transition={{ duration: 0.5, delay: i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="bg-card/40 px-8 py-8 text-center"
           >
             <p className="font-serif text-3xl md:text-4xl mb-1.5">{s.value}</p>
@@ -209,7 +230,7 @@ function BentoSection() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="text-center mb-12"
       >
         <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">Every issue</p>
@@ -297,7 +318,7 @@ function BentoSection() {
                   className="h-full bg-primary/40 rounded-full"
                   initial={{ width: 0 }}
                   animate={inView ? { width: `${100 - n * 10}%` } : { width: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4 + n * 0.06, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+                  transition={{ duration: 0.8, delay: 0.4 + n * 0.06, ease: [0.25, 0.46, 0.45, 0.94] }}
                 />
               </div>
             ))}
@@ -383,7 +404,7 @@ function ArchivePreviewSection() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10"
       >
         <div>
@@ -402,7 +423,7 @@ function ArchivePreviewSection() {
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5, delay: idx * 0.07, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+            transition={{ duration: 0.5, delay: idx * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
           >
             <Link href={`/issue/${issue.slug}`} className="group block bg-card border border-card-border rounded-2xl p-6 h-full hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
@@ -431,7 +452,7 @@ function AudienceSection() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+        transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="text-center mb-12"
       >
         <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3">Who reads it</p>
@@ -447,7 +468,7 @@ function AudienceSection() {
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+            transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
             className="bg-card/60 border border-border/50 rounded-2xl p-7 text-center"
           >
@@ -463,15 +484,9 @@ function AudienceSection() {
   );
 }
 
-function BottomCTASection({ onSuccess }: { onSuccess: () => void }) {
+function BottomCTASection() {
   const { status, subscribe } = useSubscribe("bottom-cta");
   const [email, setEmail] = useState("");
-
-  useEffect(() => {
-    if (status === "success" || status === "exists") {
-      onSuccess();
-    }
-  }, [status, onSuccess]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -485,7 +500,7 @@ function BottomCTASection({ onSuccess }: { onSuccess: () => void }) {
         initial={{ opacity: 0, y: 28 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="bg-card border border-border rounded-[2.5rem] p-10 md:p-20 text-center relative overflow-hidden"
       >
         <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-primary/6 blur-[100px] pointer-events-none" />
@@ -512,15 +527,25 @@ function BottomCTASection({ onSuccess }: { onSuccess: () => void }) {
               disabled={status === "loading"}
               className="rounded-full h-14 px-8 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              {status === "success" ? <><Check className="w-4 h-4 mr-2" />Done</> :
+              {status === "pending-confirmation" ? <><Check className="w-4 h-4 mr-2" />Check your inbox!</> :
                status === "exists" ? <>Already in ✓</> :
                status === "loading" ? "Joining…" : "Join the brief"}
             </Button>
           </div>
         </form>
+        {status === "pending-confirmation" && (
+          <p className="text-sm text-green-600 flex items-center justify-center gap-1.5 mt-3 relative z-10">
+            <Check className="w-3.5 h-3.5" /> Check your inbox to confirm!
+          </p>
+        )}
+        {status === "exists" && (
+          <p className="text-sm text-amber-600 flex items-center justify-center gap-1.5 mt-3 relative z-10">
+            <AlertCircle className="w-3.5 h-3.5" /> You're already subscribed.
+          </p>
+        )}
         {status === "error" && (
           <p className="text-sm text-destructive flex items-center justify-center gap-1.5 mt-3 relative z-10">
-            <AlertCircle className="w-3.5 h-3.5" /> Something went wrong — try again.
+            <AlertCircle className="w-3.5 h-3.5" /> Something went wrong. Try again.
           </p>
         )}
       </motion.div>
@@ -530,17 +555,9 @@ function BottomCTASection({ onSuccess }: { onSuccess: () => void }) {
 
 export default function Home() {
   usePageTracking("/");
-  const [showOverlay, setShowOverlay] = useState(false);
-  const handleSubscribeSuccess = useCallback(() => setShowOverlay(true), []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      <AnimatePresence>
-        {showOverlay && (
-          <SubscribeSuccessOverlay onDismiss={() => setShowOverlay(false)} />
-        )}
-      </AnimatePresence>
-
       {/* NAV */}
       <motion.nav
         initial={{ opacity: 0, y: -10 }}
@@ -553,18 +570,8 @@ export default function Home() {
           <span className="font-serif text-xl font-medium tracking-tight">The Build Brief</span>
         </Link>
         <div className="flex items-center gap-6">
-          <Show when="signed-out">
-            <Link href="/archive" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Archive <Lock className="w-3 h-3 text-muted-foreground/50" />
-            </Link>
-            <Link href="/about" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              About <Lock className="w-3 h-3 text-muted-foreground/50" />
-            </Link>
-          </Show>
-          <Show when="signed-in">
-            <Link href="/archive" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">Archive</Link>
-            <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
-          </Show>
+          <Link href="/archive" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">Archive</Link>
+          <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
           <Link href="/sign-up">
             <Button
               variant="default"
@@ -577,12 +584,12 @@ export default function Home() {
       </motion.nav>
 
       <main className="pb-24">
-        <HeroSection onSuccess={handleSubscribeSuccess} />
+        <HeroSection />
         <StatsBar />
         <BentoSection />
         <ArchivePreviewSection />
         <AudienceSection />
-        <BottomCTASection onSuccess={handleSubscribeSuccess} />
+        <BottomCTASection />
       </main>
 
       <footer className="border-t border-border/40 py-12 px-6 mt-24">

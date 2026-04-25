@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db } from "@specflow/db";
-import { vaults } from "@specflow/db/schema";
+import { db } from "@workspace/db";
+import { vaultsTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { isAdmin } from "../middleware/auth";
 
@@ -10,14 +10,14 @@ router.get("/", async (req, res) => {
   try {
     const allVaults = await db
       .select()
-      .from(vaults)
-      .where(eq(vaults.isPublished, true))
-      .orderBy(desc(vaults.publishedAt))
+      .from(vaultsTable)
+      .where(eq(vaultsTable.isPublished, true))
+      .orderBy(desc(vaultsTable.publishedAt))
       .limit(10);
 
     res.json(allVaults);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch vaults" });
+    res.status(500).json({ error: "Failed to fetch vaultsTable" });
   }
 });
 
@@ -26,8 +26,8 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
     const vault = await db
       .select()
-      .from(vaults)
-      .where(eq(vaults.id, parseInt(id)))
+      .from(vaultsTable)
+      .where(eq(vaultsTable.id, parseInt(id)))
       .limit(1);
 
     if (!vault.length) {
@@ -40,16 +40,16 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /vaults/:id/publish - Admin only
+// POST /vaultsTable/:id/publish - Admin only
 router.post("/:id/publish", isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const now = new Date();
 
     const [updated] = await db
-      .update(vaults)
+      .update(vaultsTable)
       .set({ isPublished: true, publishedAt: now })
-      .where(eq(vaults.id, parseInt(id)))
+      .where(eq(vaultsTable.id, parseInt(id)))
       .returning();
 
     if (!updated) {

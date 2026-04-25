@@ -179,7 +179,7 @@ export default function About() {
                 disabled={status === "loading"}
                 className="rounded-full h-12 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
               >
-                {status === "success" ? <><Check className="w-4 h-4 mr-1.5" />Done</> :
+                {status === "pending-confirmation" ? <><Check className="w-4 h-4 mr-1.5" />Check your inbox!</> :
                  status === "exists" ? <>Already in ✓</> :
                  status === "loading" ? "Joining…" : "Subscribe"}
               </Button>
