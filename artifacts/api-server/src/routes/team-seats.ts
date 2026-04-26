@@ -1,7 +1,17 @@
 import { Router } from "express";
 import { verifyUser } from "../middleware/verifyUser";
-import { db, teamSeatsTableTable, subscribersTable } from "@workspace/db";
+import { db, teamSeatsTable, subscribersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import {
+  parseId,
+  requireParsedId,
+  unauthorizedError,
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  serverError,
+  successResponse,
+} from "../utils";
 
 const router = Router();
 
@@ -9,14 +19,14 @@ const router = Router();
 router.post("/team/seats/invite", verifyUser, async (req, res) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) return unauthorizedError(res);
 
     const { email, role } = req.body;
     if (!email || !role) {
-      return res.status(400).json({ error: "Email and role are required" });
+      return badRequestError(res, "Email and role are required");
     }
 
-    const userIdNum = parseInt(userId, 10);
+    const userIdNum = requireParsedId(userId);
 
     // Check user tier has team seats available
     const user = await db
@@ -25,12 +35,12 @@ router.post("/team/seats/invite", verifyUser, async (req, res) => {
       .where(eq(subscribersTable.id, userIdNum));
 
     if (!user.length) {
-      return res.status(404).json({ error: "User not found" });
+      return notFoundError(res, "User");
     }
 
     const userTier = user[0].tier || "free";
     if (userTier === "free") {
-      return res.status(403).json({ error: "Team seats not available on free tier" });
+      return forbiddenError(res, "Team seats not available on free tier");
     }
 
     // Count existing active seats
@@ -44,14 +54,12 @@ router.post("/team/seats/invite", verifyUser, async (req, res) => {
         )
       );
 
-    // Free: 0, Pro: 1, Max: 10, Incubator: unlimited
-    const maxSeats = userTier === "pro" ? 1 : userTier === "max" ? 10 : -1;
-    if (maxSeats !== -1 && existingSeats.length >= maxSeats) {
-      return res.status(403).json({
-        error: `Team seat limit reached for ${userTier} tier`,
-        current: existingSeats.length,
-        limit: maxSeats,
-      });
+    const maxSeats = userTier === "pro" ? 1 : userTier === "max" ? 10 : Infinity;
+    if (maxSeats !== Infinity && existingSeats.length >= maxSeats) {
+      return forbiddenError(
+        res,
+        `Team seat limit reached for ${userTier} tier (current: ${existingSeats.length}, limit: ${maxSeats})`
+      );
     }
 
     const seat = await db
@@ -64,9 +72,9 @@ router.post("/team/seats/invite", verifyUser, async (req, res) => {
       })
       .returning();
 
-    return res.json({ success: true, seat: seat[0] });
+    return successResponse(res, { success: true, seat: seat[0] });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to create seat invite" });
+    return serverError(res, "Failed to create seat invite", error);
   }
 });
 
@@ -74,9 +82,9 @@ router.post("/team/seats/invite", verifyUser, async (req, res) => {
 router.get("/team/seats", verifyUser, async (req, res) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!userId) return unauthorizedError(res);
 
-    const userIdNum = parseInt(userId, 10);
+    const userIdNum = requireParsedId(userId);
 
     const seats = await db
       .select()
@@ -86,13 +94,13 @@ router.get("/team/seats", verifyUser, async (req, res) => {
     const activeSeatCount = seats.filter((s) => s.status === "active").length;
     const pendingInvites = seats.filter((s) => s.status === "pending").length;
 
-    return res.json({
+    return successResponse(res, {
       seats,
       activeSeatCount,
       pendingInvites,
     });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to fetch team seats" });
+    return serverError(res, "Failed to fetch team seats", error);
   }
 });
 
@@ -102,10 +110,11 @@ router.post("/team/seats/accept/:seatId", verifyUser, async (req, res) => {
     const userId = req.user?.id;
     const { seatId } = req.params;
 
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    if (!seatId) return res.status(400).json({ error: "Seat ID is required" });
+    if (!userId) return unauthorizedError(res);
+    if (!seatId) return badRequestError(res, "Seat ID is required");
 
-    const seatIdNum = parseInt(seatId, 10);
+    const seatIdNum = requireParsedId(seatId);
+    const userIdNum = requireParsedId(userId);
 
     // Verify email matches
     const seat = await db
@@ -114,11 +123,11 @@ router.post("/team/seats/accept/:seatId", verifyUser, async (req, res) => {
       .where(eq(teamSeatsTable.id, seatIdNum));
 
     if (!seat.length) {
-      return res.status(404).json({ error: "Seat invite not found" });
+      return notFoundError(res, "Seat invite");
     }
 
     if (seat[0].invitedEmail !== req.user?.email) {
-      return res.status(403).json({ error: "This invite is not for your email" });
+      return forbiddenError(res, "This invite is not for your email");
     }
 
     const updated = await db
@@ -126,14 +135,14 @@ router.post("/team/seats/accept/:seatId", verifyUser, async (req, res) => {
       .set({
         status: "active",
         acceptedAt: new Date(),
-        teamMemberId: parseInt(userId, 10),
+        teamMemberId: userIdNum,
       })
       .where(eq(teamSeatsTable.id, seatIdNum))
       .returning();
 
-    return res.json({ success: true, seat: updated[0] });
+    return successResponse(res, { success: true, seat: updated[0] });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to accept seat invite" });
+    return serverError(res, "Failed to accept seat invite", error);
   }
 });
 
@@ -144,12 +153,12 @@ router.put("/team/seats/:id", verifyUser, async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    if (!id) return res.status(400).json({ error: "Seat ID is required" });
-    if (!role) return res.status(400).json({ error: "Role is required" });
+    if (!userId) return unauthorizedError(res);
+    if (!id) return badRequestError(res, "Seat ID is required");
+    if (!role) return badRequestError(res, "Role is required");
 
-    const userIdNum = parseInt(userId, 10);
-    const seatId = parseInt(id, 10);
+    const userIdNum = requireParsedId(userId);
+    const seatId = requireParsedId(id);
 
     // Verify ownership
     const seat = await db
@@ -163,7 +172,7 @@ router.put("/team/seats/:id", verifyUser, async (req, res) => {
       );
 
     if (!seat.length) {
-      return res.status(404).json({ error: "Seat not found" });
+      return notFoundError(res, "Seat");
     }
 
     const updated = await db
@@ -172,9 +181,9 @@ router.put("/team/seats/:id", verifyUser, async (req, res) => {
       .where(eq(teamSeatsTable.id, seatId))
       .returning();
 
-    return res.json({ success: true, seat: updated[0] });
+    return successResponse(res, { success: true, seat: updated[0] });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to update seat" });
+    return serverError(res, "Failed to update seat", error);
   }
 });
 
@@ -184,11 +193,11 @@ router.delete("/team/seats/:id", verifyUser, async (req, res) => {
     const userId = req.user?.id;
     const { id } = req.params;
 
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    if (!id) return res.status(400).json({ error: "Seat ID is required" });
+    if (!userId) return unauthorizedError(res);
+    if (!id) return badRequestError(res, "Seat ID is required");
 
-    const userIdNum = parseInt(userId, 10);
-    const seatId = parseInt(id, 10);
+    const userIdNum = requireParsedId(userId);
+    const seatId = requireParsedId(id);
 
     // Verify ownership
     const seat = await db
@@ -202,14 +211,14 @@ router.delete("/team/seats/:id", verifyUser, async (req, res) => {
       );
 
     if (!seat.length) {
-      return res.status(404).json({ error: "Seat not found" });
+      return notFoundError(res, "Seat");
     }
 
     await db.delete(teamSeatsTable).where(eq(teamSeatsTable.id, seatId));
 
-    return res.json({ success: true, message: "Team seat removed" });
+    return successResponse(res, { success: true, message: "Team seat removed" });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to remove seat" });
+    return serverError(res, "Failed to remove seat", error);
   }
 });
 

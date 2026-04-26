@@ -1,7 +1,15 @@
 import { Router } from "express";
 import { verifyUser } from "../middleware/verifyUser";
-import { db, creatorSubscriptions, subscribersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, creatorSubscriptions } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import {
+  requireParsedId,
+  unauthorizedError,
+  badRequestError,
+  notFoundError,
+  serverError,
+  successResponse,
+} from "../utils";
 
 const router = Router();
 
@@ -9,28 +17,32 @@ const router = Router();
 router.post("/creator/subscriptions", verifyUser, async (req, res) => {
   try {
     const creatorId = req.user?.id;
-    if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
+    if (!creatorId) return unauthorizedError(res);
 
     const { tier, monthlyPrice } = req.body;
     if (!tier || monthlyPrice === undefined) {
-      return res.status(400).json({ error: "Tier and monthly price are required" });
+      return badRequestError(res, "Tier and monthly price are required");
     }
 
-    const creatorIdNum = parseInt(creatorId, 10);
+    const creatorIdNum = requireParsedId(creatorId);
+    const parsedPrice = parseFloat(monthlyPrice);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return badRequestError(res, "Monthly price must be a valid positive number");
+    }
 
     const subscription = await db
       .insert(creatorSubscriptions)
       .values({
         creatorId: creatorIdNum,
         tier: tier.toLowerCase(),
-        monthlyPrice: String(parseFloat(monthlyPrice)),
+        monthlyPrice: String(parsedPrice),
         status: "active",
       })
       .returning();
 
-    return res.json({ success: true, subscription: subscription[0] });
+    return successResponse(res, { success: true, subscription: subscription[0] });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to create subscription" });
+    return serverError(res, "Failed to create subscription", error);
   }
 });
 
@@ -38,18 +50,18 @@ router.post("/creator/subscriptions", verifyUser, async (req, res) => {
 router.get("/creator/subscriptions", verifyUser, async (req, res) => {
   try {
     const creatorId = req.user?.id;
-    if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
+    if (!creatorId) return unauthorizedError(res);
 
-    const creatorIdNum = parseInt(creatorId, 10);
+    const creatorIdNum = requireParsedId(creatorId);
 
     const subscriptions = await db
       .select()
       .from(creatorSubscriptions)
       .where(eq(creatorSubscriptions.creatorId, creatorIdNum));
 
-    return res.json({ subscriptions });
+    return successResponse(res, { subscriptions });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to fetch subscriptions" });
+    return serverError(res, "Failed to fetch subscriptions", error);
   }
 });
 
@@ -60,33 +72,46 @@ router.put("/creator/subscriptions/:id", verifyUser, async (req, res) => {
     const { id } = req.params;
     const { tier, monthlyPrice, status } = req.body;
 
-    if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
-    if (!id) return res.status(400).json({ error: "Subscription ID is required" });
+    if (!creatorId) return unauthorizedError(res);
+    if (!id) return badRequestError(res, "Subscription ID is required");
 
-    const creatorIdNum = parseInt(creatorId, 10);
-    const subId = parseInt(id, 10);
+    const creatorIdNum = requireParsedId(creatorId);
+    const subId = requireParsedId(id);
 
     // Verify ownership
     const existing = await db
       .select()
       .from(creatorSubscriptions)
       .where(
-        and(
-          eq(creatorSubscriptions.id, subId),
-          eq(creatorSubscriptions.creatorId, creatorIdNum)
-        )
+        eq(creatorSubscriptions.id, subId),
       );
 
-    if (!existing.length) {
-      return res.status(404).json({ error: "Subscription not found" });
+    if (!existing.length || existing[0].creatorId !== creatorIdNum) {
+      return notFoundError(res, "Subscription");
     }
 
-    const updates: any = {};
-    if (tier) updates.tier = tier.toLowerCase();
-    if (monthlyPrice !== undefined) updates.monthlyPrice = String(parseFloat(monthlyPrice));
-    if (status) updates.status = status;
+    type UpdatePayload = Partial<{
+      tier: string;
+      monthlyPrice: string;
+      status: string;
+    }>;
+
+    const updates: UpdatePayload = {};
+    if (tier) {
+      updates.tier = tier.toLowerCase();
+    }
+    if (monthlyPrice !== undefined) {
+      const parsedPrice = parseFloat(monthlyPrice);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return badRequestError(res, "Monthly price must be a valid positive number");
+      }
+      updates.monthlyPrice = String(parsedPrice);
+    }
+    if (status) {
+      updates.status = status;
+    }
     if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: "No fields to update" });
+      return badRequestError(res, "No fields to update");
     }
 
     const updated = await db
@@ -95,9 +120,9 @@ router.put("/creator/subscriptions/:id", verifyUser, async (req, res) => {
       .where(eq(creatorSubscriptions.id, subId))
       .returning();
 
-    return res.json({ success: true, subscription: updated[0] });
+    return successResponse(res, { success: true, subscription: updated[0] });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to update subscription" });
+    return serverError(res, "Failed to update subscription", error);
   }
 });
 
@@ -107,32 +132,27 @@ router.delete("/creator/subscriptions/:id", verifyUser, async (req, res) => {
     const creatorId = req.user?.id;
     const { id } = req.params;
 
-    if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
-    if (!id) return res.status(400).json({ error: "Subscription ID is required" });
+    if (!creatorId) return unauthorizedError(res);
+    if (!id) return badRequestError(res, "Subscription ID is required");
 
-    const creatorIdNum = parseInt(creatorId, 10);
-    const subId = parseInt(id, 10);
+    const creatorIdNum = requireParsedId(creatorId);
+    const subId = requireParsedId(id);
 
     // Verify ownership
     const existing = await db
       .select()
       .from(creatorSubscriptions)
-      .where(
-        and(
-          eq(creatorSubscriptions.id, subId),
-          eq(creatorSubscriptions.creatorId, creatorIdNum)
-        )
-      );
+      .where(eq(creatorSubscriptions.id, subId));
 
-    if (!existing.length) {
-      return res.status(404).json({ error: "Subscription not found" });
+    if (!existing.length || existing[0].creatorId !== creatorIdNum) {
+      return notFoundError(res, "Subscription");
     }
 
     await db.delete(creatorSubscriptions).where(eq(creatorSubscriptions.id, subId));
 
-    return res.json({ success: true, message: "Subscription deleted" });
+    return successResponse(res, { success: true, message: "Subscription deleted" });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to delete subscription" });
+    return serverError(res, "Failed to delete subscription", error);
   }
 });
 
