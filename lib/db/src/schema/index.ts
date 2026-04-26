@@ -11,3 +11,4 @@ export * from "./referrals";
 export * from "./vaults";
 export * from "./walls";
 export * from "./monetization";
+export * from "./tiers";
