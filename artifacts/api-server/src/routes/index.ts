@@ -20,6 +20,7 @@ import contentRouter from "./content";
 import briefsRouter from "./briefs";
 import leadsRouter from "./leads";
 import foundersRouter from "./founders";
+import onboardingRouter from "./onboarding";
 
 const router: IRouter = Router();
 
@@ -44,5 +45,6 @@ router.use(contentRouter);
 router.use(briefsRouter);
 router.use(leadsRouter);
 router.use(foundersRouter);
+router.use('/onboarding', onboardingRouter);
 
 export default router;

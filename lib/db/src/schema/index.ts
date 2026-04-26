@@ -13,3 +13,4 @@ export * from "./walls";
 export * from "./monetization";
 export * from "./tiers";
 export * from "./founder_network";
+export * from "./onboarding";
