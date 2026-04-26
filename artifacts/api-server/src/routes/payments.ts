@@ -1,6 +1,6 @@
 import express, { Router, type IRouter, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
-import { db, subscribersTable } from "@workspace/db";
+import { db, subscribersTable, tierPrices } from "@workspace/db";
 import Stripe from "stripe";
 import Razorpay from "razorpay";
 import crypto from "crypto";
@@ -35,12 +35,20 @@ router.post("/payments/create-session", verifyUser, async (req: Request, res: Re
   }
 
   const prices: Record<string, { usd: number; inr: number }> = {
-    "Pro": { usd: 999, inr: 99900 },
-    "Max": { usd: 4900, inr: 499900 },
-    "Incubator": { usd: 19900, inr: 1999900 },
+    "pro": { usd: tierPrices.pro * 100, inr: Math.round(tierPrices.pro * 100 * 83) },
+    "max": { usd: tierPrices.max * 100, inr: Math.round(tierPrices.max * 100 * 83) },
+    "incubator": { usd: 0, inr: 0 }, // Custom pricing - handled separately
   };
 
-  const selectedPrice = prices[plan];
+  const normalizedPlan = plan.toLowerCase();
+
+  // Incubator requires custom pricing - contact sales
+  if (normalizedPlan === "incubator") {
+    res.status(400).json({ error: "Incubator plan requires custom pricing. Please contact sales." });
+    return;
+  }
+
+  const selectedPrice = prices[normalizedPlan];
   if (!selectedPrice) {
     res.status(400).json({ error: "Invalid plan" });
     return;
