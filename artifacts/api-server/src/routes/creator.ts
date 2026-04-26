@@ -76,7 +76,7 @@ router.put("/creator/subscriptions/:id", verifyUser, async (req, res) => {
     if (!id) return badRequestError(res, "Subscription ID is required");
 
     const creatorIdNum = requireParsedId(creatorId);
-    const subId = requireParsedId(id);
+    const subId = typeof id === "string" ? id : id[0];
 
     // Verify ownership
     const existing = await db
@@ -136,7 +136,7 @@ router.delete("/creator/subscriptions/:id", verifyUser, async (req, res) => {
     if (!id) return badRequestError(res, "Subscription ID is required");
 
     const creatorIdNum = requireParsedId(creatorId);
-    const subId = requireParsedId(id);
+    const subId = typeof id === "string" ? id : id[0];
 
     // Verify ownership
     const existing = await db

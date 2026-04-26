@@ -7,16 +7,18 @@ export interface AuthRequest extends Request {
 }
 
 export function featureGateMiddleware(featureKey: string, incrementUsage: boolean = true) {
-  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        res.status(401).json({ error: "Unauthorized" });
+        return;
       }
 
       const { allowed, reason } = await canUseFeature(req.userId, featureKey);
 
       if (!allowed) {
-        return res.status(403).json({ error: "Feature not available", reason });
+        res.status(403).json({ error: "Feature not available", reason });
+        return;
       }
 
       // Increment usage if enabled
@@ -31,18 +33,20 @@ export function featureGateMiddleware(featureKey: string, incrementUsage: boolea
     } catch (error) {
       console.error("Feature gate middleware error:", error);
       res.status(500).json({ error: "Internal server error" });
+      return;
     }
   };
 }
 
 export function requireTier(...tiers: string[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.userTier || !tiers.includes(req.userTier)) {
-      return res.status(403).json({
+      res.status(403).json({
         error: "This feature requires a higher tier",
         requiredTier: tiers[0],
         currentTier: req.userTier,
       });
+      return;
     }
     next();
   };

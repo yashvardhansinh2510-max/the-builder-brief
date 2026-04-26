@@ -39,7 +39,7 @@ const contents = [
   { title: "Why Now", desc: "3 bullets on why this window is open today and not 3 years ago.", icon: Compass },
   { title: "Market Intelligence", desc: "TAM, competitive gap, who's NOT serving this yet.", icon: TrendingUp },
   { title: "Build Blueprint", desc: "6 concrete steps to ship v1. Starts from zero, ends at a working product.", icon: Code2 },
-  { title: "Claude Prompts", desc: "3–5 copy-paste prompts engineered for this specific build.", icon: Zap, accent: true },
+  { title: "AI Execution Prompts", desc: "Ready-to-use AI prompts for landing page, email, pitch deck. Copy-paste and ship.", icon: Zap, accent: true },
   { title: "First Revenue Path", desc: "Exactly how to charge the first customer. Pricing, timeline.", icon: DollarSign },
   { title: "First 10 Customers", desc: "A specific, unglamorous, works-in-real-life strategy.", icon: Users2 },
 ];
@@ -48,13 +48,13 @@ const audiences = [
   { title: "Aspiring Founders", desc: "Want to build real companies but don't know what to build.", icon: Rocket },
   { title: "Early-stage Founders", desc: "Validating directions and looking for the next pivot.", icon: LineChart },
   { title: "Product Managers", desc: "PMs who want to go solo and own the full product.", icon: Users },
-  { title: "Indie Hackers", desc: "Tired of building toys and ready for real, profitable problems.", icon: Code },
+  { title: "AI/No-Code Builders", desc: "Shipping with AI and no-code tools. Ship 10x faster, validate in days.", icon: Code },
 ];
 
 const stats = [
   { value: "15,000+", label: "founders & PMs" },
+  { value: "500+", label: "companies shipped" },
   { value: "8", label: "complete blueprints" },
-  { value: "< 48h", label: "time to first revenue" },
   { value: "100%", label: "free, always" },
 ];
 
@@ -155,7 +155,8 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
           transition={{ duration: 0.6, delay: 0.65 }}
           className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12"
         >
-          Every Friday, one complete startup idea — named, researched, and blueprinted.
+          Every Friday, one complete startup idea — researched by founders who've exited,
+          AI-refined for execution, and blueprinted with real code.
           Open it on Friday. Ship something by Monday.
         </motion.p>
 
@@ -200,7 +201,7 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
               <AlertCircle className="w-3.5 h-3.5" /> Something went wrong. Try again.
             </p>
           )}
-          <p className="text-sm text-muted-foreground">Join 15,000+ founders, PMs, and indie hackers. Free forever.</p>
+          <p className="text-sm text-muted-foreground">Join 15,000+ founders. Shipped 500+ companies. Free forever. (Pro tier: founders helping founders directly.)</p>
         </motion.div>
       </motion.div>
     </section>
@@ -427,7 +428,7 @@ function ArchivePreviewSection() {
         className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10"
       >
         <div>
-          <p className="text-sm font-medium text-primary uppercase tracking-widest mb-2">The vault</p>
+          <p className="text-sm font-medium text-primary uppercase tracking-widest mb-2">The vault (AI-researched, founder-validated)</p>
           <h2 className="font-serif text-4xl md:text-5xl">8 ideas. 8 blueprints.</h2>
         </div>
         <Link href="/archive" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
@@ -529,7 +530,7 @@ function BottomCTASection() {
           Stop waiting for<br /><span className="italic">the right idea.</span>
         </h2>
         <p className="text-xl text-muted-foreground max-w-xl mx-auto mb-10 relative z-10 leading-relaxed">
-          We deliver it. With the blueprint to build it. So the only thing left is for you to start.
+          We deliver it. AI-refined. Founder-validated. With the blueprint to build it. So the only thing left is for you to start.
         </p>
         <form onSubmit={handleSubmit} className="max-w-md mx-auto relative z-10">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -640,8 +641,8 @@ export default function Home() {
         <RuixenSection />
         <CombinedFeaturedSection />
         <PersonalizedBuildBriefFeatures />
-        <div className="px-6 max-w-6xl mx-auto mb-28">
-           <CustomersTableCard />
+        <div>
+          <CustomersTableCard />
         </div>
         <TiersShowcaseSection />
         <PricingSection />

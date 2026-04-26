@@ -69,7 +69,7 @@ router.post("/payments/create-session", verifyUser, async (req: Request, res: Re
       currency: order.currency,
       key: process.env.RAZORPAY_KEY_ID
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error({ error }, "Error creating payment session");
     res.status(500).json({ error: "Failed to create payment session" });
   }

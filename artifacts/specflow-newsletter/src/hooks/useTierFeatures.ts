@@ -87,7 +87,7 @@ export function useTierFeatures(userTier: string = "free") {
 
     return {
       allowed: true,
-      limit: feature.limit === -1 ? undefined : feature.limit,
+      limit: feature.limit === -1 || feature.limit === null ? undefined : feature.limit,
     };
   };
 

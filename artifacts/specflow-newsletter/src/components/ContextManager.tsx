@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Database, Target, Rocket, Users, AlertCircle, Save, Check } from "lucide-react";
+import { Database, Target, Rocket, Users, AlertCircle, Save, Check, Upload, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -13,9 +13,11 @@ interface StartupContext {
 }
 
 export default function ContextManager() {
-  const { session } = useAuth();
+  const { session, isAdmin, getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [files, setFiles] = useState<any[]>([]);
   const [context, setContext] = useState<StartupContext>({
     whatBuilding: "",
     stage: "pre-revenue",
@@ -42,7 +44,53 @@ export default function ContextManager() {
         }
       });
     }
-  }, [session]);
+    if (isAdmin) fetchFiles();
+  }, [session, isAdmin]);
+
+  const fetchFiles = async () => {
+    const token = await getToken();
+    try {
+      const res = await fetch("/api/engine/files", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch files", e);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const token = await getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/engine/upload", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        toast.success("File uploaded and indexed");
+        fetchFiles();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Upload failed");
+      }
+    } catch (e) {
+      toast.error("Upload failed");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const save = async () => {
     setLoading(true);
@@ -172,6 +220,65 @@ export default function ContextManager() {
             </div>
           </div>
         </div>
+
+        {/* Admin Training Section */}
+        {isAdmin && (
+          <div className="mt-12 pt-12 border-t border-border/40">
+             <div className="flex items-center justify-between mb-8">
+                <div className="space-y-1">
+                  <h3 className="font-serif text-2xl flex items-center gap-3">
+                    <Database className="w-6 h-6 text-primary" /> Knowledge Base Training
+                  </h3>
+                  <p className="text-xs text-muted-foreground italic">Add proprietary context to your Intelligence Engine.</p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="file-upload"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept=".md,.txt"
+                    disabled={isUploading}
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer transition-all ${isUploading ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"}`}
+                  >
+                    {isUploading ? "Uploading..." : <><Upload className="w-3.5 h-3.5" /> Upload Context</>}
+                  </label>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+               {files.length === 0 ? (
+                 <div className="col-span-full p-12 rounded-3xl border border-dashed border-border/40 bg-card/10 flex flex-col items-center justify-center text-center">
+                    <FileText className="w-12 h-12 text-muted-foreground/20 mb-4" />
+                    <p className="text-sm text-muted-foreground">No proprietary files indexed yet.</p>
+                 </div>
+               ) : (
+                 files.map((file) => (
+                   <div key={file.name} className="group p-5 rounded-2xl bg-card/30 border border-border/40 hover:border-primary/30 transition-all">
+                      <div className="flex items-center gap-4 mb-4">
+                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                            <FileText className="w-5 h-5" />
+                         </div>
+                         <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold uppercase tracking-tight truncate">{file.name}</p>
+                            <p className="text-[9px] text-muted-foreground uppercase">{(file.size / 1024).toFixed(1)} KB • {new Date(file.updatedAt).toLocaleDateString()}</p>
+                         </div>
+                      </div>
+                      <div className="pt-3 border-t border-border/10 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                         <span className="text-[8px] font-bold text-primary uppercase tracking-widest">Active Sync</span>
+                         <button className="text-muted-foreground hover:text-destructive transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                         </button>
+                      </div>
+                   </div>
+                 ))
+               )}
+             </div>
+          </div>
+        )}
       </div>
     </div>
   );

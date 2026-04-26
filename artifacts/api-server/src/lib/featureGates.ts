@@ -52,10 +52,10 @@ export async function canUseFeature(
         )
         .limit(1);
 
-      const currentUsage = usage && usage.length > 0 ? usage[0].usageCount : 0;
+      const currentUsage = (usage && usage.length > 0) ? (usage[0].usageCount || 0) : 0;
       const limit = tierFeature[0].limitValue;
 
-      if (currentUsage >= limit) {
+      if (limit !== null && currentUsage >= limit) {
         return {
           allowed: false,
           reason: `Usage limit reached (${currentUsage}/${limit})`,
@@ -95,13 +95,13 @@ export async function incrementFeatureUsage(
       const updated = await db
         .update(userTierUsageTable)
         .set({
-          usageCount: existing[0].usageCount + 1,
+          usageCount: (existing[0].usageCount || 0) + 1,
           updatedAt: new Date(),
         })
         .where(eq(userTierUsageTable.id, existing[0].id))
         .returning();
 
-      return { success: true, newCount: updated[0].usageCount };
+      return { success: true, newCount: updated[0].usageCount || 0 };
     } else {
       // Create new record
       const created = await db
@@ -156,7 +156,7 @@ export async function getFeatureUsage(
     }
 
     return {
-      usageCount: usage[0].usageCount,
+      usageCount: usage[0].usageCount || 0,
       limitValue: usage[0].limitValue,
     };
   } catch (error) {
@@ -198,7 +198,6 @@ export function getTierFeatures(tier: string): Record<string, any> {
       sso: { limit: 1, description: "Single sign-on" },
       customIntegrations: { limit: 1, description: "Custom integrations" },
       dedicatedSlack: { limit: 1, description: "Dedicated Slack channel" },
-      analytics: { limit: 1, description: "Enterprise analytics" },
       seatOverage: { limit: 25, description: "Additional seat overage" },
     },
     incubator: {

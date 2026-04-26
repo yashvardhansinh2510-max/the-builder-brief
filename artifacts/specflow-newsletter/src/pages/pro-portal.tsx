@@ -18,6 +18,7 @@ import { getStartupContext, type StartupContext } from "@/lib/startup-context";
 import { toast } from "sonner";
 import DailyBriefUI from "@/components/DailyBriefUI";
 import PersonalizationUI from "@/components/PersonalizationUI";
+import { FounderSocialLayer } from "@/components/FounderSocialLayer";
 
 
 // --- High-End Vault Data ---
@@ -425,6 +426,9 @@ export default function ProPortal() {
             </div>
           </div>
         </section>
+
+        {/* ── 4.75 FOUNDER SOCIAL LAYER ── */}
+        <FounderSocialLayer />
 
         {/* ── 5. TOOL 2: NICHE SATURATION SCANNER ── */}
         <section>

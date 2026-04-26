@@ -36,7 +36,7 @@ export const userTierUsageTable = pgTable("user_tier_usage", {
 export const teamSeatsTable = pgTable("team_seats", {
   id: uuid("id").primaryKey().defaultRandom(),
   teamOwnerId: integer("team_owner_id").notNull().references(() => subscribersTable.id, { onDelete: "cascade" }),
-  teamMemberId: integer("team_member_id").references(() => subscribersTable.id, { onDelete: "setNull" }),
+  teamMemberId: integer("team_member_id").references(() => subscribersTable.id, { onDelete: "set null" }),
   teamMemberEmail: varchar("team_member_email", { length: 255 }),
   role: varchar("role", { length: 20 }).default("member"),
   costPerSeat: text("cost_per_seat").default("50.00"),

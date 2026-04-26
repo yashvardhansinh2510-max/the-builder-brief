@@ -8,6 +8,17 @@ import earningsRouter from "./earnings";
 import marketplaceRouter from "./marketplace-creator";
 import creatorRouter from "./creator";
 import teamSeatsRouter from "./team-seats";
+import engineRouter from "./engine";
+import paymentsRouter from "./payments";
+import referralsRouter from "./referrals";
+import incubatorRouter from "./incubator";
+import scorecardRouter from "./scorecard";
+import terminalRouter from "./terminal";
+import wallsRouter from "./walls";
+import vaultsRouter from "./vaults";
+import contentRouter from "./content";
+import briefsRouter from "./briefs";
+import leadsRouter from "./leads";
 
 const router: IRouter = Router();
 
@@ -20,5 +31,16 @@ router.use(earningsRouter);
 router.use(marketplaceRouter);
 router.use(creatorRouter);
 router.use(teamSeatsRouter);
+router.use(engineRouter);
+router.use(paymentsRouter);
+router.use(referralsRouter);
+router.use(incubatorRouter);
+router.use(scorecardRouter);
+router.use(terminalRouter);
+router.use(wallsRouter);
+router.use(vaultsRouter);
+router.use(contentRouter);
+router.use(briefsRouter);
+router.use(leadsRouter);
 
 export default router;

@@ -1,4 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 import { db } from "@workspace/db";
 import { subscribersTable, chatMessagesTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -8,6 +11,7 @@ import { sendWeeklySignal, sendDailyBriefingForUser } from "../lib/email";
 import { logger } from "../lib/logger";
 import { verifyUser } from "../middleware/verifyUser";
 import { knowledgeBase } from "../services/knowledge";
+import { getLiveMarketPulse } from "../services/pulse";
 
 const router: IRouter = Router();
 
@@ -306,6 +310,10 @@ router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Pro
     ? `\n\n[PROPRIETARY FOUNDRY CONTEXT - USE THIS TO ANSWER]\n${knowledgeContext}\n[END PROPRIETARY CONTEXT]`
     : "";
 
+  // Get Live Market Pulse (Live Alpha)
+  const pulse = await getLiveMarketPulse();
+  const pulseContext = pulse.map(p => `[${p.intensity.toUpperCase()}] ${p.title}: ${p.description} (Source: ${p.source})`).join("\n");
+
   try {
     const stream = await deepseek.chat.completions.create({
       model: DEEPSEEK_MODEL,
@@ -315,11 +323,24 @@ router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Pro
       messages: [
         {
           role: "system",
-          content: `${selectedPrompt}${webContext}${knowledgePrompt} The user is a ${effectiveTier} founder in your portfolio.${
-            subscriber?.whatBuilding
-              ? ` They are building: ${subscriber.whatBuilding}.${subscriber.startupSector ? ` Sector: ${subscriber.startupSector}.` : ""}${subscriber.startupStage ? ` Stage: ${subscriber.startupStage}.` : ""}${subscriber.targetCustomer ? ` Target customer: ${subscriber.targetCustomer}.` : ""}${subscriber.biggestChallenge ? ` Biggest challenge right now: ${subscriber.biggestChallenge}. Address this directly in your responses when relevant.` : ""}`
-              : ""
-          }`
+          content: `${selectedPrompt}
+    
+=== PROPRIETARY KNOWLEDGE BASE ===
+${knowledgeContext || "No specific blueprints found for this query."}
+
+=== LIVE MARKET PULSE (ALPHA DATA) ===
+${pulseContext}
+
+=== USER CONTEXT ===
+Building: ${subscriber?.whatBuilding || "Unknown"}
+Sector: ${subscriber?.startupSector || "Unknown"}
+Stage: ${subscriber?.startupStage || "Unknown"}
+Challenge: ${subscriber?.biggestChallenge || "Unknown"}
+
+INSTRUCTIONS: 
+1. Use the Proprietary Knowledge and Live Market Pulse to provide 'Alpha' that generic LLMs cannot access.
+2. If the user's startup aligns with a Market Pulse gap, point it out.
+3. Be tactical, specific, and reference YC-style logic.`
         },
         ...chatHistory.slice(-20).map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
         { role: "user" as const, content: message }
@@ -365,6 +386,207 @@ router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Pro
       : "AI Advisor unavailable. Try again shortly.";
     res.write(`data: ${JSON.stringify({ error: userMessage })}\n\n`);
     res.end();
+  }
+});
+
+// Knowledge Base Management
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(process.cwd(), "context");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    // Sanitize filename
+    const name = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    cb(null, name);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "text/markdown" || file.mimetype === "text/plain" || file.originalname.endsWith(".md") || file.originalname.endsWith(".txt")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only .md and .txt files are allowed"));
+    }
+  },
+});
+
+router.get("/engine/files", verifyUser, async (req, res): Promise<void> => {
+  if (!ADMIN_EMAILS.has(req.user?.email || "")) {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+
+  const dir = path.join(process.cwd(), "context");
+  if (!fs.existsSync(dir)) {
+    res.json([]);
+    return;
+  }
+
+  const files = fs.readdirSync(dir).filter(f => f.endsWith(".md") || f.endsWith(".txt"));
+  const stats = files.map(f => {
+    const s = fs.statSync(path.join(dir, f));
+    return {
+      name: f,
+      size: s.size,
+      updatedAt: s.mtime,
+    };
+  });
+
+  res.json(stats);
+});
+
+router.post("/engine/upload", verifyUser, upload.single("file"), async (req, res): Promise<void> => {
+  if (!ADMIN_EMAILS.has(req.user?.email || "")) {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+
+  if (!req.file) {
+    res.status(400).json({ error: "No file uploaded" });
+    return;
+  }
+
+  res.json({ message: "File uploaded and indexed successfully", file: req.file.filename });
+});
+
+router.post("/engine/roadmap", verifyUser, async (req: Request, res: Response): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const subscriber = await db
+      .select()
+      .from(subscribersTable)
+      .where(eq(subscribersTable.email, email))
+      .limit(1);
+
+    if (!subscriber.length) {
+      res.status(404).json({ error: "Subscriber not found" });
+      return;
+    }
+
+    const sub = subscriber[0];
+    
+    // Search Knowledge Base for roadmap/scaling blueprints
+    const contextDocs = await knowledgeBase.search(`${sub.startupSector} scaling roadmap ${sub.startupStage}`);
+
+    const prompt = `You are the $100B SaaS Growth Architect. Generate a personalized 4-phase strategic roadmap for this founder.
+    
+FOUNDER CONTEXT:
+Building: ${sub.whatBuilding || "Unknown"}
+Sector: ${sub.startupSector || "Unknown"}
+Stage: ${sub.startupStage || "Unknown"}
+Challenge: ${sub.biggestChallenge || "Unknown"}
+
+PROPRIETARY BLUEPRINTS:
+${contextDocs}
+
+STRUCTURE:
+Phase 1: The Atomic Unit (Next 3-6 months)
+Phase 2: The Repeatable Motion (Next 12 months)
+Phase 3: The Platform Play (Scaling to $10M ARR)
+Phase 4: The Compounder (Scaling to $100M+ ARR)
+
+For each phase, provide:
+1. One 'North Star' Metric.
+2. Three specific tactical actions.
+3. One 'Moat' to build during this phase.
+
+Be aggressive, tactical, and use YC-style logic. NO FLUFF.`;
+
+    const response = await deepseek?.chat.completions.create({
+      model: DEEPSEEK_MODEL,
+      messages: [{ role: "system", content: prompt }],
+      temperature: 0.7,
+    });
+
+    const roadmapText = response?.choices[0]?.message?.content || "";
+
+    // Save to database
+    await db.update(subscribersTable)
+      .set({ 
+        roadmap: { generatedAt: new Date().toISOString(), content: roadmapText },
+        updatedAt: new Date()
+      })
+      .where(eq(subscribersTable.id, sub.id));
+
+    res.json({ success: true, roadmap: roadmapText });
+  } catch (error) {
+    logger.error({ error }, "Error generating roadmap");
+    res.status(500).json({ error: "Failed to generate roadmap" });
+  }
+});
+
+router.post("/engine/investor-matches", verifyUser, async (req: Request, res: Response): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const subscriber = await db
+      .select()
+      .from(subscribersTable)
+      .where(eq(subscribersTable.email, email))
+      .limit(1);
+
+    if (!subscriber.length) {
+      res.status(404).json({ error: "Subscriber not found" });
+      return;
+    }
+
+    const sub = subscriber[0];
+    const vcContext = await knowledgeBase.search("VC personas Sequoia a16z Founders Fund investment criteria");
+
+    const prompt = `You are an elite Fundraising Consultant. Match this founder with the best-fit VC archetypes from our proprietary database.
+    
+FOUNDER CONTEXT:
+Sector: ${sub.startupSector || "Unknown"}
+Stage: ${sub.startupStage || "Unknown"}
+Building: ${sub.whatBuilding || "Unknown"}
+
+VC PERSONAS & CRITERIA:
+${vcContext}
+
+INSTRUCTIONS:
+1. Identify the TOP 3 VC Archetypes that would be most interested in this venture.
+2. For each match, provide:
+   - Archetype Name
+   - Reason for Fit (based on their specific criteria)
+   - Recommended Pitch Angle (The 'hook' that appeals to their specific bias)
+3. Provide one 'Hard Truth' about why they might say NO.
+
+Be ruthless, analytical, and professional.`;
+
+    const response = await deepseek?.chat.completions.create({
+      model: DEEPSEEK_MODEL,
+      messages: [{ role: "system", content: prompt }],
+      temperature: 0.5,
+    });
+
+    res.json({ success: true, matches: response?.choices[0]?.message?.content || "" });
+  } catch (error) {
+    logger.error({ error }, "Error matching investors");
+    res.status(500).json({ error: "Failed to match investors" });
+  }
+});
+
+router.get("/engine/pulse", verifyUser, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const pulse = await getLiveMarketPulse();
+    res.json({ success: true, pulse });
+  } catch (error) {
+    logger.error({ error }, "Error fetching pulse");
+    res.status(500).json({ error: "Failed to fetch pulse" });
   }
 });
 

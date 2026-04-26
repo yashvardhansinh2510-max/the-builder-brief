@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
+import type { RazorpayPaymentResponse, RazorpayCheckoutOptions } from "@/types/razorpay";
 
 
 
@@ -76,14 +77,14 @@ export function PricingSection() {
           return;
         }
 
-        const options = {
+        const options: RazorpayCheckoutOptions = {
           key: data.key,
           amount: data.amount,
           currency: data.currency,
           name: "The Builder Brief",
           description: `Subscribe to ${planName}`,
           order_id: data.orderId,
-          handler: async (response: any) => {
+          handler: async (response: RazorpayPaymentResponse) => {
             const verifyRes = await fetch("/api/payments/verify-razorpay", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -109,7 +110,7 @@ export function PricingSection() {
           },
         };
 
-        const rzp = new (window as any).Razorpay(options);
+        const rzp = new window.Razorpay(options);
         rzp.open();
         toast.dismiss(toastId);
       }
@@ -122,11 +123,11 @@ export function PricingSection() {
   const plans = [
     {
       name: "Free",
-      tagline: "Start here.",
+      tagline: "Ship your first idea.",
       priceUS: "$0",
       priceIN: "₹0",
       period: "forever",
-      description: "The weekly signal. Real market gaps, deconstructed. Zero fluff — forever.",
+      description: "One complete blueprint every Friday. Built by 500+ founders who've exited. All yours forever.",
       features: [
         "Weekly blueprint drop every Friday",
         "Full build blueprint for each idea",
@@ -140,11 +141,11 @@ export function PricingSection() {
     },
     {
       name: "Pro",
-      tagline: "For founders actually building.",
+      tagline: "Tap into the founder network.",
       priceUS: "$29",
       priceIN: "₹2,407",
       period: "per month",
-      description: "The full vault, the full playbook, and the systems that separate founders who ship from founders who plan.",
+      description: "Daily insights from 500+ founders. Full playbook. Direct access to advisors who've shipped. Used by founders building the next unicorns.",
       features: [
         "Daily venture drops — 5 days a week",
         "Full Vault Archive — all 8+ blueprints, forever",
@@ -160,18 +161,18 @@ export function PricingSection() {
     },
     {
       name: "Max",
-      tagline: "White-glove founder coaching.",
+      tagline: "Co-founder access. Accelerator-level.",
       priceUS: "$149",
       priceIN: "₹12,367",
       period: "per month",
-      description: "Everything in Pro, plus a 30-minute monthly call with someone who's built, sold, and fundraised before.",
+      description: "Everything in Pro, plus direct access to operators who've built and exited. Weekly strategy calls. Your personal operating system for scaling.",
       features: [
         "Everything in Pro, plus:",
-        "AI Advisor — 20 sessions per month (Inner Circle depth)",
-        "30-min 1-on-1 call with our team monthly",
-        "Private code review sessions",
-        "Private sales call & script review",
-        "Priority on every channel — no waiting",
+        "AI Advisor — 20 sessions per month (Deep strategy depth)",
+        "Weekly 30-min strategy call with founder operators",
+        "Private architecture & systems review",
+        "GTM strategy & execution review",
+        "Early access to new features & founder network",
       ],
       icon: PhoneCall,
       buttonText: "Upgrade to Max",
@@ -198,9 +199,9 @@ export function PricingSection() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-primary/10 blur-[100px] pointer-events-none rounded-full" />
         <p className="text-sm font-medium text-primary uppercase tracking-widest mb-3 relative z-10">Pricing</p>
         <h2 className="font-serif text-4xl md:text-5xl mb-3 relative z-10">
-          Pick your level of serious.
+          Pick your path to ship.
         </h2>
-        <p className="text-muted-foreground max-w-lg mx-auto text-base relative z-10 mb-6">Free gives you the blueprint. Pro gives you the systems. Max gives you the person who's done it before.</p>
+        <p className="text-muted-foreground max-w-lg mx-auto text-base relative z-10 mb-6">Free: Get the blueprint. Pro: Join 500+ founders shipping daily. Max: Get accelerator access + co-founder operators.</p>
         
         {/* Toggle Region */}
         <div className="flex items-center justify-center gap-4 relative z-10">
@@ -297,8 +298,8 @@ export function PricingSection() {
         className="mb-20 relative z-10 overflow-x-auto"
       >
         <div className="text-center mb-10">
-          <h3 className="font-serif text-3xl mb-3">Compare Plans</h3>
-          <p className="text-muted-foreground max-w-xl mx-auto">See exactly what you're getting. No hidden restrictions.</p>
+          <h3 className="font-serif text-3xl mb-3">Which Tier Gets You to Revenue Fastest?</h3>
+          <p className="text-muted-foreground max-w-xl mx-auto">Free ships ideas. Pro ships companies. Max accelerates exits.</p>
         </div>
         <SpotlightCard className="min-w-[700px] border border-border rounded-3xl overflow-hidden bg-card">
           <table className="w-full text-left border-collapse">

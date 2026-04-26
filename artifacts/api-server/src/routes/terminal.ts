@@ -1,61 +1,60 @@
-import { Router, IRouter } from "express";
-import { db, subscribersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { Router, type IRouter, type Request, type Response } from "express";
+import { OpenAI } from "openai";
+import { KnowledgeBase } from "../services/knowledge";
 import { verifyUser } from "../middleware/verifyUser";
-import OpenAI from "openai";
-import { searchWeb } from "../lib/tavily"; // I'll assume I can use a helper or just openai
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 const openai = new OpenAI();
+const kb = new KnowledgeBase();
 
-router.post("/terminal/command", verifyUser, async (req, res) => {
+router.post("/terminal/command", verifyUser, async (req: Request, res: Response): Promise<void> => {
+  const { command, context } = req.body;
+  const email = req.user?.email;
+
+  if (!command) {
+    res.status(400).json({ error: "Command is required" });
+    return;
+  }
+
   try {
-    const { command, args } = req.body;
-    const email = (req as any).user?.email;
-    const [subscriber] = await db.select().from(subscribersTable).where(eq(subscribersTable.email, email)).limit(1);
+    // 1. Search Knowledge Base for proprietary context
+    const searchResults = await kb.search(command);
+    const knowledgeContext = searchResults;
 
-    if (!subscriber) {
-      return res.status(404).json({ error: "Subscriber not found" });
-    }
+    // 2. Execute Intelligence Engine
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are the Builder Brief Terminal (OperatorOS). 
+          You provide tactical, aggressive, and highly technical founder advice. 
+          Use YC logic and ruthless efficiency. No fluff. No generic advice.
+          
+          Context from our proprietary vault:
+          ${knowledgeContext}
+          
+          Founder Startup Context:
+          ${JSON.stringify(context || {})}
+          
+          Respond in a concise, terminal-style format. Use markdown for technical details.`
+        },
+        { role: "user", content: command }
+      ],
+      temperature: 0.2,
+      max_tokens: 1000
+    });
 
-    let response = "";
-    
-    switch (command) {
-      case "/market-scan":
-        const target = args || subscriber.startupSector;
-        const scanPrompt = `Perform a brutal, high-level market scan for: ${target}. Identify 3 major threats and 2 hidden opportunities for a founder at stage: ${subscriber.startupStage}.`;
-        const scanRes = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [{ role: "system", content: "You are an elite market intelligence bot." }, { role: "user", content: scanPrompt }],
-        });
-        response = scanRes.choices[0].message.content || "Scan failed.";
-        break;
+    const response = completion.choices[0].message.content;
 
-      case "/roast":
-        const roastPrompt = `Roast this startup idea/status: "${subscriber.whatBuilding}". Be brutal, cynical, and highly tactical. Help this founder stop lying to themselves.`;
-        const roastRes = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [{ role: "system", content: "You are a cynical VC who hates bad ideas." }, { role: "user", content: roastPrompt }],
-        });
-        response = roastRes.choices[0].message.content || "Roast failed.";
-        break;
-
-      case "/sprint":
-        const sprintPrompt = `Generate a 7-day high-intensity execution sprint for a ${subscriber.startupSector} founder building ${subscriber.whatBuilding}. Goal: Immediate traction.`;
-        const sprintRes = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [{ role: "system", content: "You are a high-performance execution coach." }, { role: "user", content: sprintPrompt }],
-        });
-        response = sprintRes.choices[0].message.content || "Sprint generation failed.";
-        break;
-
-      default:
-        response = `Command not recognized: ${command}. Available: /market-scan, /roast, /sprint`;
-    }
-
-    return res.json({ output: response });
+    res.json({ 
+      output: response,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    return res.status(500).json({ error: "Terminal command failed" });
+    logger.error({ error }, "Error executing terminal command");
+    res.status(500).json({ error: "Terminal execution failed" });
   }
 });
 
