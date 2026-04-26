@@ -6,6 +6,7 @@ import confirmRouter from "./confirm";
 import cronRouter from "./cron";
 import earningsRouter from "./earnings";
 import marketplaceRouter from "./marketplace-creator";
+import creatorRouter from "./creator";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(confirmRouter);
 router.use(cronRouter);
 router.use(earningsRouter);
 router.use(marketplaceRouter);
+router.use(creatorRouter);
 
 export default router;
