@@ -48,42 +48,38 @@ Founder
   },
   {
     id: "tech-1",
-    title: "Stripe Webhook Handler V3",
+    title: "Razorpay Payment Verification V3",
     category: "Technical Scaffolding",
     type: "code",
     tags: ["Backend", "Payments"],
-    content: `// The exact high-performance webhook handler we use in production.
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
-import Stripe from "stripe";
+    content: `// The exact high-performance payment verification we use in production.
+import crypto from "crypto";
+import { db, subscribersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-});
+export async function verifyRazorpayPayment(req: Request) {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, email, plan } = await req.json();
 
-export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = headers().get("Stripe-Signature") as string;
+  const sign = razorpay_order_id + "|" + razorpay_payment_id;
+  const expectedSign = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+    .update(sign.toString())
+    .digest("hex");
 
-  let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (razorpay_signature !== expectedSign) {
+    return { error: "Invalid signature", status: 400 };
   }
 
-  // Handle the event securely
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    await fulfillOrder(session);
-  }
+  // Update subscriber tier
+  await db.update(subscribersTable)
+    .set({
+      tier: plan.toLowerCase().replace(" ", "_"),
+      paymentProvider: "razorpay",
+      lastPaymentAt: new Date()
+    })
+    .where(eq(subscribersTable.email, email));
 
-  return NextResponse.json({ received: true });
+  return { success: true, message: "Payment verified" };
 }`
   },
   {
@@ -97,9 +93,9 @@ export async function POST(req: Request) {
 If you are manually onboarding customers past $10k MRR, you do not have a business; you have a consulting firm.
 
 ## The Stack:
-1. **Stripe Checkout:** Captures payment and fires webhook.
-2. **Next.js API Route:** Receives webhook, provisions user in Supabase.
-3. **Resend (Email):** Sends magic link login to user.
+1. **Razorpay Orders:** Captures payment in your region (INR/USD agnostic).
+2. **Webhook Handler:** Verifies signature, updates subscription tier in real-time.
+3. **Resend (Email):** Sends activation email with portal access.
 4. **Zapier:** Pings Slack channel #new-revenue.
 
 You literally sleep while the system provisions the environment.`

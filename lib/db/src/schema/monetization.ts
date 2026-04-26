@@ -2,7 +2,7 @@ import { pgTable, text, uuid, timestamp, numeric, varchar, boolean, pgEnum, seri
 import { subscribersTable } from "./subscribers";
 
 export const earningsStatus = pgEnum("earnings_status", ["pending", "processing", "paid", "failed"]);
-export const payoutMethod = pgEnum("payout_method", ["stripe", "bank_transfer", "paypal"]);
+export const payoutMethod = pgEnum("payout_method", ["bank_transfer", "paypal"]);
 
 export const creatorEarnings = pgTable("creator_earnings", {
   id: uuid("id").primaryKey().defaultRandom(),

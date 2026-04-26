@@ -2200,9 +2200,9 @@ export default function UserPortal() {
                           });
                           const data = await res.json();
                           toast.dismiss(toastId);
-                          if (data.provider === "stripe" && data.url) {
+                          if (data.provider === "razorpay") {
+                            toast.success("Redirecting to payment gateway...");
                             setShowUpgradeModal(false);
-                            window.location.href = data.url;
                           } else {
                             toast.error("Checkout unavailable", { description: data.error || "Payment gateway not configured yet — check back soon." });
                           }
@@ -2254,9 +2254,9 @@ export default function UserPortal() {
                           });
                           const data = await res.json();
                           toast.dismiss(toastId);
-                          if (data.provider === "stripe" && data.url) {
+                          if (data.provider === "razorpay") {
+                            toast.success("Redirecting to payment gateway...");
                             setShowUpgradeModal(false);
-                            window.location.href = data.url;
                           } else {
                             toast.error("Checkout unavailable", { description: data.error || "Payment gateway not configured yet — check back soon." });
                           }

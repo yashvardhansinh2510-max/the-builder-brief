@@ -69,9 +69,7 @@ export function PricingSection() {
 
       if (!response.ok) throw new Error(data.error || "Failed to create session");
 
-      if (data.provider === "stripe") {
-        window.location.href = data.url;
-      } else if (data.provider === "razorpay") {
+      if (data.provider === "razorpay") {
         const res = await loadRazorpay();
         if (!res) {
           toast.error("Payment Error", { description: "Razorpay SDK failed to load." });
@@ -143,8 +141,8 @@ export function PricingSection() {
     {
       name: "Pro",
       tagline: "For founders actually building.",
-      priceUS: "$9.99",
-      priceIN: "₹999",
+      priceUS: "$29",
+      priceIN: "₹2,407",
       period: "per month",
       description: "The full vault, the full playbook, and the systems that separate founders who ship from founders who plan.",
       features: [
@@ -162,11 +160,11 @@ export function PricingSection() {
     },
     {
       name: "Max",
-      tagline: "Currently Waitlisted. Coming Soon.",
-      priceUS: "$49",
-      priceIN: "₹4999",
+      tagline: "White-glove founder coaching.",
+      priceUS: "$149",
+      priceIN: "₹12,367",
       period: "per month",
-      description: "Everything in Pro, plus a 30-minute monthly call with someone who's built, sold, and fundraised before. Currently invite-only.",
+      description: "Everything in Pro, plus a 30-minute monthly call with someone who's built, sold, and fundraised before.",
       features: [
         "Everything in Pro, plus:",
         "AI Advisor — 20 sessions per month (Inner Circle depth)",
@@ -176,8 +174,8 @@ export function PricingSection() {
         "Priority on every channel — no waiting",
       ],
       icon: PhoneCall,
-      buttonText: "Join Waitlist",
-      buttonVariant: "outline",
+      buttonText: "Upgrade to Max",
+      buttonVariant: "default",
       popular: false,
     },
 

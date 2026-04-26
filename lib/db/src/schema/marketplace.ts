@@ -22,7 +22,7 @@ export const purchasesTable = pgTable("purchases", {
   productId: integer("product_id")
     .notNull()
     .references(() => productsTable.id, { onDelete: "cascade" }),
-  stripeSessionId: varchar("stripe_session_id", { length: 255 }),
+  razorpayOrderId: varchar("razorpay_order_id", { length: 255 }),
   amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
