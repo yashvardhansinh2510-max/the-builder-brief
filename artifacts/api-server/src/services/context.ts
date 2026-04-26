@@ -50,8 +50,8 @@ export async function buildDailyContextForUser(
   );
 
   const summary = await summarizeForBrief(articleTexts, {
-    interests: prefs.interests,
-    focusAreas: prefs.focusAreas,
+    interests: prefs.interests ?? undefined,
+    focusAreas: prefs.focusAreas ?? undefined,
     contextStyle: prefs.contextStyle,
   });
 

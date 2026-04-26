@@ -7,6 +7,7 @@ import { tavily } from "@tavily/core";
 import { sendWeeklySignal, sendDailyBriefingForUser } from "../lib/email";
 import { logger } from "../lib/logger";
 import { verifyUser } from "../middleware/verifyUser";
+import { knowledgeBase } from "../services/knowledge";
 
 const router: IRouter = Router();
 
@@ -80,13 +81,14 @@ router.post("/engine/analyze", verifyUser, async (req: Request, res: Response): 
     // Admin/Pro bypass — check first to avoid unnecessary DB calls or potential query errors
     const isOverride = ADMIN_EMAILS.has(email) || PRO_EMAILS.has(email);
 
-    let subscriber = null;
+    let subscriber: any = null;
     if (!isOverride) {
-      [subscriber] = await db
+      const results = await db
         .select()
         .from(subscribersTable)
         .where(eq(subscribersTable.email, email))
         .limit(1);
+      subscriber = results[0];
 
       if (!subscriber || (subscriber.tier !== "pro" && subscriber.tier !== "max" && subscriber.tier !== "incubator")) {
         res.status(403).json({ error: "Access Denied. Intelligence Engine is a premium feature." });
@@ -233,7 +235,7 @@ router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Pro
           searchDepth: "basic",
           maxResults: 3
         });
-        const topResults = searchResults.results.map(r => `${r.title}: ${r.content}`).join("\n\n");
+        const topResults = searchResults.results.map((r: any) => `${r.title}: ${r.content}`).join("\n\n");
         webContext = `\n\n[LIVE WEB CONTEXT - USE THIS TO ANSWER]\n${topResults}\n[END LIVE WEB CONTEXT]`;
       } catch (err: any) {
         logger.error({ err }, "Tavily web search failed");
@@ -244,14 +246,15 @@ router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Pro
 
   // Admin/Pro bypass — check first
   const isOverride = ADMIN_EMAILS.has(email) || PRO_EMAILS.has(email);
-  let subscriber = null;
+  let subscriber: any = null;
 
   if (!isOverride) {
-    [subscriber] = await db
+    const results = await db
       .select()
       .from(subscribersTable)
       .where(eq(subscribersTable.email, email))
       .limit(1);
+    subscriber = results[0];
 
     if (!subscriber) {
       res.status(403).json({ error: "Account not found." });
@@ -297,6 +300,12 @@ router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Pro
 
   let fullResponse = "";
 
+  // Search Knowledge Base for proprietary context
+  const knowledgeContext = await knowledgeBase.search(message);
+  const knowledgePrompt = knowledgeContext 
+    ? `\n\n[PROPRIETARY FOUNDRY CONTEXT - USE THIS TO ANSWER]\n${knowledgeContext}\n[END PROPRIETARY CONTEXT]`
+    : "";
+
   try {
     const stream = await deepseek.chat.completions.create({
       model: DEEPSEEK_MODEL,
@@ -306,7 +315,7 @@ router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Pro
       messages: [
         {
           role: "system",
-          content: `${selectedPrompt}${webContext} The user is a ${effectiveTier} founder in your portfolio.${
+          content: `${selectedPrompt}${webContext}${knowledgePrompt} The user is a ${effectiveTier} founder in your portfolio.${
             subscriber?.whatBuilding
               ? ` They are building: ${subscriber.whatBuilding}.${subscriber.startupSector ? ` Sector: ${subscriber.startupSector}.` : ""}${subscriber.startupStage ? ` Stage: ${subscriber.startupStage}.` : ""}${subscriber.targetCustomer ? ` Target customer: ${subscriber.targetCustomer}.` : ""}${subscriber.biggestChallenge ? ` Biggest challenge right now: ${subscriber.biggestChallenge}. Address this directly in your responses when relevant.` : ""}`
               : ""

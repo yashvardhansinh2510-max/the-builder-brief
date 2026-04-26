@@ -26,13 +26,13 @@ router.get("/referrals/me", verifyUser, async (req, res) => {
       .from(referralsTable)
       .where(eq(referralsTable.referrerId, subscriber.id));
 
-    res.json({
+    return res.json({
       referralCode,
       referralCount: Number(referralStats?.count || 0),
       shareUrl: `https://thebuildbrief.com?ref=${referralCode}`
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch referral stats" });
+    return res.status(500).json({ error: "Failed to fetch referral stats" });
   }
 });
 

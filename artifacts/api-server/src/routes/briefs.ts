@@ -36,9 +36,9 @@ router.get("/today", async (req, res) => {
       })
       .returning();
 
-    res.json(brief);
+    return res.json(brief);
   } catch (error) {
-    res.status(500).json({ error: "Failed to generate brief" });
+    return res.status(500).json({ error: "Failed to generate brief" });
   }
 });
 
@@ -63,9 +63,9 @@ router.post("/personalization", async (req, res) => {
       })
       .returning();
 
-    res.json(updated);
+    return res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: "Failed to update personalization" });
+    return res.status(500).json({ error: "Failed to update personalization" });
   }
 });
 

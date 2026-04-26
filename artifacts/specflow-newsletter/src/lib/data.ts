@@ -249,4 +249,25 @@ export const issues = [
   }
 ];
 
-export type Issue = typeof issues[number];
+// Augmented type with optional bonus/legacy fields
+export interface Issue {
+  number: string;
+  slug: string;
+  title: string;
+  category: string;
+  tam: string;
+  revenueIn: string;
+  tagline: string;
+  problem: string;
+  whyNow: string[];
+  tam_detail: string;
+  blueprint: string[];
+  prompts: string[];
+  firstRevenue: string;
+  firstTen: string;
+  isBonus?: boolean;
+  buildBrief?: string[];
+}
+
+export const typedIssues = issues as Issue[];
+

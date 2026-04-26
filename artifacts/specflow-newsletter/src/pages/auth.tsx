@@ -1,88 +1,15 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Link, useLocation } from "wouter";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { AlertCircle, ArrowLeft, Loader2, Mail, Zap } from "lucide-react";
-
-import { useAuth } from "@/lib/AuthContext";
+import { motion } from "framer-motion";
+import { Link } from "wouter";
+import { SignIn, SignUp } from "@clerk/react";
+import { ArrowLeft, Zap } from "lucide-react";
 import logoPath from "@assets/logo.jpg";
 
 export default function AuthPage({ mode = "sign-in" }: { mode?: "sign-in" | "sign-up" }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  const [_, setLocation] = useLocation();
-  const { session } = useAuth();
-  
-  useEffect(() => {
-    setError(null);
-    setSuccessMsg(null);
-    setPassword("");
-  }, [mode]);
-
-  useEffect(() => {
-    if (session) {
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect");
-      if (redirect === "pricing") {
-        setLocation("/");
-        setTimeout(() => {
-          const pricing = document.getElementById("pricing");
-          if (pricing) pricing.scrollIntoView({ behavior: "smooth" });
-        }, 300);
-      } else {
-        setLocation("/dashboard");
-      }
-    }
-  }, [session, setLocation]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("Please fill in all fields.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccessMsg(null);
-
-      if (mode === "sign-up") {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-          },
-        });
-        if (signUpError) throw signUpError;
-        setSuccessMsg("Check your email for a confirmation link.");
-      } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInError) throw signInError;
-      }
-    } catch (err: any) {
-      setError(err.message || `An error occurred during ${mode}.`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const isSignUp = mode === "sign-up";
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center overflow-hidden bg-background md:p-6 lg:p-12 font-sans">
-      <div className="w-full h-full md:h-auto relative max-w-6xl overflow-hidden flex flex-col md:flex-row shadow-2xl rounded-none md:rounded-[2.5rem] bg-card border border-border">
+    <div className="min-h-screen w-full flex items-center justify-center overflow-hidden bg-background font-sans">
+      <div className="w-full h-screen relative overflow-hidden flex flex-col md:flex-row bg-card">
         
         {/* LEFT SIDE: Brand/Animation */}
         <div className="w-full md:w-1/2 relative bg-card flex flex-col justify-end p-8 md:p-12 overflow-hidden min-h-[300px] md:min-h-[600px]">
@@ -136,6 +63,9 @@ export default function AuthPage({ mode = "sign-in" }: { mode?: "sign-in" | "sig
               <h2 className="font-serif text-3xl md:text-4xl mb-3 tracking-tight">
                 {isSignUp ? "Get Started" : "Welcome Back"}
               </h2>
+              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground/50">
+                © {new Date().getFullYear()} Max Tier • All Rights Reserved
+              </p>
               <p className="text-muted-foreground text-base">
                 {isSignUp 
                   ? "Join the incubator and access the blueprints." 
@@ -143,93 +73,49 @@ export default function AuthPage({ mode = "sign-in" }: { mode?: "sign-in" | "sig
               </p>
             </div>
 
-            <AnimatePresence mode="wait">
-              {error && (
-                <motion.div
-                  key="error"
-                  initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, height: "auto", scale: 1 }}
-                  exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                  className="mb-6 overflow-hidden"
-                >
-                  <div className="bg-destructive/10 text-destructive text-sm px-4 py-3 rounded-xl border border-destructive/20 flex items-start gap-2.5">
-                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <p className="leading-snug">{error}</p>
-                  </div>
-                </motion.div>
-              )}
-              {successMsg && (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, height: "auto", scale: 1 }}
-                  exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                  className="mb-6 overflow-hidden"
-                >
-                  <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm px-4 py-3 rounded-xl border border-emerald-500/20 flex items-start gap-2.5">
-                    <Mail className="w-4 h-4 mt-0.5 shrink-0" />
-                    <p className="leading-snug">{successMsg}</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground ml-1">Email address</label>
-                <Input
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 px-5 rounded-xl text-base border-border/50 bg-card focus-visible:ring-primary focus-visible:border-primary transition-all placeholder:text-muted-foreground/60"
-                  required
+            <div className="w-full">
+              {isSignUp ? (
+                <SignUp
+                  routing="path"
+                  path="/sign-up"
+                  signInUrl="/sign-in"
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "shadow-none border-0 bg-transparent p-0",
+                      headerTitle: "hidden",
+                      headerSubtitle: "hidden",
+                      logoBox: "hidden",
+                      socialButtonsBlockButton: "h-12 rounded-xl border-border/50 bg-card hover:bg-card/80 text-foreground transition-all",
+                      formButtonPrimary: "h-12 rounded-xl text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02] active:scale-[0.98]",
+                      formFieldInput: "h-12 px-5 rounded-xl text-base border-border/50 bg-card focus:ring-primary focus:border-primary transition-all",
+                      footerActionLink: "text-foreground font-semibold underline decoration-border underline-offset-4 hover:decoration-primary transition-colors",
+                    },
+                  }}
+                  fallbackRedirectUrl="/dashboard"
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-sm font-medium text-foreground">
-                    {isSignUp ? "Create password" : "Password"}
-                  </label>
-                  {!isSignUp && (
-                    <button type="button" className="text-xs text-muted-foreground hover:text-primary transition-colors focus:outline-none">
-                      Forgot?
-                    </button>
-                  )}
-                </div>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 px-5 rounded-xl text-base border-border/50 bg-card focus-visible:ring-primary focus-visible:border-primary transition-all placeholder:text-muted-foreground/60"
-                  required
+              ) : (
+                <SignIn
+                  routing="path"
+                  path="/sign-in"
+                  signUpUrl="/sign-up"
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "shadow-none border-0 bg-transparent p-0",
+                      headerTitle: "hidden",
+                      headerSubtitle: "hidden",
+                      logoBox: "hidden",
+                      socialButtonsBlockButton: "h-12 rounded-xl border-border/50 bg-card hover:bg-card/80 text-foreground transition-all",
+                      formButtonPrimary: "h-12 rounded-xl text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02] active:scale-[0.98]",
+                      formFieldInput: "h-12 px-5 rounded-xl text-base border-border/50 bg-card focus:ring-primary focus:border-primary transition-all",
+                      footerActionLink: "text-foreground font-semibold underline decoration-border underline-offset-4 hover:decoration-primary transition-colors",
+                    },
+                  }}
+                  fallbackRedirectUrl="/dashboard"
                 />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 mt-4 rounded-xl text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                {loading ? (
-                  <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> {isSignUp ? "Creating account..." : "Signing in..."}</>
-                ) : (
-                  isSignUp ? "Create account" : "Sign in"
-                )}
-              </Button>
-
-              <div className="mt-6 text-center text-sm text-muted-foreground">
-                {isSignUp ? "Already have an account?" : "Don't have an account yet?"}{" "}
-                <Link
-                  href={isSignUp ? "/sign-in" : "/sign-up"}
-                  className="text-foreground font-semibold underline decoration-border underline-offset-4 hover:decoration-primary transition-colors"
-                >
-                  {isSignUp ? "Log in" : "Sign up"}
-                </Link>
-              </div>
-            </form>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { issues } from "@/lib/data";
 import { usePageTracking } from "@/hooks/useAnalytics";
+import PortalNav from "@/components/PortalNav";
 
 const categories = ["All", "B2B SaaS", "Fintech", "Health", "AI-Native", "Education", "Real Estate", "Consumer"];
 
@@ -32,25 +33,7 @@ export default function Archive() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
-      {/* NAV */}
-      <nav className="border-b border-border/40 py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 bg-background/90 backdrop-blur-md z-50">
-        <Link href="/" className="flex items-center gap-3">
-          <img src={logoPath} alt="The Build Brief" className="w-8 h-8 rounded-sm object-cover" />
-          <span className="font-serif text-xl font-medium tracking-tight">The Build Brief</span>
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link href="/archive" className="hidden md:block text-sm font-medium text-foreground">Archive</Link>
-          <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
-          <Button
-            data-testid="button-nav-subscribe"
-            variant="default"
-            className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
-            asChild
-          >
-            <Link href="/">Subscribe</Link>
-          </Button>
-        </div>
-      </nav>
+      <PortalNav activePage="archive" />
 
       <main className="max-w-6xl mx-auto px-6 pt-16 pb-28">
         {/* Header */}

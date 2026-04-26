@@ -825,7 +825,7 @@ export default function MaxPortal() {
               <p className="font-serif text-lg text-muted-foreground tracking-tight italic">The Builder Brief — Inner Circle</p>
             </div>
             <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground/50">
-              © {new Date().getFullYear()} YC Coded • Max Tier • All Rights Reserved
+              © {new Date().getFullYear()} Max Tier • All Rights Reserved
             </p>
           </div>
         </footer>

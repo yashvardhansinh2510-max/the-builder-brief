@@ -15,15 +15,15 @@ router.get("/", async (req, res) => {
       .orderBy(desc(vaultsTable.publishedAt))
       .limit(10);
 
-    res.json(allVaults);
+    return res.json(allVaults);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch vaultsTable" });
+    return res.status(500).json({ error: "Failed to fetch vaultsTable" });
   }
 });
 
 router.get("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const vault = await db
       .select()
       .from(vaultsTable)
@@ -34,16 +34,16 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Vault not found" });
     }
 
-    res.json(vault[0]);
+    return res.json(vault[0]);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch vault" });
+    return res.status(500).json({ error: "Failed to fetch vault" });
   }
 });
 
 // POST /vaultsTable/:id/publish - Admin only
 router.post("/:id/publish", isAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const now = new Date();
 
     const [updated] = await db
@@ -56,9 +56,9 @@ router.post("/:id/publish", isAdmin, async (req, res) => {
       return res.status(404).json({ error: "Vault not found" });
     }
 
-    res.json(updated);
+    return res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: "Failed to publish vault" });
+    return res.status(500).json({ error: "Failed to publish vault" });
   }
 });
 

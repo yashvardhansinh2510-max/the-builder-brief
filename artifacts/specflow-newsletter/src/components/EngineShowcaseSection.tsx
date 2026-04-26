@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { CpuArchitecture } from "@/components/ui/cpu-architecture";
 import { Zap, Server, BrainCircuit } from "lucide-react";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 
 export function EngineShowcaseSection() {
   return (
@@ -24,6 +26,12 @@ export function EngineShowcaseSection() {
           <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
             Your venture blueprints aren't generated in a vacuum. The engine connects directly to the world's most capable AI — <strong className="text-foreground font-medium">Anthropic's Claude</strong> and <strong className="text-foreground font-medium">Google's Gemini</strong> — to process live market data, synthesize research, and output actionable execution steps.
           </p>
+
+          <Link href="/dashboard?tab=engine">
+            <Button className="rounded-full h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold mt-4 shadow-lg shadow-primary/20">
+              Launch Engine
+            </Button>
+          </Link>
 
           <div className="grid grid-cols-2 gap-4 pt-4">
             <div className="p-4 rounded-2xl bg-card border border-border/40">

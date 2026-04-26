@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+import { useState, useEffect } from "react";
+import { useUser, useAuth as useClerkAuth } from "@clerk/react";
 
 const ADMIN_EMAILS = ["yashvardhan@specflowai.com", "yashvardhansinhjhala@gmail.com", "yashvardhanjhala@gmail.com"];
 const PRO_EMAILS = ["yashvardhansinh2510@gmail.com"];
@@ -8,112 +7,88 @@ const PRO_EMAILS = ["yashvardhansinh2510@gmail.com"];
 export type UserTier = "free" | "pro" | "max" | "incubator";
 
 export interface AuthContextType {
-  session: Session | null;
-  user: User | null;
+  user: any;
+  session: any;
   loading: boolean;
   tierLoading: boolean;
   tier: UserTier;
   isPremium: boolean;
   isAdmin: boolean;
+  getToken: () => Promise<string | null>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  loading: true,
-  tierLoading: true,
-  tier: "free",
-  isPremium: false,
-  isAdmin: false,
-});
+// Provides a Supabase-shaped user object backed by Clerk so existing code
+// that accesses user.email, user.user_metadata.full_name, session.access_token
+// continues to work without changes across all portal pages.
+export function useAuth(): AuthContextType {
+  const { user, isLoaded } = useUser();
+  const { isSignedIn, getToken } = useClerkAuth();
+  const [clerkToken, setClerkToken] = useState<string | null>(null);
+  const [dbTier, setDbTier] = useState<UserTier | null>(null);
+  const [tierLoading, setTierLoading] = useState(false);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [tierLoading, setTierLoading] = useState(true);
-  const [tier, setTier] = useState<UserTier>("free");
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  const resolveTier = async (email: string) => {
-    try {
-      if (ADMIN_EMAILS.includes(email)) {
-        setTier("max");
-        setIsAdmin(true);
-        setTierLoading(false);
-        return;
-      }
-      if (PRO_EMAILS.includes(email)) {
-        setTier("pro");
-        setTierLoading(false);
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      const res = await fetch(`/api/subscribers/me`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      if (!res.ok) {
-        setTier("free");
-        setIsAdmin(false);
-      } else {
-        const data = await res.json();
-        setTier(data.tier as UserTier || "free");
-        setIsAdmin(!!data.isAdmin);
-      }
-    } catch (err) {
-      console.error("Failed to fetch user tier:", err);
-      setTier("free");
-    } finally {
-      setTierLoading(false);
-    }
-  };
+  const email = user?.emailAddresses[0]?.emailAddress || "";
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user?.email) {
-        resolveTier(session.user.email);
-      } else {
-        setTierLoading(false);
-      }
-      setLoading(false);
-    });
+    if (isSignedIn) {
+      getToken().then((t) => setClerkToken(t ?? null));
+    } else {
+      setClerkToken(null);
+      setDbTier(null);
+    }
+  }, [isSignedIn, getToken]);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        if (session?.user?.email) {
-          resolveTier(session.user.email);
-        } else {
-          setTier("free");
+  useEffect(() => {
+    if (isSignedIn && clerkToken) {
+      setTierLoading(true);
+      fetch("/api/subscribers/me", {
+        headers: { "Authorization": `Bearer ${clerkToken}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.tier) setDbTier(data.tier as UserTier);
           setTierLoading(false);
-        }
-      } else if (event === "SIGNED_OUT") {
-        setTier("free");
-        setIsAdmin(false);
-        setTierLoading(false);
-      }
-    });
+        })
+        .catch(() => setTierLoading(false));
+    }
+  }, [isSignedIn, clerkToken]);
 
-    return () => subscription.unsubscribe();
-  }, []);
+  // Priority: DB tier > Admin list > Pro list > free
+  let tier: UserTier = dbTier || "free";
+  let isAdmin = false;
+
+  if (ADMIN_EMAILS.includes(email)) {
+    tier = dbTier || "max"; // DB tier takes priority, fallback to max for admin
+    isAdmin = true;
+  } else if (PRO_EMAILS.includes(email)) {
+    tier = dbTier || "pro";
+  }
 
   const isPremium = tier === "pro" || tier === "max" || tier === "incubator";
+  const loading = !isLoaded;
 
-  return (
-    <AuthContext.Provider value={{ session, user, loading, tierLoading, tier, isPremium, isAdmin }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // Compat shim — mirrors the Supabase User shape that portal pages expect
+  const compatUser = isSignedIn && user
+    ? {
+        id: user.id,
+        email,
+        user_metadata: {
+          full_name: user.fullName || user.firstName || "",
+          avatar_url: user.imageUrl,
+        },
+      }
+    : null;
+
+  return {
+    user: compatUser,
+    session: isSignedIn
+      ? { user: compatUser, access_token: clerkToken }
+      : null,
+    loading,
+    tierLoading,
+    tier,
+    isPremium,
+    isAdmin,
+    getToken,
+  };
 }
-
-export const useAuth = () => useContext(AuthContext);

@@ -14,7 +14,9 @@ router.post("/terminal/command", verifyUser, async (req, res) => {
     const email = (req as any).user?.email;
     const [subscriber] = await db.select().from(subscribersTable).where(eq(subscribersTable.email, email)).limit(1);
 
-    if (!subscriber) return res.status(404).json({ error: "Subscriber not found" });
+    if (!subscriber) {
+      return res.status(404).json({ error: "Subscriber not found" });
+    }
 
     let response = "";
     
@@ -51,9 +53,9 @@ router.post("/terminal/command", verifyUser, async (req, res) => {
         response = `Command not recognized: ${command}. Available: /market-scan, /roast, /sprint`;
     }
 
-    res.json({ output: response });
+    return res.json({ output: response });
   } catch (error) {
-    res.status(500).json({ error: "Terminal command failed" });
+    return res.status(500).json({ error: "Terminal command failed" });
   }
 });
 

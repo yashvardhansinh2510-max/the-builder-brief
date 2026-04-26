@@ -9,9 +9,9 @@ const router: IRouter = Router();
 router.get("/marketplace/products", async (req, res) => {
   try {
     const products = await db.select().from(productsTable).where(eq(productsTable.isActive, true));
-    res.json(products);
+    return res.json(products);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch products" });
+    return res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 
@@ -20,7 +20,7 @@ router.get("/marketplace/my-purchases", verifyUser, async (req, res) => {
   try {
     const email = (req as any).user?.email;
     const [subscriber] = await db.select().from(subscribersTable).where(eq(subscribersTable.email, email)).limit(1);
-    
+
     if (!subscriber) return res.status(404).json({ error: "Subscriber not found" });
 
     const purchases = await db
@@ -34,9 +34,9 @@ router.get("/marketplace/my-purchases", verifyUser, async (req, res) => {
       .innerJoin(productsTable, eq(purchasesTable.productId, productsTable.id))
       .where(eq(purchasesTable.subscriberId, subscriber.id));
 
-    res.json(purchases);
+    return res.json(purchases);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch purchases" });
+    return res.status(500).json({ error: "Failed to fetch purchases" });
   }
 });
 

@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from "react";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useSearch } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowRight, Check, Zap, Target, Compass, BookOpen,
+  ArrowRight, Check, Zap, Target, Compass,
   Code2, DollarSign, Users2, TrendingUp, Lightbulb,
   Rocket, LineChart, Users, Code, AlertCircle
 } from "lucide-react";
@@ -15,6 +15,23 @@ import { issues } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { useSubscribe } from "@/hooks/useSubscribe";
 import { usePageTracking } from "@/hooks/useAnalytics";
+import { useAuth } from "@clerk/react";
+import { SubscribeSuccessOverlay } from "@/components/SubscribeSuccessOverlay";
+import { PainPointsSection } from "@/components/PainPointsSection";
+import { DashboardPreviewSection } from "@/components/DashboardPreviewSection";
+import { EngineShowcaseSection } from "@/components/EngineShowcaseSection";
+import { FeaturesSection } from "@/components/FeaturesSection";
+import { TiersShowcaseSection } from "@/components/TiersShowcaseSection";
+import { PricingSection } from "@/components/PricingSection";
+import { IncubatorSection } from "@/components/IncubatorSection";
+import { LeadModal } from "@/components/LeadModal";
+import { TestimonialSection } from "@/components/TestimonialSection";
+import { FoundersGlobeSection } from "@/components/FoundersGlobeSection";
+import { PlatformGrowthSection } from "@/components/PlatformGrowthSection";
+import RuixenSection from "@/components/ui/ruixen-feature-section";
+import CombinedFeaturedSection from "@/components/ui/combined-featured-section";
+import PersonalizedBuildBriefFeatures from "@/components/ui/personalized-features";
+import CustomersTableCard from "@/components/ui/customers-table-card";
 
 const contents = [
   { title: "The Idea", desc: "A specific named startup concept — not a category, a company.", icon: Lightbulb },
@@ -41,16 +58,17 @@ const stats = [
   { value: "100%", label: "free, always" },
 ];
 
-function HeroSection() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-
+function HeroSection({ onSuccess }: { onSuccess: () => void }) {
   const { status, subscribe } = useSubscribe("hero");
   const [email, setEmail] = useState("");
   const search = useSearch();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (status === "pending-confirmation" || status === "exists") {
+      onSuccess();
+    }
+  }, [status, onSuccess]);
 
   useEffect(() => {
     const params = new URLSearchParams(search);
@@ -84,10 +102,11 @@ function HeroSection() {
   };
 
   return (
-    <section ref={ref} className="pt-28 md:pt-40 pb-32 px-6 max-w-5xl mx-auto text-center relative overflow-hidden">
-      <motion.div style={{ y, opacity }} className="absolute inset-0 pointer-events-none">
+    <section className="pt-28 md:pt-40 pb-32 px-6 max-w-5xl mx-auto text-center relative overflow-hidden">
+      {/* Static ambient glow — no scroll animation */}
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
-      </motion.div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -161,8 +180,8 @@ function HeroSection() {
                 className="rounded-full h-14 px-8 text-base font-semibold bg-foreground hover:bg-foreground/90 text-background transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 {status === "pending-confirmation" ? <><Check className="w-4 h-4 mr-2" />Check your inbox!</> :
-                 status === "exists" ? <>Already subscribed ✓</> :
-                 status === "loading" ? "Subscribing…" : "Get the brief"}
+                  status === "exists" ? <>Already subscribed ✓</> :
+                    status === "loading" ? "Subscribing…" : "Get the brief"}
               </Button>
             </div>
           </form>
@@ -528,8 +547,8 @@ function BottomCTASection() {
               className="rounded-full h-14 px-8 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {status === "pending-confirmation" ? <><Check className="w-4 h-4 mr-2" />Check your inbox!</> :
-               status === "exists" ? <>Already in ✓</> :
-               status === "loading" ? "Joining…" : "Join the brief"}
+                status === "exists" ? <>Already in ✓</> :
+                  status === "loading" ? "Joining…" : "Join the brief"}
             </Button>
           </div>
         </form>
@@ -555,6 +574,19 @@ function BottomCTASection() {
 
 export default function Home() {
   usePageTracking("/");
+  const { isSignedIn } = useAuth();
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [navLocked, setNavLocked] = useState(false);
+
+  const handleSuccess = useCallback(() => {
+    setShowOverlay(true);
+    setNavLocked(true);
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    setShowOverlay(false);
+    setNavLocked(false);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -572,21 +604,51 @@ export default function Home() {
         <div className="flex items-center gap-6">
           <Link href="/archive" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">Archive</Link>
           <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
-          <Link href="/sign-up">
-            <Button
-              variant="default"
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Subscribe
-            </Button>
-          </Link>
+          {!navLocked && (
+            isSignedIn ? (
+              <Link href="/dashboard" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+                Dashboard
+              </Link>
+            ) : (
+              <Link href="/sign-up">
+                <Button
+                  variant="default"
+                  className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Subscribe
+                </Button>
+              </Link>
+            )
+          )}
         </div>
       </motion.nav>
 
+      <AnimatePresence>
+        {showOverlay && <SubscribeSuccessOverlay onDismiss={handleDismiss} />}
+      </AnimatePresence>
+
+      <LeadModal />
+
       <main className="pb-24">
-        <HeroSection />
+        <HeroSection onSuccess={handleSuccess} />
         <StatsBar />
+        <PainPointsSection />
+        <DashboardPreviewSection />
+        <EngineShowcaseSection />
         <BentoSection />
+        <FeaturesSection />
+        <RuixenSection />
+        <CombinedFeaturedSection />
+        <PersonalizedBuildBriefFeatures />
+        <div className="px-6 max-w-6xl mx-auto mb-28">
+           <CustomersTableCard />
+        </div>
+        <TiersShowcaseSection />
+        <PricingSection />
+        <IncubatorSection />
+        <TestimonialSection />
+        <FoundersGlobeSection />
+        <PlatformGrowthSection />
         <ArchivePreviewSection />
         <AudienceSection />
         <BottomCTASection />

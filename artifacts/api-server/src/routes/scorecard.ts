@@ -49,24 +49,28 @@ router.post("/scorecard/generate", verifyUser, async (req, res) => {
     const scorecard = JSON.parse(response.choices[0].message.content || "{}");
 
     await db.update(subscribersTable)
-      .set({ 
+      .set({
         foundryScore: scorecard.score,
         roadmap: scorecard
       })
       .where(eq(subscribersTable.id, subscriber.id));
 
-    res.json(scorecard);
+    return res.json(scorecard);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to generate scorecard" });
+    return res.status(500).json({ error: "Failed to generate scorecard" });
   }
 });
 
 // GET /api/scorecard/me — Fetch current scorecard
 router.get("/scorecard/me", verifyUser, async (req, res) => {
-  const email = (req as any).user?.email;
-  const [subscriber] = await db.select({ roadmap: subscribersTable.roadmap }).from(subscribersTable).where(eq(subscribersTable.email, email)).limit(1);
-  res.json(subscriber?.roadmap || null);
+  try {
+    const email = (req as any).user?.email;
+    const [subscriber] = await db.select({ roadmap: subscribersTable.roadmap }).from(subscribersTable).where(eq(subscribersTable.email, email)).limit(1);
+    return res.json(subscriber?.roadmap || null);
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to fetch scorecard" });
+  }
 });
 
 export default router;

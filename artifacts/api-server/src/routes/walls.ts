@@ -13,9 +13,9 @@ router.get("/walls", async (req, res) => {
       .where(eq(wallsTable.isVisible, true))
       .orderBy(desc(wallsTable.isFeatured), desc(wallsTable.createdAt));
 
-    res.json(profiles);
+    return res.json(profiles);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch founder wall" });
+    return res.status(500).json({ error: "Failed to fetch founder wall" });
   }
 });
 
@@ -29,9 +29,9 @@ router.get("/walls/me", verifyUser, async (req, res) => {
     if (!subscriber) return res.status(404).json({ error: "Subscriber not found" });
 
     const [profile] = await db.select().from(wallsTable).where(eq(wallsTable.subscriberId, subscriber.id)).limit(1);
-    res.json(profile || null);
+    return res.json(profile || null);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch profile" });
+    return res.status(500).json({ error: "Failed to fetch profile" });
   }
 });
 
@@ -68,15 +68,15 @@ router.post("/walls/me", verifyUser, async (req, res) => {
         .set(profileData)
         .where(eq(wallsTable.id, existing.id))
         .returning();
-      res.json(updated);
+      return res.json(updated);
     } else {
       const [inserted] = await db.insert(wallsTable)
         .values(profileData)
         .returning();
-      res.json(inserted);
+      return res.json(inserted);
     }
   } catch (error) {
-    res.status(500).json({ error: "Failed to update profile" });
+    return res.status(500).json({ error: "Failed to update profile" });
   }
 });
 

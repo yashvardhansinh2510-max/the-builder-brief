@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { useClerk } from "@clerk/react";
 import { Star, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import logoPath from "@assets/logo.jpg";
@@ -9,13 +9,11 @@ import logoPath from "@assets/logo.jpg";
  * Shared navigation bar used across UserPortal, ProPortal, and MaxPortal.
  * It automatically adapts based on the user's tier and current page.
  */
-export default function PortalNav({ activePage }: { activePage: "dashboard" | "pro" | "max" | "archive" | "daily-drops" | "build-brief" }) {
+export default function PortalNav({ activePage }: { activePage: "dashboard" | "pro" | "max" | "archive" | "daily-drops" | "build-brief" | "about" | "issue" }) {
   const { tier, isPremium } = useAuth();
+  const { signOut } = useClerk();
   const [, setLocation] = useLocation();
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setLocation("/");
-  };
+  const handleSignOut = () => signOut(() => setLocation("/"));
 
   // Determine the premium portal link
   const premiumPortalPath = tier === "pro" ? "/pro-portal" : "/max-portal";

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { verifyUser } from "../middleware/verifyUser";
-import { db } from "@specflow/db";
-import { creatorEarnings, payoutHistory, creatorSubscriptions, referralTiers } from "@specflow/db";
+import { db } from "@workspace/db";
+import { creatorEarnings, payoutHistory, creatorSubscriptions, referralTiers } from "@workspace/db";
 
 const router = Router();
 
@@ -11,18 +11,20 @@ router.get("/earnings/dashboard", verifyUser, async (req, res) => {
     const creatorId = req.user?.id;
     if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
 
+    const creatorIdNum = parseInt(creatorId, 10);
+
     const earnings = await db.query.creatorEarnings.findMany({
-      where: (fields, { eq }) => eq(fields.creatorId, creatorId),
+      where: (fields, { eq }) => eq(fields.creatorId, creatorIdNum),
       orderBy: (fields) => fields.month,
     });
 
     const payouts = await db.query.payoutHistory.findMany({
-      where: (fields, { eq }) => eq(fields.creatorId, creatorId),
+      where: (fields, { eq }) => eq(fields.creatorId, creatorIdNum),
       limit: 10,
     });
 
     const referrals = await db.query.referralTiers.findFirst({
-      where: (fields, { eq }) => eq(fields.userId, creatorId),
+      where: (fields, { eq }) => eq(fields.userId, creatorIdNum),
     });
 
     const totalRevenue = earnings.reduce(
@@ -30,14 +32,14 @@ router.get("/earnings/dashboard", verifyUser, async (req, res) => {
       0
     );
 
-    res.json({
+    return res.json({
       totalRevenue,
       earnings,
       payouts,
       referralTier: referrals,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch earnings" });
+    return res.status(500).json({ error: "Failed to fetch earnings" });
   }
 });
 
@@ -48,16 +50,18 @@ router.post("/earnings/request-payout", verifyUser, async (req, res) => {
     const creatorId = req.user?.id;
     if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
 
+    const creatorIdNum = parseInt(creatorId, 10);
+
     const payout = await db.insert(payoutHistory).values({
-      creatorId,
-      amount,
+      creatorId: creatorIdNum,
+      amount: String(parseFloat(amount)),
       method,
       status: "pending",
     });
 
-    res.json({ success: true, payout });
+    return res.json({ success: true, payout });
   } catch (error) {
-    res.status(500).json({ error: "Failed to create payout request" });
+    return res.status(500).json({ error: "Failed to create payout request" });
   }
 });
 
@@ -67,10 +71,12 @@ router.get("/earnings/revenue-metrics", verifyUser, async (req, res) => {
     const creatorId = req.user?.id;
     if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
 
+    const creatorIdNum = parseInt(creatorId, 10);
+
     const subscriptions = await db.query.creatorSubscriptions.findMany({
       where: (fields, { eq, and }) =>
         and(
-          eq(fields.creatorId, creatorId),
+          eq(fields.creatorId, creatorIdNum),
           eq(fields.status, "active")
         ),
     });
@@ -80,13 +86,13 @@ router.get("/earnings/revenue-metrics", verifyUser, async (req, res) => {
       0
     );
 
-    res.json({
+    return res.json({
       activeSubscribers: subscriptions.length,
       mrr,
       annualizedRevenue: mrr * 12,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch metrics" });
+    return res.status(500).json({ error: "Failed to fetch metrics" });
   }
 });
 

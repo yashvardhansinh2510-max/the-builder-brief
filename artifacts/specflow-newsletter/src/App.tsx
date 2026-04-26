@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { Switch, Route, useLocation, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,21 +9,38 @@ import Archive from "@/pages/archive";
 import IssuePage from "@/pages/issue";
 import About from "@/pages/about";
 import UserPortal from "@/pages/user-portal";
+import ProPortal from "@/pages/pro-portal";
+import MaxPortal from "@/pages/max-portal";
+import AdminPortal from "@/pages/admin-portal";
+import IncubatorDashboard from "@/pages/incubator-dashboard";
+import InvestorPortal from "@/pages/investor-portal";
+import BuildBrief from "@/pages/build-brief";
+import DailyDrops from "@/pages/daily-drops";
+import PaymentSuccess from "@/pages/payment-success";
 import CreatorDashboard from "@/pages/creator-dashboard";
 import Marketplace from "@/pages/marketplace";
 import DeveloperPortal from "@/pages/developer-portal";
 import NotFound from "@/pages/not-found";
+import AuthPage from "@/pages/auth";
 
 const queryClient = new QueryClient();
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+// Ensure basePath never has a trailing slash but also never produces double-slashes
+const basePath = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "");
 
+/** Strip the base prefix so wouter sees clean paths */
 function stripBase(path: string): string {
-  return basePath && path.startsWith(basePath)
+  if (!basePath) return path;
+  return path.startsWith(basePath)
     ? path.slice(basePath.length) || "/"
     : path;
+}
+
+/** Join base + path without double-slashes */
+function withBase(path: string): string {
+  if (!basePath) return path;
+  return `${basePath}${path}`;
 }
 
 if (!clerkPubKey) {
@@ -64,8 +81,8 @@ const clerkAppearance = {
     identityPreviewEditButton: { color: "#E9591C" },
     formFieldSuccessText: { color: "#16a34a" },
     alertText: { color: "#b91c1c" },
-    logoBox: "flex justify-center py-2",
-    logoImage: "h-12 w-auto",
+    logoBox: "hidden",
+    logoImage: "hidden",
     socialButtonsBlockButton: "border-[rgba(0,0,0,0.12)] hover:bg-[rgba(0,0,0,0.04)] transition-colors",
     formButtonPrimary: "bg-[#E9591C] hover:bg-[#d44d14] transition-colors rounded-full font-medium",
     formFieldInput: "rounded-lg border-[rgba(0,0,0,0.12)] focus:border-[#E9591C] focus:ring-[#E9591C]/20",
@@ -77,65 +94,38 @@ const clerkAppearance = {
   },
 };
 
-function SignInPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        <SignIn
-          routing="path"
-          path={`${basePath}/sign-in`}
-          signUpUrl={`${basePath}/sign-up`}
-          fallbackRedirectUrl={`${basePath}/user-portal`}
-        />
-      </div>
-    </div>
-  );
-}
-
-function SignUpPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        <SignUp
-          routing="path"
-          path={`${basePath}/sign-up`}
-          signInUrl={`${basePath}/sign-in`}
-          fallbackRedirectUrl={`${basePath}/user-portal`}
-        />
-      </div>
-    </div>
-  );
-}
+const CustomSignIn = () => <AuthPage mode="sign-in" />;
+const CustomSignUp = () => <AuthPage mode="sign-up" />;
 
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/user-portal" />
-      </Show>
-      <Show when="signed-out">
-        <Home />
-      </Show>
-    </>
-  );
+  const { isLoaded, userId } = useAuth();
+  if (!isLoaded) return null;
+  if (userId) return <Redirect to="/dashboard" />;
+  return <Home />;
 }
 
-function UserPortalPage() {
-  return (
-    <>
-      <Show when="signed-in">
-        <UserPortal />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/" />
-      </Show>
-    </>
-  );
+function ProtectedRoute({ component: Component, ...rest }: any) {
+  const { isLoaded, userId } = useAuth();
+  if (!isLoaded) return null;
+  if (!userId) return <Redirect to="/sign-in" />;
+  return <Component {...rest} />;
 }
+
+const ProtectedUserPortal = (props: any) => <ProtectedRoute component={UserPortal} {...props} />;
+const ProtectedProPortal = (props: any) => <ProtectedRoute component={ProPortal} {...props} />;
+const ProtectedMaxPortal = (props: any) => <ProtectedRoute component={MaxPortal} {...props} />;
+const ProtectedAdminPortal = (props: any) => <ProtectedRoute component={AdminPortal} {...props} />;
+const ProtectedIncubatorDashboard = (props: any) => <ProtectedRoute component={IncubatorDashboard} {...props} />;
+const ProtectedInvestorPortal = (props: any) => <ProtectedRoute component={InvestorPortal} {...props} />;
+const ProtectedBuildBrief = (props: any) => <ProtectedRoute component={BuildBrief} {...props} />;
+const ProtectedDailyDrops = (props: any) => <ProtectedRoute component={DailyDrops} {...props} />;
+const ProtectedPaymentSuccess = (props: any) => <ProtectedRoute component={PaymentSuccess} {...props} />;
+const ProtectedCreatorDashboard = (props: any) => <ProtectedRoute component={CreatorDashboard} {...props} />;
+const ProtectedMarketplace = (props: any) => <ProtectedRoute component={Marketplace} {...props} />;
+const ProtectedDeveloperPortal = (props: any) => <ProtectedRoute component={DeveloperPortal} {...props} />;
+const ProtectedArchive = (props: any) => <ProtectedRoute component={Archive} {...props} />;
+const ProtectedIssuePage = (props: any) => <ProtectedRoute component={IssuePage} {...props} />;
+const ProtectedAbout = (props: any) => <ProtectedRoute component={About} {...props} />;
 
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
@@ -162,7 +152,6 @@ function ClerkProviderWithRoutes() {
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
       localization={{
         signIn: {
@@ -186,15 +175,26 @@ function ClerkProviderWithRoutes() {
           <ClerkQueryClientCacheInvalidator />
           <Switch>
             <Route path="/" component={HomeRedirect} />
-            <Route path="/sign-in{/*rest}" component={SignInPage} />
-            <Route path="/sign-up{/*rest}" component={SignUpPage} />
-            <Route path="/user-portal" component={UserPortalPage} />
-            <Route path="/creator-dashboard" component={CreatorDashboard} />
-            <Route path="/marketplace" component={Marketplace} />
-            <Route path="/developer-portal" component={DeveloperPortal} />
-            <Route path="/archive" component={Archive} />
-            <Route path="/issue/:slug" component={IssuePage} />
-            <Route path="/about" component={About} />
+            <Route path="/sign-in" component={CustomSignIn} />
+            <Route path="/sign-in/*" component={CustomSignIn} />
+            <Route path="/sign-up" component={CustomSignUp} />
+            <Route path="/sign-up/*" component={CustomSignUp} />
+            <Route path="/user-portal" component={ProtectedUserPortal} />
+            <Route path="/dashboard" component={ProtectedUserPortal} />
+            <Route path="/pro-portal" component={ProtectedProPortal} />
+            <Route path="/max-portal" component={ProtectedMaxPortal} />
+            <Route path="/admin-portal" component={ProtectedAdminPortal} />
+            <Route path="/incubator-dashboard" component={ProtectedIncubatorDashboard} />
+            <Route path="/investor-portal" component={ProtectedInvestorPortal} />
+            <Route path="/build-brief" component={ProtectedBuildBrief} />
+            <Route path="/daily-drops" component={ProtectedDailyDrops} />
+            <Route path="/payment-success" component={ProtectedPaymentSuccess} />
+            <Route path="/creator-dashboard" component={ProtectedCreatorDashboard} />
+            <Route path="/marketplace" component={ProtectedMarketplace} />
+            <Route path="/developer-portal" component={ProtectedDeveloperPortal} />
+            <Route path="/archive" component={ProtectedArchive} />
+            <Route path="/issue/:slug" component={ProtectedIssuePage} />
+            <Route path="/about" component={ProtectedAbout} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@specflow/db";
+import { db } from "@workspace/db";
 
 const router = Router();
 

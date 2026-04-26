@@ -5,6 +5,7 @@ import { db, subscribersTable } from "@workspace/db";
 import { CreateSubscriberBody, UnsubscribeBody } from "@workspace/api-zod";
 import { resend, FROM_EMAIL, SITE_URL } from "../lib/resend";
 import { confirmationEmailHtml } from "../lib/email-templates";
+import { verifyUser } from "../middleware/verifyUser";
 
 function makeUnsubToken(email: string): string {
   const secret = process.env.CRON_SECRET ?? "changeme";
@@ -148,6 +149,71 @@ router.get("/subscribers/stats", async (req, res): Promise<void> => {
     todaySignups: todayRow.count,
     weekSignups: weekRow.count,
   });
+});
+
+router.get("/subscribers/me", verifyUser, async (req, res): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const [subscriber] = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.email, email))
+    .limit(1);
+
+  if (!subscriber) {
+    res.status(404).json({ error: "Subscriber not found" });
+    return;
+  }
+
+  res.json(subscriber);
+});
+
+router.post("/subscribers/me/sync", verifyUser, async (req, res): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { whatBuilding, startupSector, startupStage, targetCustomer, biggestChallenge, contextUpdatedAt } = req.body;
+
+  const [existing] = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.email, email))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(subscribersTable)
+      .set({
+        whatBuilding,
+        startupSector,
+        startupStage,
+        targetCustomer,
+        biggestChallenge,
+        contextUpdatedAt: contextUpdatedAt ? new Date(contextUpdatedAt) : new Date(),
+      })
+      .where(eq(subscribersTable.email, email));
+  } else {
+    // If somehow they exist in Clerk but not our DB, create them
+    await db.insert(subscribersTable).values({
+      email,
+      confirmed: true,
+      whatBuilding,
+      startupSector,
+      startupStage,
+      targetCustomer,
+      biggestChallenge,
+      contextUpdatedAt: new Date(),
+    });
+  }
+
+  res.json({ success: true });
 });
 
 export default router;

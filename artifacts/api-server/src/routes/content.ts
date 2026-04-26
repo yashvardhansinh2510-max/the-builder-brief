@@ -17,13 +17,12 @@ router.get("/content/daily", async (req, res) => {
       .limit(1);
 
     if (!drop) {
-      res.status(404).json({ error: "No drop found for today" });
-      return;
+      return res.status(404).json({ error: "No drop found for today" });
     }
 
-    res.json(drop);
+    return res.json(drop);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch daily drop" });
+    return res.status(500).json({ error: "Failed to fetch daily drop" });
   }
 });
 
@@ -61,10 +60,10 @@ router.post("/content/daily/personalize", verifyUser, async (req, res) => {
       max_tokens: 150,
     });
 
-    res.json({ personalizedBrief: response.choices[0].message.content });
+    return res.json({ personalizedBrief: response.choices[0].message.content });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to personalize content" });
+    return res.status(500).json({ error: "Failed to personalize content" });
   }
 });
 
@@ -84,9 +83,9 @@ router.get("/content/playbook", async (req, res) => {
       lessons: lessons.filter(l => l.moduleId === mod.id)
     }));
 
-    res.json(result);
+    return res.json(result);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch playbook" });
+    return res.status(500).json({ error: "Failed to fetch playbook" });
   }
 });
 

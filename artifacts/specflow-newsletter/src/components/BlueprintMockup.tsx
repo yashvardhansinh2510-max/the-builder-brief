@@ -6,7 +6,7 @@ import { issues } from "@/lib/data";
 const issue = issues.find(i => i.number === "008")!;
 
 export function BlueprintMockup() {
-  const blueprintSteps = issue.blueprint ?? issue.buildBrief ?? [];
+  const blueprintSteps = issue.blueprint ?? [];
 
   return (
     <div className="w-full max-w-4xl mx-auto relative group">

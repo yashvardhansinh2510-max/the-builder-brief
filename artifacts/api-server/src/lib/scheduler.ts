@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { db } from "@workspace/db";
 import { subscribersTable, dailyBriefsTable } from "@workspace/db/schema";
+import { inArray } from "drizzle-orm";
 import { buildDailyContextForUser } from "../services/context";
 import { generateWeeklyVault } from "../services/vault";
 import { sendDailyBriefingForUser } from "./email";
@@ -15,7 +16,7 @@ export function initSchedulers() {
       const proMaxUsers = await db
         .select()
         .from(subscribersTable)
-        .where((s) => s.tier.inArray(["Pro", "Max"]));
+        .where(inArray(subscribersTable.tier, ["pro", "max"]));
 
       for (const user of proMaxUsers) {
         try {

@@ -13,9 +13,9 @@ router.post("/upload", async (req, res) => {
     }
 
     const article = await uploadArticle({ title, content, source, category });
-    res.status(201).json(article);
+    return res.status(201).json(article);
   } catch (error) {
-    res.status(500).json({ error: "Failed to upload article" });
+    return res.status(500).json({ error: "Failed to upload article" });
   }
 });
 
@@ -28,9 +28,9 @@ router.post("/ingest-rss", async (req, res) => {
     }
 
     const result = await ingestFromRss(url);
-    res.json({ message: "Ingestion complete", ...result });
+    return res.json({ message: "Ingestion complete", ...result });
   } catch (error) {
-    res.status(500).json({ error: "RSS ingestion failed" });
+    return res.status(500).json({ error: "RSS ingestion failed" });
   }
 });
 
