@@ -72,3 +72,29 @@ export const articles = pgTable("articles", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 });
+
+export const founderProfiles = pgTable("founder_profiles", {
+	id: serial().primaryKey().notNull(),
+	userId: varchar("user_id").notNull(),
+	sector: varchar("sector").notNull(),
+	stage: varchar("stage").notNull(),
+	goal: varchar("goal").notNull(),
+	targetCustomer: text("target_customer"),
+	teamSize: integer("team_size"),
+	companyName: varchar("company_name"),
+	ideaDescription: text("idea_description"),
+	completedQuiz: boolean("completed_quiz").default(false).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+});
+
+export const onboardingQuizzes = pgTable("onboarding_quizzes", {
+	id: serial().primaryKey().notNull(),
+	userId: varchar("user_id").notNull().unique(),
+	answer1_sector: varchar("answer1_sector"),
+	answer2_stage: varchar("answer2_stage"),
+	answer3_goal: varchar("answer3_goal"),
+	answer4_teamSize: integer("answer4_team_size"),
+	answer5_company: varchar("answer5_company"),
+	completedAt: timestamp("completed_at", { withTimezone: true, mode: 'string' }),
+});
