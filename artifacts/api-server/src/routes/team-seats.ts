@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { verifyUser } from "../middleware/verifyUser";
-import { db, teamSeats, subscribersTable } from "@workspace/db";
+import { db, teamSeatsTableTable, subscribersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 
 const router = Router();
@@ -36,11 +36,11 @@ router.post("/team/seats/invite", verifyUser, async (req, res) => {
     // Count existing active seats
     const existingSeats = await db
       .select()
-      .from(teamSeats)
+      .from(teamSeatsTable)
       .where(
         and(
-          eq(teamSeats.userId, userIdNum),
-          eq(teamSeats.status, "active")
+          eq(teamSeatsTable.userId, userIdNum),
+          eq(teamSeatsTable.status, "active")
         )
       );
 
@@ -55,7 +55,7 @@ router.post("/team/seats/invite", verifyUser, async (req, res) => {
     }
 
     const seat = await db
-      .insert(teamSeats)
+      .insert(teamSeatsTable)
       .values({
         userId: userIdNum,
         invitedEmail: email.toLowerCase(),
@@ -80,8 +80,8 @@ router.get("/team/seats", verifyUser, async (req, res) => {
 
     const seats = await db
       .select()
-      .from(teamSeats)
-      .where(eq(teamSeats.userId, userIdNum));
+      .from(teamSeatsTable)
+      .where(eq(teamSeatsTable.userId, userIdNum));
 
     const activeSeatCount = seats.filter((s) => s.status === "active").length;
     const pendingInvites = seats.filter((s) => s.status === "pending").length;
@@ -110,8 +110,8 @@ router.post("/team/seats/accept/:seatId", verifyUser, async (req, res) => {
     // Verify email matches
     const seat = await db
       .select()
-      .from(teamSeats)
-      .where(eq(teamSeats.id, seatIdNum));
+      .from(teamSeatsTable)
+      .where(eq(teamSeatsTable.id, seatIdNum));
 
     if (!seat.length) {
       return res.status(404).json({ error: "Seat invite not found" });
@@ -122,13 +122,13 @@ router.post("/team/seats/accept/:seatId", verifyUser, async (req, res) => {
     }
 
     const updated = await db
-      .update(teamSeats)
+      .update(teamSeatsTable)
       .set({
         status: "active",
         acceptedAt: new Date(),
         teamMemberId: parseInt(userId, 10),
       })
-      .where(eq(teamSeats.id, seatIdNum))
+      .where(eq(teamSeatsTable.id, seatIdNum))
       .returning();
 
     return res.json({ success: true, seat: updated[0] });
@@ -154,11 +154,11 @@ router.put("/team/seats/:id", verifyUser, async (req, res) => {
     // Verify ownership
     const seat = await db
       .select()
-      .from(teamSeats)
+      .from(teamSeatsTable)
       .where(
         and(
-          eq(teamSeats.id, seatId),
-          eq(teamSeats.userId, userIdNum)
+          eq(teamSeatsTable.id, seatId),
+          eq(teamSeatsTable.userId, userIdNum)
         )
       );
 
@@ -167,9 +167,9 @@ router.put("/team/seats/:id", verifyUser, async (req, res) => {
     }
 
     const updated = await db
-      .update(teamSeats)
+      .update(teamSeatsTable)
       .set({ role: role.toLowerCase() })
-      .where(eq(teamSeats.id, seatId))
+      .where(eq(teamSeatsTable.id, seatId))
       .returning();
 
     return res.json({ success: true, seat: updated[0] });
@@ -193,11 +193,11 @@ router.delete("/team/seats/:id", verifyUser, async (req, res) => {
     // Verify ownership
     const seat = await db
       .select()
-      .from(teamSeats)
+      .from(teamSeatsTable)
       .where(
         and(
-          eq(teamSeats.id, seatId),
-          eq(teamSeats.userId, userIdNum)
+          eq(teamSeatsTable.id, seatId),
+          eq(teamSeatsTable.userId, userIdNum)
         )
       );
 
@@ -205,7 +205,7 @@ router.delete("/team/seats/:id", verifyUser, async (req, res) => {
       return res.status(404).json({ error: "Seat not found" });
     }
 
-    await db.delete(teamSeats).where(eq(teamSeats.id, seatId));
+    await db.delete(teamSeatsTable).where(eq(teamSeatsTable.id, seatId));
 
     return res.json({ success: true, message: "Team seat removed" });
   } catch (error) {
