@@ -19,6 +19,7 @@ import vaultsRouter from "./vaults";
 import contentRouter from "./content";
 import briefsRouter from "./briefs";
 import leadsRouter from "./leads";
+import foundersRouter from "./founders";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use(vaultsRouter);
 router.use(contentRouter);
 router.use(briefsRouter);
 router.use(leadsRouter);
+router.use(foundersRouter);
 
 export default router;
