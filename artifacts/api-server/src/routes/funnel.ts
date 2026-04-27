@@ -8,6 +8,10 @@ import {
   checkMaxToIncubatorEligibility,
   checkAndNotifyFreeToProEligibility,
 } from "@/lib/funnel/eligibility";
+import {
+  updateMilestoneProgress,
+  getMilestoneProgress,
+} from "@/lib/funnel/milestones";
 
 const router = Router();
 
@@ -160,6 +164,43 @@ router.post("/reject/:offerId", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Reject offer error:", error);
     res.status(500).json({ error: "Failed to reject offer" });
+  }
+});
+
+router.post("/milestones/update", async (req: Request, res: Response) => {
+  try {
+    const { userId, currentMRR, activeUsers, featureShipped } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId required" });
+    }
+
+    const progress = await updateMilestoneProgress(userId, {
+      currentMRR,
+      activeUsers,
+      featureShipped,
+    });
+
+    res.json(progress);
+  } catch (error) {
+    console.error("Update milestone error:", error);
+    res.status(500).json({ error: "Failed to update milestone progress" });
+  }
+});
+
+router.get("/milestones/progress/:userId", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId required" });
+    }
+
+    const progress = await getMilestoneProgress(userId);
+    res.json(progress);
+  } catch (error) {
+    console.error("Get milestone progress error:", error);
+    res.status(500).json({ error: "Failed to get milestone progress" });
   }
 });
 

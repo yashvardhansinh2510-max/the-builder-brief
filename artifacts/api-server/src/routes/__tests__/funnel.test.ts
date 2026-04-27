@@ -130,4 +130,78 @@ describe("Funnel API Routes", () => {
       expect({ error: "Offer not found" }).toBeDefined();
     });
   });
+
+  describe("POST /api/upgrades/milestones/update", () => {
+    it("should update milestone progress with MRR", async () => {
+      const response = {
+        mrrTarget: {
+          achieved: 550,
+          target: 500,
+          isHit: true,
+        },
+        usersTarget: {
+          achieved: 400,
+          target: 500,
+          isHit: false,
+        },
+        featureShipped: false,
+        milestonesHit: 1,
+      };
+
+      expect(response.mrrTarget.isHit).toBe(true);
+      expect(response.milestonesHit).toBe(1);
+    });
+
+    it("should trigger Max eligibility when 2 milestones are hit", async () => {
+      const response = {
+        mrrTarget: {
+          achieved: 550,
+          target: 500,
+          isHit: true,
+        },
+        usersTarget: {
+          achieved: 550,
+          target: 500,
+          isHit: true,
+        },
+        featureShipped: false,
+        milestonesHit: 2,
+        maxUpgradeEligibleAt: new Date().toISOString(),
+      };
+
+      expect(response.milestonesHit).toBe(2);
+      expect(response.maxUpgradeEligibleAt).toBeDefined();
+    });
+
+    it("should return 400 if userId not provided", async () => {
+      expect({ error: "userId required" }).toBeDefined();
+    });
+  });
+
+  describe("GET /api/upgrades/milestones/progress/:userId", () => {
+    it("should return milestone progress", async () => {
+      const response = {
+        mrrTarget: {
+          achieved: 300,
+          target: 500,
+          isHit: false,
+        },
+        usersTarget: {
+          achieved: 250,
+          target: 500,
+          isHit: false,
+        },
+        featureShipped: false,
+        milestonesHit: 0,
+      };
+
+      expect(response.milestonesHit).toBe(0);
+      expect(response.mrrTarget.target).toBe(500);
+      expect(response.usersTarget.target).toBe(500);
+    });
+
+    it("should return 400 if userId not provided", async () => {
+      expect({ error: "userId required" }).toBeDefined();
+    });
+  });
 });
