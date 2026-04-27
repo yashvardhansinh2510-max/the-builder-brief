@@ -21,6 +21,11 @@ import briefsRouter from "./briefs";
 import leadsRouter from "./leads";
 import foundersRouter from "./founders";
 import onboardingRouter from "./onboarding";
+import journeyRouter from "./journey";
+import weeklyCheckInsRouter from "./weekly-checkins";
+import marketSizingRouter from "./market-sizing";
+import competitiveAnalysisRouter from "./competitive-analysis";
+import coFounderMatchingRouter from "./co-founder-matching";
 
 const router: IRouter = Router();
 
@@ -46,5 +51,10 @@ router.use(briefsRouter);
 router.use(leadsRouter);
 router.use(foundersRouter);
 router.use('/onboarding', onboardingRouter);
+router.use('/journey', journeyRouter);
+router.use('/weekly-checkins', weeklyCheckInsRouter);
+router.use('/market-sizing', marketSizingRouter);
+router.use('/competitive-analysis', competitiveAnalysisRouter);
+router.use('/co-founder-matching', coFounderMatchingRouter);
 
 export default router;

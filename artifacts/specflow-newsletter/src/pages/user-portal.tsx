@@ -251,7 +251,7 @@ export default function UserPortal() {
     | "growth"
     | "engine"
     | "strategy"
-  >("playbook");
+  >(tier === "free" ? "performance" : "playbook");
   const [terminalHistory, setTerminalHistory] = useState<
     { type: "cmd" | "out"; text: string }[]
   >([]);
@@ -990,7 +990,11 @@ export default function UserPortal() {
                   { id: "engine", label: "Engine", icon: Cpu },
                   { id: "strategy", label: "Strategy", icon: Target },
                   { id: "growth", label: "Viral Growth", icon: Flame },
-                ].map((tab) => (
+                ]
+                  .filter(
+                    (tab) => tier !== "free" || tab.id === "performance"
+                  )
+                  .map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
@@ -2721,30 +2725,51 @@ export default function UserPortal() {
                 )}
               </div>
 
-              {/* FREE: Upgrade CTA */}
+              {/* FREE: Weekly Insight + Upgrade CTA */}
               {tier === "free" && (
-                <div className="p-8 rounded-[2.5rem] border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent">
-                  <div className="flex items-center gap-3 mb-4 text-primary">
-                    <Zap className="w-5 h-5 fill-current" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-                      Ready to Move Faster?
-                    </span>
+                <>
+                  <div className="p-8 rounded-2xl bg-card/80 border border-primary/20">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Zap className="w-4 h-4 text-primary" />
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-primary">
+                        Weekly Insight
+                      </span>
+                    </div>
+                    <h3 className="font-serif text-xl mb-2">{dailyEdge.title}</h3>
+                    <p className="font-mono text-[10px] text-muted-foreground leading-relaxed line-clamp-3 mb-4">
+                      {dailyEdge.content}
+                    </p>
+                    <button
+                      onClick={copyHack}
+                      className="w-full py-3 rounded-sm bg-primary/10 border border-primary/20 text-[10px] font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
+                    >
+                      Copy Insight →
+                    </button>
                   </div>
-                  <h3 className="font-serif text-2xl mb-3 italic text-primary">
-                    Stop reading. Start building.
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                    Pro gives you the full vault, the playbook, and the AI
-                    Advisor. Max adds a 30-minute monthly call with someone who
-                    has actually done it.
-                  </p>
-                  <button
-                    onClick={handleUpgradeClick}
-                    className="w-full py-3 bg-primary/10 rounded-xl text-center text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-                  >
-                    See What You're Missing →
-                  </button>
-                </div>
+
+                  <div className="p-8 rounded-[2.5rem] border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent">
+                    <div className="flex items-center gap-3 mb-4 text-primary">
+                      <Zap className="w-5 h-5 fill-current" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                        Ready to Move Faster?
+                      </span>
+                    </div>
+                    <h3 className="font-serif text-2xl mb-3 italic text-primary">
+                      Stop reading. Start building.
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed mb-6">
+                      Pro gives you the playbook, market intel, and competitive
+                      analysis. Max adds calls with founders who've raised and
+                      exited.
+                    </p>
+                    <button
+                      onClick={handleUpgradeClick}
+                      className="w-full py-3 bg-primary/10 rounded-xl text-center text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
+                    >
+                      See What You're Missing →
+                    </button>
+                  </div>
+                </>
               )}
 
               {/* PRO: Today's Briefing */}

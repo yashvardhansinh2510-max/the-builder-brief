@@ -11,7 +11,6 @@ import PortalNav from "@/components/PortalNav";
 import FounderChat from "@/components/FounderChat";
 import { Badge } from "@/components/ui/badge";
 import DottedMap from "dotted-map";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import RuixenSection from "@/components/ui/ruixen-feature-section";
 
 // Site original theme — maps to CSS variables
@@ -32,23 +31,6 @@ const H = {
 const dottedMap = new DottedMap({ height: 55, grid: "diagonal" });
 const mapPoints = dottedMap.getPoints();
 
-// Chart data
-const memberChartData = [
-  { month: "May", revenue: 18000, members: 120 },
-  { month: "Jun", revenue: 32000, members: 210 },
-  { month: "Jul", revenue: 48000, members: 340 },
-  { month: "Aug", revenue: 71000, members: 490 },
-  { month: "Sep", revenue: 95000, members: 620 },
-  { month: "Oct", revenue: 142000, members: 890 },
-];
-
-const innerCircleUpdates = [
-  { title: "Cognitive Brain", time: "just now", content: "New tactical analysis ready for your startup profile.", color: "from-orange-400 to-rose-500" },
-  { title: "Deal Flow Alert", time: "2m ago", content: "3 new PE firms entered the private network this week.", color: "from-amber-400 to-orange-500" },
-  { title: "Exit Architecture", time: "5m ago", content: "Cap table defense framework updated for 2025 raises.", color: "from-yellow-400 to-amber-500" },
-  { title: "100-Day Arc", time: "8m ago", content: "Day 30 GTM deployment milestone unlocked.", color: "from-orange-500 to-red-500" },
-  { title: "Scale Readiness", time: "12m ago", content: "Your alignment score reached 85% — concierge eligible.", color: "from-primary/80 to-orange-400" },
-];
 
 export default function MaxPortal() {
   const { session } = useAuth();
@@ -182,7 +164,7 @@ export default function MaxPortal() {
                   The Cognitive <span className="italic text-primary">Brain.</span>
                 </h2>
                 <p className="text-muted-foreground text-lg font-light leading-relaxed max-w-md mb-10">
-                  Feed your operational parameters into the Brain. It synthesizes your MRR, scale, and product mechanics to generate a brutal tactical path forward.
+                  Input your MRR, burn rate, and product metrics. The Brain runs competitive positioning, TAM analysis, and capital efficiency scenarios in real-time.
                 </p>
                 <div className="p-8 border border-primary/20 bg-primary/5 rounded-3xl relative overflow-hidden">
                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-4">
@@ -211,7 +193,7 @@ export default function MaxPortal() {
                 Your Unfair <span className="italic text-primary">Advantage.</span>
               </h2>
               <p className="text-muted-foreground mt-4 text-lg font-light max-w-xl">
-                Four systems working in parallel — so you scale faster, exit smarter, and outmaneuver every competitor in the room.
+                Four tools giving you the data — alignment scoring, financial modeling, defensibility analysis, wealth architecture — that separate $100M exits from failed acquires.
               </p>
             </div>
 
@@ -224,12 +206,12 @@ export default function MaxPortal() {
                   Inner Circle Network
                 </div>
                 <h3 className="font-serif text-xl mb-1 tracking-tight">
-                  Founders in <span className="italic text-primary">40+ countries</span>
+                  Joining <span className="italic text-primary">150+ founders at $1M+ ARR</span>
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4 font-light">Real-time deal flow and operator intel from the global Inner Circle.</p>
+                <p className="text-sm text-muted-foreground mb-4 font-light">Verified operators sharing cap table strategy, customer acquisition mechanics, and exit paths.</p>
                 <div className="relative">
                   <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 bg-background border border-border rounded-full text-xs font-medium shadow-sm flex items-center gap-2">
-                    🌍 Last signal from San Francisco
+                    Coming soon
                   </div>
                   <svg viewBox="0 0 120 60" className="w-full h-auto text-primary/40">
                     {mapPoints.map((point: { x: number; y: number }, i: number) => (
@@ -248,59 +230,22 @@ export default function MaxPortal() {
                 <h3 className="font-serif text-xl tracking-tight mb-2">
                   What the <span className="italic text-primary">Inner Circle</span> is building.
                 </h3>
-                <div className="relative h-[220px] overflow-hidden">
-                  <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
-                  <div className="space-y-2">
-                    {innerCircleUpdates.map((msg, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.3, duration: 0.4 }}
-                        className="flex gap-3 items-start p-3 border border-border rounded-xl bg-card"
-                      >
-                        <div className={`w-8 h-8 min-w-[2rem] rounded-lg bg-gradient-to-br ${msg.color} shrink-0`} />
-                        <div>
-                          <div className="flex items-center gap-2 text-xs font-semibold">
-                            {msg.title}
-                            <span className="text-muted-foreground font-normal before:content-['•'] before:mr-1">{msg.time}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{msg.content}</p>
-                        </div>
-                      </motion.div>
-                    ))}
+                <div className="relative h-[220px] overflow-hidden flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground font-light">Coming soon. Unlock real-time member activity once admitted.</p>
                   </div>
                 </div>
               </div>
 
-              {/* BOTTOM LEFT — Revenue Chart */}
-              <div className="bg-card border-r border-border p-6">
+              {/* BOTTOM LEFT — Scale Trajectory */}
+              <div className="bg-card border-r border-border p-6 flex flex-col justify-center items-center">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
                   <LineChart className="w-4 h-4 text-primary" />
                   Scale Trajectory
                 </div>
-                <h3 className="font-serif text-xl tracking-tight">
-                  Members who execute <span className="italic text-primary">scale fast.</span>
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 mb-4 font-light">Average Inner Circle member revenue after 6 months.</p>
-                <ResponsiveContainer width="100%" height={160}>
-                  <AreaChart data={memberChartData}>
-                    <defs>
-                      <linearGradient id="maxRevGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                    <YAxis hide />
-                    <Tooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
-                      formatter={(v: number) => [`$${v.toLocaleString()}`, "Revenue"]}
-                    />
-                    <Area strokeWidth={2} dataKey="revenue" type="monotone" fill="url(#maxRevGrad)" stroke="hsl(var(--primary))" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground font-light">Coming soon. Real trajectory data appears after admission.</p>
+                </div>
               </div>
 
               {/* BOTTOM RIGHT — Two feature cards */}
@@ -689,52 +634,15 @@ export default function MaxPortal() {
                   Private <span className="italic text-primary">Deal Flow.</span>
                 </h2>
                 <p className="text-muted-foreground text-lg font-light leading-relaxed mb-10 max-w-md">
-                  Inner Circle members receive sanitized deal intelligence from verified acquisitions in our network. Names redacted. Numbers real.
+                  Inner Circle members access verified acquisition paths, PE introductions, and strategic buyer intelligence from our network.
                 </p>
-                <div className="flex gap-12">
-                  {[{ n: "$18.5M", l: "Total disclosed exits" }, { n: "7", l: "Active PE introductions" }].map(s => (
-                    <div key={s.l}>
-                      <p className="font-serif text-3xl text-primary tracking-tight">{s.n}</p>
-                      <p className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase mt-2">{s.l}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
-              <div className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl divide-y divide-border">
-                {[
-                  { tag: "Strategic Acquisition", val: "$4.2M", buyer: "Enterprise SaaS Co.", status: "Closed" },
-                  { tag: "Seed Round", val: "$1.8M", buyer: "Tier 1 VC Firm", status: "Closed" },
-                  { tag: "PE Buyout", val: "$12.5M", buyer: "Growth Equity Fund", status: "Closed" },
-                ].map((deal, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    className="p-8 flex items-center justify-between group hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center bg-background group-hover:border-primary/30 transition-colors">
-                        <Lock className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-bold tracking-[0.2em] text-muted-foreground uppercase mb-1">{deal.tag}</p>
-                        <p className="font-serif text-lg text-foreground tracking-tight">{deal.buyer}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-serif text-2xl text-primary tracking-tighter">{deal.val}</p>
-                      <div className="inline-flex items-center gap-1.5 text-[9px] font-bold tracking-[0.1em] text-emerald-500 uppercase mt-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        {deal.status}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-                <div className="p-6 bg-muted/30 flex items-center justify-center gap-3">
-                  <Shield className="w-4 h-4 text-muted-foreground/60" />
-                  <p className="text-[10px] font-bold tracking-[0.3em] text-muted-foreground/60 uppercase">Identities protected · Verified by Team</p>
+              <div className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl flex items-center justify-center p-12">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
+                    <Lock className="w-8 h-8 text-primary/60" />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-light">Coming soon. Deal intelligence unlocks after you're matched with your growth partner.</p>
                 </div>
               </div>
             </div>

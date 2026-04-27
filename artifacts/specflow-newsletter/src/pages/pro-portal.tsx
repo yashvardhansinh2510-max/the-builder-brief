@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import {
   Terminal, Database,
   Users,
-  Code2, Settings, AlertTriangle,
+  Code2, Settings,
   Zap, FileText, ChevronRight, CheckCircle2,
   Crosshair, ShieldAlert, Cpu, Network, ArrowUpRight, Sparkles
 } from "lucide-react";
@@ -14,92 +14,36 @@ import { Badge } from "@/components/ui/badge";
 import PortalNav from "@/components/PortalNav";
 import FounderChat from "@/components/FounderChat";
 import { useSubscriberCount } from "@/hooks/useSubscriberCount";
-import { getStartupContext, type StartupContext } from "@/lib/startup-context";
-import { toast } from "sonner";
 import DailyBriefUI from "@/components/DailyBriefUI";
 import PersonalizationUI from "@/components/PersonalizationUI";
 import { FounderSocialLayer } from "@/components/FounderSocialLayer";
+import CompetitorScanner from "@/components/CompetitorScanner";
+import CoFounderMatcher from "@/components/CoFounderMatcher";
 
 
-// --- High-End Vault Data ---
+// --- Vault Structure (Placeholder) ---
+// Actual vault content coming. For now, show titles only.
 const vaultFiles = [
   {
     id: "gtm-1",
-    title: "Cold Email Sequence: The 'Quick Question' Frame",
+    title: "Cold Email Sequences",
     category: "GTM Architecture",
     type: "document",
     tags: ["Sales", "Outbound"],
-    content: `# The 'Quick Question' Frame
-
-Stop sending 5-paragraph essays. No founder has time to read your life story. The goal of the cold email is to solicit a binary response: Yes or No.
-
-## The Structure:
-**Subject:** quick question / {{company_name}}
-**Body:**
-Hey {{first_name}}, 
-Noticed you're scaling the engineering team but you still don't have a dedicated DevOps hire. Are you currently handling deployment architecture yourself?
-We built a scaffolding tool that reduces deployment times by 40% for lean teams. Worth a quick chat next week?
-Best, 
-Founder
-
-## Why it works:
-1. **Low Friction:** It takes 2 seconds to read.
-2. **Observation:** Proves you actually looked at their hiring board.
-3. **Binary Ask:** "Worth a chat?"`
   },
   {
     id: "tech-1",
-    title: "Razorpay Payment Verification V3",
-    category: "Technical Scaffolding",
+    title: "Technical Scaffolding",
+    category: "Technical Foundations",
     type: "code",
-    tags: ["Backend", "Payments"],
-    content: `// The exact high-performance payment verification we use in production.
-import crypto from "crypto";
-import { db, subscribersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-
-export async function verifyRazorpayPayment(req: Request) {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, email, plan } = await req.json();
-
-  const sign = razorpay_order_id + "|" + razorpay_payment_id;
-  const expectedSign = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-    .update(sign.toString())
-    .digest("hex");
-
-  if (razorpay_signature !== expectedSign) {
-    return { error: "Invalid signature", status: 400 };
-  }
-
-  // Update subscriber tier
-  await db.update(subscribersTable)
-    .set({
-      tier: plan.toLowerCase().replace(" ", "_"),
-      paymentProvider: "razorpay",
-      lastPaymentAt: new Date()
-    })
-    .where(eq(subscribersTable.email, email));
-
-  return { success: true, message: "Payment verified" };
-}`
+    tags: ["Backend", "Infrastructure"],
   },
   {
     id: "scale-1",
-    title: "The Zero-Touch Onboarding Loop",
-    category: "Scale Systems",
+    title: "Scale Systems & Operations",
+    category: "Operations",
     type: "document",
     tags: ["Operations", "Automation"],
-    content: `# The Zero-Touch Architecture
-
-If you are manually onboarding customers past $10k MRR, you do not have a business; you have a consulting firm.
-
-## The Stack:
-1. **Razorpay Orders:** Captures payment in your region (INR/USD agnostic).
-2. **Webhook Handler:** Verifies signature, updates subscription tier in real-time.
-3. **Resend (Email):** Sends activation email with portal access.
-4. **Zapier:** Pings Slack channel #new-revenue.
-
-You literally sleep while the system provisions the environment.`
   }
 ];
 
@@ -109,23 +53,6 @@ export default function ProPortal() {
 
   const user = session?.user;
 
-  // Startup context — personalizes CAC/LTV, competitor intel, board consult prompts
-  const [startupCtx, setStartupCtx] = useState<StartupContext | null>(null);
-
-  useEffect(() => {
-    const stored = getStartupContext();
-    if (stored) {
-      setStartupCtx(stored);
-      // Pre-select market category from context sector
-      const sectorMap: Record<string, string> = {
-        "B2B SaaS": "B2B SaaS",
-        "AI Tooling": "AI Tooling",
-        "Developer Infrastructure": "Developer Infrastructure",
-        "DTC / E-commerce": "DTC E-commerce",
-      };
-      if (sectorMap[stored.sector]) setMarketCategory(sectorMap[stored.sector]);
-    }
-  }, []);
 
   // State: Ticker
   const [tickerLines, setTickerLines] = useState<string[]>([]);
@@ -141,9 +68,6 @@ export default function ProPortal() {
 
   // State: IdeaBrowser Tool 3 (Acquisition)
   const [channel, setChannel] = useState("Cold Email");
-
-  // State: IdeaBrowser Tool 4 (Competitor Vulnerability)
-  const [competitorSize, setCompetitorSize] = useState("Enterprise ($100M+)");
 
   // Platform stats (live from API)
   const [platformStats, setPlatformStats] = useState<{ total: number; weekSignups: number } | null>(null);
@@ -246,26 +170,18 @@ export default function ProPortal() {
                   </div>
                 </div>
                 <button onClick={() => setActiveFileId(null)} className="px-6 py-2 bg-foreground text-background text-xs font-bold uppercase tracking-widest rounded-full hover:opacity-80">
-                  Close Document
+                  Close
                 </button>
               </div>
 
-              <div className="p-12 md:p-20">
+              <div className="p-12 md:p-20 flex flex-col items-center justify-center min-h-[500px] text-center">
                 <div className="flex gap-2 mb-10">
                   {activeFile.tags.map(tag => (
                     <Badge key={tag} className="bg-primary/5 text-primary border-primary/20">{tag}</Badge>
                   ))}
                 </div>
-
-                {activeFile.type === 'code' ? (
-                  <div className="bg-foreground text-background/90 p-8 rounded-xl overflow-x-auto shadow-2xl border border-primary/20">
-                    <pre className="font-mono text-sm leading-relaxed">{activeFile.content}</pre>
-                  </div>
-                ) : (
-                  <div className="prose prose-lg dark:prose-invert max-w-none font-serif">
-                    <pre className="font-sans text-lg leading-loose text-foreground whitespace-pre-wrap font-light">{activeFile.content}</pre>
-                  </div>
-                )}
+                <h2 className="font-serif text-3xl mb-4">{activeFile.title}</h2>
+                <p className="text-muted-foreground max-w-2xl text-lg mb-8">Coming soon. Your growth partner will unlock this playbook once you're matched.</p>
               </div>
             </div>
           </motion.div>
@@ -288,7 +204,7 @@ export default function ProPortal() {
             </h1>
 
             <p className="text-lg md:text-2xl text-muted-foreground leading-relaxed font-sans mx-auto max-w-4xl font-light">
-              You stopped browsing. Good. Everything in here is built for founders who are already moving.
+              Playbooks for the problems that actually kill startups. Cold email. Unit economics. Scaling the team without chaos.
             </p>
           </motion.div>
         </section>
@@ -309,10 +225,10 @@ export default function ProPortal() {
         {/* ── 3. THE HIGH-END VAULT ── */}
         <section>
           <div className="mb-12">
-            <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em] mb-6">CORE ASSETS</Badge>
-            <h2 className="font-serif text-5xl tracking-tight">The <span className="italic text-primary">Data Room.</span></h2>
+            <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em] mb-6">PLAYBOOKS</Badge>
+            <h2 className="font-serif text-5xl tracking-tight">The <span className="italic text-primary">Vault.</span></h2>
             <p className="text-muted-foreground font-sans text-xl mt-6 max-w-2xl font-light">
-              Click any blueprint below to mount the file into the immersive viewer. Do not share these assets outside the Pro Sanctum.
+              Frameworks for GTM, hiring, capital raises, and scaling operations. Your growth partner unlocks these once matched.
             </p>
           </div>
 
@@ -365,61 +281,27 @@ export default function ProPortal() {
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f12_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f12_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
             <div className="text-center mb-16 relative z-10">
-              <Badge className="bg-primary/20 text-primary border-none text-[10px] tracking-[0.3em] mb-6">EXCLUSIVE</Badge>
-              <h2 className="font-serif text-4xl md:text-5xl tracking-tight mb-4">Board of <span className="italic text-primary">Advisors.</span></h2>
+              <Badge className="bg-primary/20 text-primary border-none text-[10px] tracking-[0.3em] mb-6">YOUR ADVISORS</Badge>
+              <h2 className="font-serif text-4xl md:text-5xl tracking-tight mb-4">Pick Your <span className="italic text-primary">Strike Team.</span></h2>
               <p className="text-zinc-400 font-sans text-lg max-w-2xl mx-auto font-light">
-                Your dedicated tactical strike team. They dissect the output from the Cognitive Brain and turn it into actionable execution code.
+                Choose the three roles you need most. Tell your advisor your bottleneck. Get a response in 24 hours.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
               {[
-                {
-                  icon: Crosshair,
-                  name: "The VC",
-                  desc: "Ruthlessly analyzes your TAM and monetization cap. Tells you exactly why you won't get funded.",
-                  prompt: startupCtx
-                    ? `I'm building ${startupCtx.name} — ${startupCtx.problem}. We're at ${startupCtx.stage} stage in ${startupCtx.sector}. Tell me exactly why a VC would pass on us right now and what we need to fix before the next raise.`
-                    : "Tell me exactly why a VC would pass on my startup and what we need to fix.",
-                  bg: "bg-zinc-800",
-                },
-                {
-                  icon: Zap,
-                  name: "The Growth Hacker",
-                  desc: "Ignores product completely. Focuses 100% on exploiting distribution loops and slashing CAC.",
-                  prompt: startupCtx
-                    ? `I'm running ${startupCtx.name} in ${startupCtx.sector}, currently at ${startupCtx.stage}. My target customer: ${startupCtx.targetCustomer || "early-stage founders"}. Give me the top 3 distribution plays to slash CAC this week — specific channels, specific tactics.`
-                    : "Give me 3 distribution plays to slash my CAC this week.",
-                  bg: "bg-primary",
-                  iconColor: "text-black",
-                },
-                {
-                  icon: Code2,
-                  name: "The CTO",
-                  desc: "Evaluates technical debt and architectural choices. Gives you the exact stack you need to scale.",
-                  prompt: startupCtx
-                    ? `I'm building ${startupCtx.name} for ${startupCtx.targetCustomer || "founders"} in ${startupCtx.sector}. Team size: ${startupCtx.teamSize}. What's the lean tech stack I should be running right now, and what should I absolutely not build in-house?`
-                    : "What lean tech stack should I run right now and what should I not build in-house?",
-                  bg: "bg-zinc-800",
-                },
-              ].map((advisor) => (
-                <div key={advisor.name} className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl flex flex-col items-center text-center group hover:border-primary/50 transition-colors">
-                  <div className={`w-16 h-16 rounded-full ${advisor.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                    <advisor.icon className={`w-8 h-8 ${advisor.iconColor || "text-white"}`} />
+                { icon: Crosshair, name: "Fundraising Lead", desc: "Analyzes your fundraise readiness. Tells you what VCs actually want to see." },
+                { icon: Zap, name: "GTM Lead", desc: "Focuses on customer acquisition. Specific channels, specific tactics for your market." },
+                { icon: Code2, name: "Technical Lead", desc: "Evaluates tech debt and architecture. What to build in-house, what to outsource." },
+              ].map((role) => (
+                <div key={role.name} className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl flex flex-col items-center text-center group hover:border-primary/50 transition-colors cursor-pointer">
+                  <div className={`w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                    <role.icon className={`w-8 h-8 text-white`} />
                   </div>
-                  <h3 className="font-serif text-2xl mb-2 text-white">{advisor.name}</h3>
-                  <p className="text-sm text-zinc-400 mb-6 font-light">{advisor.desc}</p>
-                  {startupCtx && (
-                    <p className="text-[9px] text-zinc-500 mb-4 italic">Context: {startupCtx.name} · {startupCtx.sector}</p>
-                  )}
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(advisor.prompt);
-                      toast.success(`${advisor.name} prompt copied`, { description: "Paste it into the AI Advisor below." });
-                    }}
-                    className="mt-auto text-xs font-bold text-primary uppercase tracking-widest hover:underline"
-                  >
-                    Copy Prompt →
+                  <h3 className="font-serif text-2xl mb-2 text-white">{role.name}</h3>
+                  <p className="text-sm text-zinc-400 mb-6 font-light">{role.desc}</p>
+                  <button className="mt-auto text-xs font-bold text-primary uppercase tracking-widest hover:text-primary/80">
+                    Select Advisor
                   </button>
                 </div>
               ))}
@@ -434,10 +316,10 @@ export default function ProPortal() {
         <section>
           <div className="p-10 md:p-16 rounded-2xl bg-card border border-border shadow-lg">
             <div className="text-center mb-16">
-              <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em] mb-6">MARKET SCANNER</Badge>
-              <h2 className="font-serif text-4xl md:text-5xl mb-6 tracking-tight">Niche <span className="italic text-primary">Saturation Engine.</span></h2>
+              <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em] mb-6">MARKET SIZING</Badge>
+              <h2 className="font-serif text-4xl md:text-5xl mb-6 tracking-tight">Market <span className="italic text-primary">Density Check.</span></h2>
               <p className="text-muted-foreground font-sans text-lg leading-relaxed max-w-2xl mx-auto font-light">
-                Input your sector to instantly visualize market density. High density means you must compete on brand; low density means you compete on raw distribution.
+                Pick your sector. See how crowded it is. High saturation? Win on brand and brand-adjacent positioning. Low saturation? Win on volume and speed.
               </p>
             </div>
 
@@ -475,29 +357,29 @@ export default function ProPortal() {
           </div>
         </section>
 
-        {/* ── 6. THE MASTER PLAYBOOK (BENTO) ── */}
+        {/* ── 6. CORE FRAMEWORKS ── */}
         <section>
           <div className="mb-12">
-            <h2 className="font-serif text-5xl tracking-tight">Architectural <span className="italic text-primary">Systems.</span></h2>
+            <h2 className="font-serif text-5xl tracking-tight">Core <span className="italic text-primary">Frameworks.</span></h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="md:col-span-2 md:row-span-2 p-12 bg-card border border-border rounded-3xl">
               <Network className="w-10 h-10 text-primary mb-6" />
-              <h3 className="font-serif text-4xl mb-4">The Growth Loop</h3>
-              <p className="text-muted-foreground font-sans text-lg font-light">Most founders build funnels. Funnels end. You need to build loops. Learn how to architect a system where every new user brings in 1.2 additional users automatically.</p>
+              <h3 className="font-serif text-4xl mb-4">Unit Economics</h3>
+              <p className="text-muted-foreground font-sans text-lg font-light">Break down your CAC, LTV, payback period, and churn. See exactly where you're losing money and what to fix first.</p>
             </div>
             <div className="md:col-span-2 p-10 bg-primary/5 border border-primary/20 rounded-3xl flex flex-col justify-center">
-              <h3 className="font-serif text-3xl mb-3 text-primary">Cap Table Defense</h3>
-              <p className="text-sm text-foreground/80 font-light">Structure your equity to survive Series A dilution. Exact legal frameworks included.</p>
+              <h3 className="font-serif text-3xl mb-3 text-primary">Cap Table Strategy</h3>
+              <p className="text-sm text-foreground/80 font-light">Structure equity to survive Series A and beyond. Understand founder dilution before you raise.</p>
             </div>
             <div className="p-8 bg-card border border-border rounded-3xl text-center flex flex-col items-center justify-center">
               <Users className="w-8 h-8 text-primary mb-4" />
-              <h4 className="font-serif text-xl">Hiring Matrix</h4>
+              <h4 className="font-serif text-xl">First 5 Hires</h4>
             </div>
             <div className="p-8 bg-card border border-border rounded-3xl text-center flex flex-col items-center justify-center">
               <Cpu className="w-8 h-8 text-primary mb-4" />
-              <h4 className="font-serif text-xl">Tech Scaffolding</h4>
+              <h4 className="font-serif text-xl">Tech Stack</h4>
             </div>
           </div>
         </section>
@@ -506,10 +388,10 @@ export default function ProPortal() {
         <section>
           <div className="p-10 md:p-16 rounded-2xl bg-card border border-border shadow-lg flex flex-col lg:flex-row gap-16 items-center">
             <div className="lg:w-1/2">
-              <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em] mb-6">CAC / LTV MODELER</Badge>
-              <h2 className="font-serif text-4xl mb-6 tracking-tight">Acquisition <span className="italic text-primary">Matrix.</span></h2>
+              <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em] mb-6">CAC VS LTV</Badge>
+              <h2 className="font-serif text-4xl mb-6 tracking-tight">Channel <span className="italic text-primary">Tradeoffs.</span></h2>
               <p className="text-muted-foreground font-sans text-lg leading-relaxed mb-8 font-light">
-                Select an acquisition channel to visualize the projected Customer Acquisition Cost (CAC) against the Lifetime Value (LTV) decay curve.
+                Cold email is cheap to acquire but low LTV. Paid ads cost more upfront but bring better quality customers. See the real tradeoff for your channel.
               </p>
               <div className="space-y-4">
                 {["Cold Email", "Paid Social (Meta)", "SEO / Content"].map(ch => (
@@ -564,57 +446,29 @@ export default function ProPortal() {
           </div>
         </section>
 
-        {/* ── 9. TOOL 4: COMPETITOR VULNERABILITY ENGINE ── */}
+        {/* ── 9. COMPETITOR VULNERABILITY ENGINE ── */}
         <section>
-          <div className="p-10 md:p-16 rounded-2xl bg-foreground text-background border border-primary/20 shadow-2xl flex flex-col lg:flex-row gap-16 items-center">
-            <div className="flex-1">
-              <Badge className="bg-primary/20 text-primary border-none text-[10px] tracking-[0.3em] mb-6">COMPETITIVE INTELLIGENCE</Badge>
-              <h2 className="font-serif text-4xl mb-6 tracking-tight">Vulnerability <span className="italic text-primary">Engine.</span></h2>
-              <p className="text-background/60 font-sans text-lg leading-relaxed mb-8 font-light">
-                How do you beat a $100M competitor? You don't build more features. You exploit their scale. Select your primary competitor tier to reveal their structural weaknesses.
-              </p>
-              <select
-                className="w-full p-4 bg-background/5 border border-background/10 rounded-xl font-mono text-sm focus:outline-none focus:border-primary text-background"
-                value={competitorSize}
-                onChange={(e) => setCompetitorSize(e.target.value)}
-              >
-                <option>Legacy Enterprise ($1B+)</option>
-                <option>Scale-Up ($100M+)</option>
-                <option>VC-Backed Startup ($10M+)</option>
-              </select>
-            </div>
-            <div className="flex-1 bg-background/5 p-8 rounded-xl border border-background/10 w-full">
-              <AlertTriangle className="w-8 h-8 text-primary mb-6" />
-              <h4 className="font-serif text-2xl mb-4">Identified Weakness</h4>
-              {startupCtx && (
-                <p className="text-[9px] font-bold uppercase tracking-widest text-primary/60 mb-3">
-                  For {startupCtx.name} · {startupCtx.sector}
-                </p>
-              )}
-              <p className="font-mono text-sm leading-relaxed text-background/80">
-                {competitorSize === "Legacy Enterprise ($1B+)"
-                  ? `Extremely slow product cycles. Poor UI/UX. Compete by offering a hyper-specific, beautifully designed tool for a single workflow they ignore.${startupCtx ? ` In ${startupCtx.sector}, their enterprise contracts create 6-12 month implementation lag — your self-serve onboarding is your moat.` : ""}`
-                  : competitorSize === "Scale-Up ($100M+)"
-                    ? `Bloated pricing models to satisfy board expectations. Compete by undercutting price drastically and offering transparent, self-serve onboarding.${startupCtx ? ` Target the ${startupCtx.targetCustomer || "SMB"} segment they've abandoned to chase enterprise.` : ""}`
-                    : `High burn rate. They must hit massive milestones. Compete by staying lean, profitable, and servicing the long-tail customers they are ignoring to chase whales.${startupCtx ? ` At ${startupCtx.stage} stage in ${startupCtx.sector}, your speed advantage is your only real moat — use it.` : ""}`}
-              </p>
-            </div>
-          </div>
+          <CompetitorScanner />
         </section>
 
-        {/* ── 10. FINAL LAUNCH SEQUENCE ── */}
+        {/* ── 10. CO-FOUNDER MATCHER ── */}
+        <section>
+          <CoFounderMatcher />
+        </section>
+
+        {/* ── 11. FINAL LAUNCH SEQUENCE ── */}
         <section className="pb-24">
           <div className="p-16 md:p-32 rounded-2xl bg-card border border-border text-center relative overflow-hidden shadow-xl">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/5 blur-[150px] rounded-full pointer-events-none" />
 
             <div className="relative z-10 max-w-3xl mx-auto">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-6 font-sans">DEPLOYMENT READY</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-6 font-sans">NEXT STEP</p>
               <h2 className="font-serif text-5xl md:text-7xl mb-8 tracking-tight leading-[0.95]">
-                Execute the <br />
-                <span className="italic">Framework.</span>
+                You know what <br />
+                <span className="italic">to do now.</span>
               </h2>
               <p className="text-muted-foreground font-sans text-xl leading-relaxed mb-12 font-light">
-                You have the tools. You have the blueprints. The market is saturated with tourists. It's time for the architects to build.
+                Your growth partner is waiting. When you're matched, they unlock the full vault and walk you through the frameworks that work.
               </p>
 
               <button

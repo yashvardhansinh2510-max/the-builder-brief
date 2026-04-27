@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRoute } from "wouter";
 import {
-  Shield, CheckCircle2, Clock, TrendingUp, Rocket,
+  Shield, CheckCircle2, Clock, Rocket,
   Globe, ArrowRight, Lock, MessageSquare, Briefcase,
-  Users, Star, Quote, DollarSign, Zap, Target,
+  Users, Zap, Target,
   ChevronRight, Award, Building2, BarChart3
 } from "lucide-react";
 import logoPath from "@assets/logo.jpg";
@@ -39,42 +39,6 @@ const timelinePhases = [
     desc: "Keys to the foundry. You're now a partner. The engineering team, sales systems, and network are yours.",
     time: "Upon Acceptance",
   },
-];
-
-const incubatorTestimonials = [
-  {
-    name: "Arjun Mehta",
-    role: "Founder — Smarter Contracts",
-    result: "$2.4M Acquisition",
-    category: "LegalTech",
-    quote: "I came in with a rough thesis and zero tech team. Six months later, I'm signing acquisition papers. The team at Build Brief didn't just advise — they built with me, made the first 12 sales calls with me, and positioned the company for an exit I didn't think was possible in this timeline.",
-    image: "https://i.pravatar.cc/150?u=arjun_m",
-  },
-  {
-    name: "Priya Kapoor",
-    role: "Founder — HaleHealth AI",
-    result: "$25k MRR in 60 Days",
-    category: "HealthTech",
-    quote: "The incubator is the most exclusive thing I've been part of in my career. These aren't mentors — they're operators. They sat with me every week, challenged every assumption, and their GTM framework is what got us to $25k MRR before we even launched publicly.",
-    image: "https://i.pravatar.cc/150?u=priya_k",
-  },
-  {
-    name: "Marcus Osei",
-    role: "Solo Founder — GridOptimizer",
-    result: "Acquired by Enel",
-    category: "Energy",
-    quote: "I was skeptical of incubators. Every one I'd seen was just a fancy co-working space with a logo. Build Brief is the opposite. They have operational skin in the game. The Enel conversation happened because of their direct network — an intro I would have never gotten on my own.",
-    image: "https://i.pravatar.cc/150?u=marcus_o",
-  },
-];
-
-const pastVentures = [
-  { name: "Smarter Contracts", result: "$2.4M Exit", category: "LegalTech", logo: "SC", multiple: "18x" },
-  { name: "HaleHealth AI", result: "$25k MRR in 60d", category: "HealthTech", logo: "HH", multiple: "—" },
-  { name: "GridOptimizer", result: "Acquired by Enel", category: "Energy", logo: "GO", multiple: "Strategic" },
-  { name: "FlowBase", result: "$180k ARR", category: "Dev Tools", logo: "FB", multiple: "—" },
-  { name: "AxisPay", result: "$3.1M Seed", category: "FinTech", logo: "AP", multiple: "YC-Backed" },
-  { name: "FounderOS", result: "45k Users", category: "SaaS", logo: "FO", multiple: "Bootstrap" },
 ];
 
 const bentoPerks = [
@@ -116,12 +80,6 @@ const bentoPerks = [
   },
 ];
 
-const ventureStats = [
-  { value: "$14.2M+", label: "Aggregate exit value" },
-  { value: "3–5", label: "Partners per quarter" },
-  { value: "6 months", label: "Typical incubation window" },
-  { value: "100%", label: "Founder-first equity model" },
-];
 
 function StatusDot({ status }: { status: string }) {
   if (status === "complete") return <CheckCircle2 className="w-5 h-5 text-primary" />;
@@ -228,14 +186,12 @@ export default function IncubatorDashboard() {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+            className="p-8 rounded-2xl bg-card border border-card-border text-center"
           >
-            {ventureStats.map((s, i) => (
-              <div key={i} className="p-6 rounded-2xl bg-card border border-card-border text-center">
-                <p className="font-serif text-3xl md:text-4xl tracking-tight mb-1 text-primary">{s.value}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground font-sans">{s.label}</p>
-              </div>
-            ))}
+            <div className="flex items-center justify-center gap-3">
+              <Lock className="w-5 h-5 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground font-sans">Coming soon. Portfolio metrics unlock after you're matched with a partner.</p>
+            </div>
           </motion.div>
         </section>
 
@@ -391,62 +347,12 @@ export default function IncubatorDashboard() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {incubatorTestimonials.map((t, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="p-8 rounded-[2rem] bg-card border border-card-border relative group hover:border-primary/20 transition-all duration-300 flex flex-col"
-              >
-                <Quote className="absolute top-6 right-8 w-10 h-10 text-primary/5 group-hover:text-primary/10 transition-colors" />
-                <div className="flex gap-1 mb-6">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-3.5 h-3.5 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-foreground/80 italic leading-relaxed font-serif text-base flex-1 mb-8">
-                  "{t.quote}"
-                </p>
-                <div className="pt-6 border-t border-border/50">
-                  <div className="flex items-center gap-3 mb-3">
-                    <img src={t.image} alt={t.name} className="w-12 h-12 rounded-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 border border-border" />
-                    <div>
-                      <p className="font-serif text-lg leading-tight">{t.name}</p>
-                      <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-widest">{t.role}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-primary">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest font-sans">{t.result}</span>
-                    </div>
-                    <div className="bg-primary/5 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <DollarSign className="w-3 h-3 text-primary opacity-60" />
-                      <span className="text-[9px] font-bold text-primary tracking-widest">VERIFIED</span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-10 text-center"
-          >
-            <div className="inline-block p-px rounded-full bg-gradient-to-r from-transparent via-primary/20 to-transparent">
-              <div className="px-10 py-4 rounded-full bg-card border border-card-border">
-                <p className="font-serif text-xl md:text-2xl tracking-tight">
-                  Aggregate Portfolio Value: <span className="text-primary italic">$14.2 Million+</span>
-                </p>
-              </div>
+          <div className="p-10 rounded-[2rem] bg-card border border-card-border text-center flex items-center justify-center min-h-80">
+            <div className="flex flex-col items-center gap-3">
+              <Lock className="w-6 h-6 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground font-sans max-w-md">Coming soon. Live founder outcomes and case studies unlock upon acceptance to the Inner Circle.</p>
             </div>
-          </motion.div>
+          </div>
         </section>
 
         {/* ── FOUNDRY RECORD ── */}
@@ -461,35 +367,11 @@ export default function IncubatorDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pastVentures.map((v, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
-                whileHover={{ y: -4 }}
-                className="p-7 rounded-2xl bg-card border border-card-border group transition-all hover:border-primary/20"
-              >
-                <div className="flex items-start justify-between mb-5">
-                  <div className="w-12 h-12 rounded-xl bg-background border border-border flex items-center justify-center text-primary font-bold font-serif text-xl">
-                    {v.logo}
-                  </div>
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 font-sans border border-border rounded-full px-2.5 py-1">{v.category}</span>
-                </div>
-                <h4 className="font-serif text-xl mb-1 tracking-tight">{v.name}</h4>
-                <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-4">
-                  <div className="flex items-center gap-2 text-primary">
-                    <TrendingUp className="w-4 h-4" />
-                    <span className="font-sans text-sm font-bold tracking-tight">{v.result}</span>
-                  </div>
-                  {v.multiple !== "—" && (
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-primary/60 font-sans">{v.multiple}</span>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+          <div className="p-10 rounded-[2rem] bg-card border border-card-border text-center flex items-center justify-center min-h-80">
+            <div className="flex flex-col items-center gap-3">
+              <Lock className="w-6 h-6 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground font-sans max-w-md">Coming soon. Verified exit data and portfolio results unlock for Inner Circle members only.</p>
+            </div>
           </div>
         </section>
 
