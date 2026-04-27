@@ -26,6 +26,7 @@ import weeklyCheckInsRouter from "./weekly-checkins";
 import marketSizingRouter from "./market-sizing";
 import competitiveAnalysisRouter from "./competitive-analysis";
 import coFounderMatchingRouter from "./co-founder-matching";
+import funnelRouter from "./funnel";
 
 const router: IRouter = Router();
 
@@ -56,5 +57,6 @@ router.use('/weekly-checkins', weeklyCheckInsRouter);
 router.use('/market-sizing', marketSizingRouter);
 router.use('/competitive-analysis', competitiveAnalysisRouter);
 router.use('/co-founder-matching', coFounderMatchingRouter);
+router.use('/api/upgrades', funnelRouter);
 
 export default router;
