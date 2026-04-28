@@ -12,6 +12,11 @@ import {
   updateMilestoneProgress,
   getMilestoneProgress,
 } from "@/lib/funnel/milestones";
+import {
+  calculateScoutScore,
+  identifyScoutCandidates,
+  updateScoutScore,
+} from "@/lib/funnel/scouts";
 
 const router = Router();
 
@@ -201,6 +206,51 @@ router.get("/milestones/progress/:userId", async (req: Request, res: Response) =
   } catch (error) {
     console.error("Get milestone progress error:", error);
     res.status(500).json({ error: "Failed to get milestone progress" });
+  }
+});
+
+router.post("/scouts/identify", async (req: Request, res: Response) => {
+  try {
+    const candidates = await identifyScoutCandidates();
+    res.json({
+      count: candidates.length,
+      candidates,
+    });
+  } catch (error) {
+    console.error("Identify scouts error:", error);
+    res.status(500).json({ error: "Failed to identify scout candidates" });
+  }
+});
+
+router.get("/scouts/score/:userId", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId required" });
+    }
+
+    const score = await calculateScoutScore(userId);
+    res.json(score);
+  } catch (error) {
+    console.error("Get scout score error:", error);
+    res.status(500).json({ error: "Failed to calculate scout score" });
+  }
+});
+
+router.post("/scouts/update/:userId", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId required" });
+    }
+
+    const score = await updateScoutScore(userId);
+    res.json(score);
+  } catch (error) {
+    console.error("Update scout score error:", error);
+    res.status(500).json({ error: "Failed to update scout score" });
   }
 });
 
