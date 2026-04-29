@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "@/db";
-import { users, upgradeOffers } from "@/db/schema";
+import { subscribersTable, upgradeOffers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import {
   checkFreeToProEligibility,
@@ -20,12 +20,13 @@ import {
 
 const router = Router();
 
-router.post("/check-free-to-pro", async (req: Request, res: Response) => {
+router.post("/check-free-to-pro", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const eligibility = await checkFreeToProEligibility(userId);
@@ -36,12 +37,13 @@ router.post("/check-free-to-pro", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/check-pro-to-max", async (req: Request, res: Response) => {
+router.post("/check-pro-to-max", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const eligibility = await checkProToMaxEligibility(userId);
@@ -52,12 +54,13 @@ router.post("/check-pro-to-max", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/check-max-to-incubator", async (req: Request, res: Response) => {
+router.post("/check-max-to-incubator", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const eligibility = await checkMaxToIncubatorEligibility(userId);
@@ -68,12 +71,13 @@ router.post("/check-max-to-incubator", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/notify-free-to-pro", async (req: Request, res: Response) => {
+router.post("/notify-free-to-pro", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const result = await checkAndNotifyFreeToProEligibility(userId);
@@ -84,15 +88,16 @@ router.post("/notify-free-to-pro", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/claim/:offerId", async (req: Request, res: Response) => {
+router.post("/claim/:offerId", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { offerId } = req.params;
+    const offerId = typeof req.params.offerId === "string" ? req.params.offerId : "";
     const { userId } = req.body;
 
     if (!offerId || !userId) {
-      return res
+      res
         .status(400)
         .json({ error: "offerId and userId required" });
+      return;
     }
 
     const offer = await db
@@ -102,15 +107,18 @@ router.post("/claim/:offerId", async (req: Request, res: Response) => {
       .limit(1);
 
     if (!offer || offer.length === 0) {
-      return res.status(404).json({ error: "Offer not found" });
+      res.status(404).json({ error: "Offer not found" });
+      return;
     }
 
     if (offer[0].acceptedAt || offer[0].rejectedAt) {
-      return res.status(400).json({ error: "Offer already claimed or rejected" });
+      res.status(400).json({ error: "Offer already claimed or rejected" });
+      return;
     }
 
     if (offer[0].expiresAt && new Date() > offer[0].expiresAt) {
-      return res.status(400).json({ error: "Offer expired" });
+      res.status(400).json({ error: "Offer expired" });
+      return;
     }
 
     await db
@@ -119,9 +127,9 @@ router.post("/claim/:offerId", async (req: Request, res: Response) => {
       .where(eq(upgradeOffers.id, offerId));
 
     const updatedUser = await db
-      .update(users)
+      .update(subscribersTable)
       .set({ tier: offer[0].toTier as "free" | "pro" | "max" | "incubator" })
-      .where(eq(users.id, userId))
+      .where(eq(subscribersTable.id, userId))
       .returning();
 
     res.json({
@@ -135,15 +143,16 @@ router.post("/claim/:offerId", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/reject/:offerId", async (req: Request, res: Response) => {
+router.post("/reject/:offerId", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { offerId } = req.params;
+    const offerId = typeof req.params.offerId === "string" ? req.params.offerId : "";
     const { userId } = req.body;
 
     if (!offerId || !userId) {
-      return res
+      res
         .status(400)
         .json({ error: "offerId and userId required" });
+      return;
     }
 
     const offer = await db
@@ -153,11 +162,13 @@ router.post("/reject/:offerId", async (req: Request, res: Response) => {
       .limit(1);
 
     if (!offer || offer.length === 0) {
-      return res.status(404).json({ error: "Offer not found" });
+      res.status(404).json({ error: "Offer not found" });
+      return;
     }
 
     if (offer[0].acceptedAt || offer[0].rejectedAt) {
-      return res.status(400).json({ error: "Offer already claimed or rejected" });
+      res.status(400).json({ error: "Offer already claimed or rejected" });
+      return;
     }
 
     await db
@@ -172,12 +183,13 @@ router.post("/reject/:offerId", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/milestones/update", async (req: Request, res: Response) => {
+router.post("/milestones/update", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId, currentMRR, activeUsers, featureShipped } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const progress = await updateMilestoneProgress(userId, {
@@ -193,12 +205,13 @@ router.post("/milestones/update", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/milestones/progress/:userId", async (req: Request, res: Response) => {
+router.get("/milestones/progress/:userId", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId } = req.params;
+    const userId = typeof req.params.userId === "string" ? req.params.userId : "";
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const progress = await getMilestoneProgress(userId);
@@ -209,7 +222,7 @@ router.get("/milestones/progress/:userId", async (req: Request, res: Response) =
   }
 });
 
-router.post("/scouts/identify", async (req: Request, res: Response) => {
+router.post("/scouts/identify", async (req: Request, res: Response): Promise<void> => {
   try {
     const candidates = await identifyScoutCandidates();
     res.json({
@@ -222,12 +235,13 @@ router.post("/scouts/identify", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/scouts/score/:userId", async (req: Request, res: Response) => {
+router.get("/scouts/score/:userId", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId } = req.params;
+    const userId = typeof req.params.userId === "string" ? req.params.userId : "";
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const score = await calculateScoutScore(userId);
@@ -238,12 +252,13 @@ router.get("/scouts/score/:userId", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/scouts/update/:userId", async (req: Request, res: Response) => {
+router.post("/scouts/update/:userId", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId } = req.params;
+    const userId = typeof req.params.userId === "string" ? req.params.userId : "";
 
     if (!userId) {
-      return res.status(400).json({ error: "userId required" });
+      res.status(400).json({ error: "userId required" });
+      return;
     }
 
     const score = await updateScoutScore(userId);

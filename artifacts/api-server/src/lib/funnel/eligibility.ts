@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { users, founderSignals, proMilestones, advisorAssignments, upgradeOffers } from "@/db/schema";
+import { subscribersTable, founderSignals, proMilestones, advisorAssignments, upgradeOffers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 
@@ -13,8 +13,8 @@ export interface UpgradeEligibility {
 export async function checkFreeToProEligibility(userId: string): Promise<UpgradeEligibility> {
   const user = await db
     .select()
-    .from(users)
-    .where(eq(users.id, userId))
+    .from(subscribersTable)
+    .where(eq(subscribersTable.id, parseInt(userId, 10)))
     .limit(1);
 
   if (!user || user[0]?.tier !== "free") {
@@ -56,8 +56,8 @@ export async function checkFreeToProEligibility(userId: string): Promise<Upgrade
 export async function checkProToMaxEligibility(userId: string): Promise<UpgradeEligibility> {
   const user = await db
     .select()
-    .from(users)
-    .where(eq(users.id, userId))
+    .from(subscribersTable)
+    .where(eq(subscribersTable.id, parseInt(userId, 10)))
     .limit(1);
 
   if (!user || user[0]?.tier !== "pro") {
@@ -95,8 +95,8 @@ export async function checkProToMaxEligibility(userId: string): Promise<UpgradeE
 export async function checkMaxToIncubatorEligibility(userId: string): Promise<UpgradeEligibility> {
   const user = await db
     .select()
-    .from(users)
-    .where(eq(users.id, userId))
+    .from(subscribersTable)
+    .where(eq(subscribersTable.id, parseInt(userId, 10)))
     .limit(1);
 
   if (!user || user[0]?.tier !== "max") {

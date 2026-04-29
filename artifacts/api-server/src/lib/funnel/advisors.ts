@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { advisorAssignments, founderSignals, users } from "@/db/schema";
+import { advisorAssignments, founderSignals } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { advisorRoster, type AdvisorProfile } from "@/config/advisors";
 
@@ -30,13 +30,13 @@ export async function assignAdvisorForMaxTier(
   nextCheckInDate.setDate(nextCheckInDate.getDate() + 90);
 
   await db.insert(advisorAssignments).values({
+    id: `advisor-${userId}-${Date.now()}`,
     userId,
     advisorId: selectedAdvisor.id,
     advisorName: selectedAdvisor.name,
     assignedAt: assignmentDate,
-    lastCheckInDate: null,
-    nextCheckInDate,
-    checkInCount: 0,
+    lastCheckInAt: null,
+    nextQuarterlyCheckIn: nextCheckInDate,
   });
 
   return selectedAdvisor;
@@ -70,15 +70,10 @@ export async function recordCheckIn(
   await db
     .update(advisorAssignments)
     .set({
-      lastCheckInDate: new Date(),
-      nextCheckInDate: nextCheckIn,
-      checkInCount: db.raw(`check_in_count + 1`),
+      lastCheckInAt: new Date(),
+      nextQuarterlyCheckIn: nextCheckIn,
     })
-    .where(
-      // @ts-ignore: Drizzle ORM type issue
-      `user_id = ? AND advisor_id = ?`,
-      [userId, advisorId]
-    );
+    .where(eq(advisorAssignments.userId, userId));
 }
 
 export async function getAdvisorByMarketAndStage(

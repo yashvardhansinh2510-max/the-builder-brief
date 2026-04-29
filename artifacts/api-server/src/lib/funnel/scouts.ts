@@ -56,8 +56,8 @@ export async function calculateScoutScore(userId: string): Promise<ScoutScore> {
   if (milestones && milestones.length > 0) {
     const milestone = milestones[0];
     if (
-      milestone.mrrCurrent >= 50000 &&
-      milestone.usersCurrent >= 500
+      milestone.currentMrr >= 50000 &&
+      milestone.currentUserCount >= 500
     ) {
       growthTrajectory = Math.min(30, growthTrajectory + 10);
       reasons.push("Hitting revenue and user targets");
@@ -67,35 +67,47 @@ export async function calculateScoutScore(userId: string): Promise<ScoutScore> {
   // Credibility (0-35 points)
   let credibility = 0;
 
-  // Network activity
-  if (signal.networkConnectionsCount >= 50) {
+  // Advisor engagement (credibility through expert guidance)
+  if (signal.advisorCallsCompleted >= 3) {
     credibility += 15;
-    reasons.push("Strong founder network (50+ connections)");
-  } else if (signal.networkConnectionsCount >= 20) {
+    reasons.push("Strong advisor engagement (3+ calls)");
+  } else if (signal.advisorCallsCompleted >= 1) {
     credibility += 10;
-    reasons.push("Active founder network (20+ connections)");
-  } else if (signal.networkConnectionsCount >= 5) {
-    credibility += 5;
-    reasons.push("Building founder network");
+    reasons.push("Active advisor engagement");
   }
 
-  // Public presence / content
-  if (signal.contentPublishedCount >= 5) {
+  // Founded before signal (experience/credibility)
+  if (signal.foundedBefore) {
     credibility += 10;
-    reasons.push("Active content creator (5+ pieces)");
-  } else if (signal.contentPublishedCount >= 2) {
-    credibility += 5;
-    reasons.push("Publishing content");
+    reasons.push("Prior founding experience");
   }
 
-  // Repeat user (consistent engagement)
-  if (signal.scorecardRunsLast30Days > 0 && signal.lastActiveAt) {
-    const lastActive = new Date(signal.lastActiveAt);
+  // Previous exits
+  if (signal.previousExits >= 2) {
+    credibility += 10;
+    reasons.push("Multiple exits (experienced founder)");
+  } else if (signal.previousExits >= 1) {
+    credibility += 5;
+    reasons.push("Prior successful exit");
+  }
+
+  // Playbook engagement (consistent usage)
+  if (signal.playbookPagesViewedLast30Days >= 20) {
+    credibility += 5;
+    reasons.push("Strong playbook engagement");
+  } else if (signal.playbookPagesViewedLast30Days >= 5) {
+    credibility += 3;
+    reasons.push("Active playbook user");
+  }
+
+  // Recent activity check
+  if (signal.lastScorecardRunAt) {
+    const lastRun = new Date(signal.lastScorecardRunAt);
     const daysSinceActive = Math.floor(
-      (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - lastRun.getTime()) / (1000 * 60 * 60 * 24)
     );
     if (daysSinceActive <= 7) {
-      credibility += 10;
+      credibility += 5;
       reasons.push("Active this week");
     }
   }
@@ -105,32 +117,32 @@ export async function calculateScoutScore(userId: string): Promise<ScoutScore> {
   // Market Opportunity (0-35 points)
   let marketOpportunity = 0;
 
-  if (milestones && milestones.length > 0) {
-    const milestone = milestones[0];
+  // TAM assessment
+  const tam = signal.estimatedTam;
+  if (tam === "$1B+" || tam === "$500M+") {
+    marketOpportunity += 15;
+    reasons.push(`Large TAM: ${tam}`);
+  } else if (tam === "$100M+" || tam === "$50M+") {
+    marketOpportunity += 10;
+    reasons.push(`Mid-range TAM: ${tam}`);
+  }
 
-    // Market assessment
-    const market = signal.founderMarket;
-    if (
-      market === "b2b-saas" ||
-      market === "marketplace" ||
-      market === "developer-tools"
-    ) {
-      marketOpportunity += 15;
-      reasons.push(`Operating in high-opportunity market: ${market}`);
-    } else if (market === "consumer") {
-      marketOpportunity += 10;
-      reasons.push("Operating in consumer market");
-    }
+  // Defensibility
+  if (signal.defensibility === "high") {
+    marketOpportunity += 10;
+    reasons.push("High product defensibility");
+  } else if (signal.defensibility === "medium") {
+    marketOpportunity += 5;
+    reasons.push("Medium defensibility");
+  }
 
-    // Founder stage
-    const stage = signal.founderStage;
-    if (stage === "series-b") {
-      marketOpportunity += 15;
-      reasons.push("Series B founder (scale phase)");
-    } else if (stage === "series-a") {
-      marketOpportunity += 10;
-      reasons.push("Series A founder");
-    }
+  // Growth trajectory (consecutive quarters)
+  if (signal.consecutiveGrowthQuarters >= 3) {
+    marketOpportunity += 10;
+    reasons.push("Strong multi-quarter growth");
+  } else if (signal.consecutiveGrowthQuarters >= 1) {
+    marketOpportunity += 5;
+    reasons.push("Showing growth trajectory");
   }
 
   marketOpportunity = Math.min(35, marketOpportunity);
@@ -154,18 +166,17 @@ export async function identifyScoutCandidates(): Promise<
     score: ScoutScore;
   }>
 > {
-  const maxTierUsers = await db
+  const allSignals = await db
     .select()
-    .from(founderSignals)
-    .where(eq(founderSignals.currentTier, "max"));
+    .from(founderSignals);
 
   const candidates = [];
 
-  for (const user of maxTierUsers) {
-    const score = await calculateScoutScore(user.userId);
+  for (const signal of allSignals) {
+    const score = await calculateScoutScore(signal.userId);
     if (score.isInvitable) {
       candidates.push({
-        userId: user.userId,
+        userId: signal.userId,
         score,
       });
     }
@@ -187,8 +198,8 @@ export async function updateScoutScore(userId: string): Promise<ScoutScore> {
     await db
       .update(founderSignals)
       .set({
-        scoutScore: score.totalScore,
-        scoutScoreIsInvitable: score.isInvitable,
+        scoutScore: score.totalScore.toString(),
+        scoutInvitedAt: score.isInvitable ? new Date() : existing[0].scoutInvitedAt,
       })
       .where(eq(founderSignals.userId, userId));
   }

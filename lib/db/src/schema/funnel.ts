@@ -1,11 +1,11 @@
 import { pgTable, text, integer, timestamp, boolean, decimal, jsonb, varchar } from "drizzle-orm/pg-core";
-import { users } from "./index";
+import { subscribersTable } from "./subscribers";
 import { relations } from "drizzle-orm";
 
 // Track Pro tier milestones per founder
 export const proMilestones = pgTable("pro_milestones", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: text("user_id").notNull().references(() => subscribersTable.id),
   mrrTarget: integer("mrr_target").notNull().default(500), // $500 MRR in cents
   userCountTarget: integer("user_count_target").notNull().default(500),
   currentMrr: integer("current_mrr").notNull().default(0),
@@ -20,7 +20,7 @@ export const proMilestones = pgTable("pro_milestones", {
 // Track advisor assignments for Max tier
 export const advisorAssignments = pgTable("advisor_assignments", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: text("user_id").notNull().references(() => subscribersTable.id),
   advisorId: text("advisor_id").notNull(), // Reference to advisors config
   advisorName: varchar("advisor_name").notNull(),
   assignedAt: timestamp("assigned_at").notNull().defaultNow(),
@@ -32,7 +32,7 @@ export const advisorAssignments = pgTable("advisor_assignments", {
 // Track upgrade offers sent (for email logging)
 export const upgradeOffers = pgTable("upgrade_offers", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: text("user_id").notNull().references(() => subscribersTable.id),
   fromTier: varchar("from_tier").notNull(), // "free" | "pro" | "max"
   toTier: varchar("to_tier").notNull(), // "pro" | "max" | "incubator"
   triggerType: varchar("trigger_type").notNull(), // "health_score" | "playbook_clicks" | "milestone_hit" | "scout_invite"
@@ -46,7 +46,7 @@ export const upgradeOffers = pgTable("upgrade_offers", {
 // Track founder engagement signals for churn & scout identification
 export const founderSignals = pgTable("founder_signals", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: text("user_id").notNull().references(() => subscribersTable.id),
   scorecardRunsLast30Days: integer("scorecard_runs_last_30_days").notNull().default(0),
   lastScorecardRunAt: timestamp("last_scorecard_run_at"),
   playbookPagesViewedLast30Days: integer("playbook_pages_viewed_last_30_days").notNull().default(0),
@@ -65,7 +65,7 @@ export const founderSignals = pgTable("founder_signals", {
 // Churn risk indicators
 export const churnRiskScores = pgTable("churn_risk_scores", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: text("user_id").notNull().references(() => subscribersTable.id),
   tier: varchar("tier").notNull(), // "free" | "pro" | "max" | "incubator"
   riskScore: decimal("risk_score", { precision: 5, scale: 2 }).notNull(), // 0-100 (100 = high churn risk)
   reasons: jsonb("reasons").notNull().default('[]'), // ["scorecard_unused_2_weeks", "no_playbook_engagement", etc]
@@ -75,21 +75,21 @@ export const churnRiskScores = pgTable("churn_risk_scores", {
 
 // Relations
 export const proMilestonesRelations = relations(proMilestones, ({ one }) => ({
-  user: one(users, { fields: [proMilestones.userId], references: [users.id] }),
+  user: one(subscribersTable, { fields: [proMilestones.userId], references: [subscribersTable.id] }),
 }));
 
 export const advisorAssignmentsRelations = relations(advisorAssignments, ({ one }) => ({
-  user: one(users, { fields: [advisorAssignments.userId], references: [users.id] }),
+  user: one(subscribersTable, { fields: [advisorAssignments.userId], references: [subscribersTable.id] }),
 }));
 
 export const upgradeOffersRelations = relations(upgradeOffers, ({ one }) => ({
-  user: one(users, { fields: [upgradeOffers.userId], references: [users.id] }),
+  user: one(subscribersTable, { fields: [upgradeOffers.userId], references: [subscribersTable.id] }),
 }));
 
 export const founderSignalsRelations = relations(founderSignals, ({ one }) => ({
-  user: one(users, { fields: [founderSignals.userId], references: [users.id] }),
+  user: one(subscribersTable, { fields: [founderSignals.userId], references: [subscribersTable.id] }),
 }));
 
 export const churnRiskScoresRelations = relations(churnRiskScores, ({ one }) => ({
-  user: one(users, { fields: [churnRiskScores.userId], references: [users.id] }),
+  user: one(subscribersTable, { fields: [churnRiskScores.userId], references: [subscribersTable.id] }),
 }));

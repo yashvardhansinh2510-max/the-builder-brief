@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { proMilestones, users } from "@/db/schema";
+import { proMilestones } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export interface MilestoneProgress {
@@ -31,14 +31,14 @@ export async function updateMilestoneProgress(
   }
 
   const mrrHit = update.currentMRR !== undefined
-    ? update.currentMRR >= 500
-    : milestone.mrrTargetHit;
+    ? update.currentMRR >= milestone.mrrTarget
+    : milestone.currentMrr >= milestone.mrrTarget;
   const usersHit = update.activeUsers !== undefined
-    ? update.activeUsers >= 500
-    : milestone.usersTargetHit;
+    ? update.activeUsers >= milestone.userCountTarget
+    : milestone.currentUserCount >= milestone.userCountTarget;
   const featureHit = update.featureShipped !== undefined
     ? update.featureShipped
-    : milestone.featureShippedHit;
+    : milestone.featureShipped;
 
   const milestonesHit = [mrrHit, usersHit, featureHit].filter(Boolean).length;
   const maxEligibleAt = milestonesHit >= 2 ? new Date() : null;
@@ -46,9 +46,9 @@ export async function updateMilestoneProgress(
   await db
     .update(proMilestones)
     .set({
-      mrrTargetHit: mrrHit,
-      usersTargetHit: usersHit,
-      featureShippedHit: featureHit,
+      currentMrr: update.currentMRR !== undefined ? update.currentMRR : milestone.currentMrr,
+      currentUserCount: update.activeUsers !== undefined ? update.activeUsers : milestone.currentUserCount,
+      featureShipped: update.featureShipped !== undefined ? update.featureShipped : milestone.featureShipped,
       milestonesHit,
       maxUpgradeEligibleAt: maxEligibleAt,
       updatedAt: new Date(),
@@ -73,16 +73,16 @@ export async function getMilestoneProgress(userId: string): Promise<MilestonePro
 
   return {
     mrrTarget: {
-      achieved: m.currentMRR || 0,
-      target: 500,
-      isHit: m.mrrTargetHit,
+      achieved: m.currentMrr,
+      target: m.mrrTarget,
+      isHit: m.currentMrr >= m.mrrTarget,
     },
     usersTarget: {
-      achieved: m.activeUsers || 0,
-      target: 500,
-      isHit: m.usersTargetHit,
+      achieved: m.currentUserCount,
+      target: m.userCountTarget,
+      isHit: m.currentUserCount >= m.userCountTarget,
     },
-    featureShipped: m.featureShippedHit,
+    featureShipped: m.featureShipped,
     milestonesHit: m.milestonesHit,
     maxUpgradeEligibleAt: m.maxUpgradeEligibleAt || undefined,
   };

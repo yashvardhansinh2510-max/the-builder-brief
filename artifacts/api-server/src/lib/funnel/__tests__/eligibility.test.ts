@@ -5,7 +5,7 @@ import {
   checkMaxToIncubatorEligibility,
 } from "../eligibility";
 import { db } from "@/db";
-import { users, founderSignals, proMilestones } from "@/db/schema";
+import { subscribersTable, founderSignals, proMilestones } from "@/db/schema";
 
 vi.mock("@/db", () => ({
   db: {

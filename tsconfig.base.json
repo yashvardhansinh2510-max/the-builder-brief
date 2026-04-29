@@ -20,6 +20,14 @@
     "skipLibCheck": true,
     "target": "es2022",
     "types": [],
-    "customConditions": ["workspace"]
+    "customConditions": ["workspace"],
+    "baseUrl": ".",
+    "paths": {
+      "@/db": ["lib/db/src/index.ts"],
+      "@/db/*": ["lib/db/src/*"],
+      "@/lib/*": ["artifacts/api-server/src/lib/*"],
+      "@/config/*": ["artifacts/api-server/src/config/*"],
+      "@/routes/*": ["artifacts/api-server/src/routes/*"]
+    }
   }
 }
