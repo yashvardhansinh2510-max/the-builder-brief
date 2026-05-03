@@ -1,34 +1,34 @@
 import { z } from 'zod';
 
 // Zod schemas for 8 new blueprint sections
-const architectureSchema = z.object({
+export const architectureSchema = z.object({
   mermaidCode: z.string(),
   description: z.string()
 });
 
-const competitorKillSwitchSchema = z.object({
+export const competitorKillSwitchSchema = z.object({
   name: z.string(),
   weakness: z.string(),
   howWeBeat: z.string()
 });
 
-const unitEconomicsSchema = z.object({
+export const unitEconomicsExpandedSchema = z.object({
   price: z.string(),
   cogs: z.string(),
-  margins: z.string(),
+  grossMarginPercent: z.string(),
   cac: z.string(),
   ltv: z.string(),
   paybackPeriod: z.string()
 });
 
-const complianceRoadmapSchema = z.object({
+export const complianceRoadmapSchema = z.object({
   requirement: z.string(),
   timeline: z.string(),
   effortLevel: z.enum(['Low', 'Medium', 'High']),
   whyMatters: z.string()
 });
 
-const hiringRoadmapSchema = z.object({
+export const hiringRoadmapSchema = z.object({
   role: z.string(),
   responsibilities: z.string(),
   salary: z.string(),
@@ -36,27 +36,37 @@ const hiringRoadmapSchema = z.object({
   jobDescription: z.string()
 });
 
-const globalArbitrageSchema = z.object({
+export const globalArbitrageSchema = z.object({
   region: z.string(),
   demandScore: z.number().min(1).max(10),
   regulatoryEase: z.number().min(1).max(10),
   entryStrategy: z.string()
 });
 
-const plgLoopsSchema = z.object({
+export const plgLoopsSchema = z.object({
   trigger: z.string(),
   ahaMoment: z.string(),
   viralMechanic: z.string()
 });
 
-const exitStrategySchema = z.object({
+export const exitStrategySchema = z.object({
   acquirers: z.array(z.string()),
   metricsNeeded: z.array(z.string()),
   timeline: z.string(),
   valuationTarget: z.string()
 });
 
-const manualIssues: any[] = [
+// Validation functions
+export const validateArchitecture = (data: unknown) => architectureSchema.parse(data);
+export const validateCompetitorKillSwitch = (data: unknown) => competitorKillSwitchSchema.parse(data);
+export const validateUnitEconomicsExpanded = (data: unknown) => unitEconomicsExpandedSchema.parse(data);
+export const validateComplianceRoadmap = (data: unknown) => complianceRoadmapSchema.parse(data);
+export const validateHiringRoadmap = (data: unknown) => hiringRoadmapSchema.parse(data);
+export const validateGlobalArbitrage = (data: unknown) => globalArbitrageSchema.parse(data);
+export const validatePlgLoops = (data: unknown) => plgLoopsSchema.parse(data);
+export const validateExitStrategy = (data: unknown) => exitStrategySchema.parse(data);
+
+const manualIssues: Issue[] = [
   {
     number: "018",
     slug: "med-translate-pro",
@@ -150,7 +160,7 @@ const manualIssues: any[] = [
     unitEconomicsExpanded: {
       price: "€199/month per clinic",
       cogs: "€8/month per clinic (OpenAI API costs for avg 50 translations/month)",
-      margins: "96% gross margin",
+      grossMarginPercent: "96% gross margin",
       cac: "€400 (3 cold emails + 1 demo call = 1 customer)",
       ltv: "€4,776 (24-month average customer lifetime)",
       paybackPeriod: "2.4 weeks"
@@ -346,7 +356,7 @@ const manualIssues: any[] = [
     unitEconomicsExpanded: {
       price: "€10 per hectare per season",
       cogs: "€0.80 per hectare (Sentinel Hub API costs + server bandwidth)",
-      margins: "92% gross margin",
+      grossMarginPercent: "92% gross margin",
       cac: "€45 (via agronomist partnerships or direct outreach)",
       ltv: "€300 (30-hectare avg farm, €10/ha, 1-year retention)",
       paybackPeriod: "4.5 months (break-even on CAC)"
@@ -1004,12 +1014,6 @@ export interface Issue {
   }[];
   
   // Ultra-Deep Research Fields
-  unitEconomics?: {
-    cac: string;
-    ltv: string;
-    margin: string;
-    paybackPeriod: string;
-  };
   risks?: {
     type: "Regulatory" | "Technical" | "Market" | "Execution";
     description: string;
@@ -1030,7 +1034,7 @@ export interface Issue {
   unitEconomicsExpanded?: {
     price: string;
     cogs: string;
-    margins: string;
+    grossMarginPercent: string;
     cac: string;
     ltv: string;
     paybackPeriod: string;
