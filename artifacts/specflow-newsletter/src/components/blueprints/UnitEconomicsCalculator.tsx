@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 
 export interface UnitEconomicsData {
@@ -16,8 +16,21 @@ export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsD
   const [cogs, setCogs] = useState(data.cogs);
   const [cac, setCac] = useState(data.cac);
 
-  const grossMargin = ((price - cogs) / price) * 100;
-  const paybackMonths = cac > 0 ? Math.ceil(cac / ((price - cogs) * 5)) : 0;
+  // Sync state when data prop changes
+  useEffect(() => {
+    setPrice(data.unitPrice);
+    setCogs(data.cogs);
+    setCac(data.cac);
+  }, [data.unitPrice, data.cogs, data.cac]);
+
+  // Financial calculations:
+  // - Gross Margin: (Price - COGS) / Price * 100%
+  // - Payback Period: CAC ÷ Monthly Contribution Margin (assumes 1 customer/month, or 1 unit sold)
+  // - LTV (12-month): Price × 12 (simplified, no churn assumed)
+  // - LTV:CAC Ratio: Annual revenue / CAC (12-month revenue per customer acquired)
+  const grossMargin = price > 0 ? ((price - cogs) / price) * 100 : 0;
+  // Payback = CAC ÷ Monthly Contribution Margin (assuming 1 customer/month generates revenue = price)
+  const paybackMonths = cac > 0 && price > cogs ? Math.ceil(cac / (price - cogs)) : 0;
 
   return (
     <section className="py-12 border-b border-border">
@@ -26,10 +39,12 @@ export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsD
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label htmlFor="price-input" className="block text-sm font-medium mb-2">
               Unit Price: ${price.toFixed(0)}
             </label>
             <input
+              id="price-input"
+              aria-label="Unit price slider"
               type="range"
               min="10"
               max="1000"
@@ -40,10 +55,12 @@ export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsD
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label htmlFor="cogs-input" className="block text-sm font-medium mb-2">
               COGS: ${cogs.toFixed(0)}
             </label>
             <input
+              id="cogs-input"
+              aria-label="Cost of goods sold slider"
               type="range"
               min="0"
               max={price * 0.8}
@@ -54,10 +71,12 @@ export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsD
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label htmlFor="cac-input" className="block text-sm font-medium mb-2">
               CAC: ${cac.toFixed(0)}
             </label>
             <input
+              id="cac-input"
+              aria-label="Customer acquisition cost slider"
               type="range"
               min="0"
               max="10000"
