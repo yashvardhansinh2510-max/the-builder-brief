@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import mermaid from "mermaid";
 
 export interface ArchitectureDiagramProps {
@@ -6,15 +6,27 @@ export interface ArchitectureDiagramProps {
   description: string;
 }
 
-export default function ArchitectureDiagram({ mermaidCode, description }: ArchitectureDiagramProps) {
+export default function ArchitectureDiagram({
+  mermaidCode,
+  description
+}: ArchitectureDiagramProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Initialize mermaid once on mount
+  useEffect(() => {
+    mermaid.initialize({ startOnLoad: false, theme: "default" });
+  }, []);
+
+  // Re-render diagram when mermaidCode changes
   useEffect(() => {
     if (containerRef.current) {
-      mermaid.initialize({ startOnLoad: true, theme: "default" });
-      mermaid.run();
+      try {
+        mermaid.run();
+      } catch (error) {
+        console.error("Failed to render mermaid diagram:", error);
+      }
     }
-  }, [mermaidCode]);
+  }, [mermaidCode, description]);
 
   return (
     <section className="py-12 border-b border-border">
@@ -23,8 +35,9 @@ export default function ArchitectureDiagram({ mermaidCode, description }: Archit
       <div
         ref={containerRef}
         className="bg-slate-50 p-8 rounded-lg overflow-x-auto border border-border"
+        aria-label="Technical architecture diagram"
       >
-        <div className="mermaid">{mermaidCode}</div>
+        <div className="mermaid" aria-hidden="true">{mermaidCode}</div>
       </div>
     </section>
   );
