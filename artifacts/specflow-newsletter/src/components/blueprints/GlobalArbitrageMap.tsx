@@ -14,8 +14,8 @@ export default function GlobalArbitrageMap({ data }: { data: GlobalArbitrageData
     <section className="py-12 border-b border-border">
       <h2 className="text-2xl font-serif mb-4">Global Arbitrage Opportunities</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {data.regions.map((region, idx) => (
-          <div key={idx} className="p-6 border border-border rounded-lg">
+        {data.regions.map((region) => (
+          <div key={region.region} className="p-6 border border-border rounded-lg">
             <h3 className="font-semibold text-lg mb-4">{region.region}</h3>
 
             <div className="space-y-4">

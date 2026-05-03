@@ -23,8 +23,8 @@ export default function ComplianceTimeline({ data }: { data: ComplianceTimelineD
     <section className="py-12 border-b border-border">
       <h2 className="text-2xl font-serif mb-4">Compliance Roadmap</h2>
       <div className="space-y-4">
-        {data.items.map((item, idx) => (
-          <div key={idx} className={`p-4 rounded-lg border-l-4 border-l-blue-500 ${effortColor(item.effort)}`}>
+        {data.items.map((item) => (
+          <div key={item.requirement} className={`p-4 rounded-lg border-l-4 border-l-blue-500 ${effortColor(item.effort)}`}>
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">{item.requirement}</h3>

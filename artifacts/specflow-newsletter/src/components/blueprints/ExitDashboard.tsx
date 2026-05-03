@@ -17,8 +17,8 @@ export default function ExitDashboard({ data }: { data: ExitStrategyData }): Rea
           <div>
             <h3 className="font-semibold text-lg mb-3">Potential Acquirers</h3>
             <div className="space-y-2">
-              {data.acquirers.map((acquirer, idx) => (
-                <div key={idx} className="p-3 bg-muted rounded-lg text-sm">
+              {data.acquirers.map((acquirer) => (
+                <div key={acquirer} className="p-3 bg-muted rounded-lg text-sm">
                   {acquirer}
                 </div>
               ))}
@@ -44,8 +44,8 @@ export default function ExitDashboard({ data }: { data: ExitStrategyData }): Rea
           <div>
             <h3 className="font-semibold text-lg mb-3">Key Metrics Needed</h3>
             <ul className="space-y-2">
-              {data.metricsNeeded.map((metric, idx) => (
-                <li key={idx} className="flex gap-2 text-sm">
+              {data.metricsNeeded.map((metric) => (
+                <li key={metric} className="flex gap-2 text-sm">
                   <span className="text-green-600">✓</span>
                   <span>{metric}</span>
                 </li>

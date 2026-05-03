@@ -15,8 +15,8 @@ export default function HiringRoadmap({ data }: { data: HiringRoadmapData }): Re
     <section className="py-12 border-b border-border">
       <h2 className="text-2xl font-serif mb-4">First 3 Hires</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {data.roles.map((role, idx) => (
-          <div key={idx} className="border border-border rounded-lg p-6 bg-muted/30">
+        {data.roles.map((role) => (
+          <div key={role.role} className="border border-border rounded-lg p-6 bg-muted/30">
             <h3 className="text-lg font-semibold">{role.role}</h3>
             <p className="text-sm text-muted-foreground mt-1">{role.salary}</p>
 
@@ -29,8 +29,8 @@ export default function HiringRoadmap({ data }: { data: HiringRoadmapData }): Re
               <div>
                 <p className="text-xs font-medium uppercase text-muted-foreground">Key Responsibilities</p>
                 <ul className="text-sm mt-2 space-y-1">
-                  {role.responsibilities.map((resp, ridx) => (
-                    <li key={ridx} className="flex gap-2">
+                  {role.responsibilities.map((resp) => (
+                    <li key={resp} className="flex gap-2">
                       <span>•</span>
                       <span>{resp}</span>
                     </li>

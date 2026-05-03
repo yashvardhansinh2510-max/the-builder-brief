@@ -14,8 +14,8 @@ export default function PLGSequence({ data }: { data: PLGSequenceData }): React.
     <section className="py-12 border-b border-border">
       <h2 className="text-2xl font-serif mb-4">Product-Led Growth Loops</h2>
       <div className="space-y-6">
-        {data.loops.map((loop, idx) => (
-          <div key={idx} className="border border-border rounded-lg p-6">
+        {data.loops.map((loop) => (
+          <div key={loop.loop} className="border border-border rounded-lg p-6">
             <h3 className="font-semibold text-lg mb-4">{loop.loop}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
