@@ -1,6 +1,5 @@
 import React from 'react';
 import { Vault } from '@/lib/vault-types';
-import { Link } from 'react-router-dom';
 
 interface VaultCardProps {
   vault: Vault;
@@ -30,8 +29,8 @@ export const VaultCard: React.FC<VaultCardProps> = ({
 
   if (layout === 'expanded') {
     return (
-      <Link
-        to={`/vaults/${vault.id}`}
+      <a
+        href={`/vault/${vault.id}`}
         className="block h-full"
       >
         <div
@@ -101,14 +100,14 @@ export const VaultCard: React.FC<VaultCardProps> = ({
             )}
           </div>
         </div>
-      </Link>
+      </a>
     );
   }
 
   // Compact layout
   return (
-    <Link
-      to={`/vaults/${vault.id}`}
+    <a
+      href={`/vault/${vault.id}`}
       className="block"
     >
       <div
@@ -125,7 +124,7 @@ export const VaultCard: React.FC<VaultCardProps> = ({
           <span>{vault.daysActive}d active</span>
         </div>
       </div>
-    </Link>
+    </a>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Share2, Bookmark, ThumbsUp } from 'lucide-react';
 import PortalNav from '@/components/PortalNav';
@@ -16,8 +16,9 @@ const fadeUp = {
 };
 
 export default function VaultDetail() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
+  const [, setLocation] = useLocation();
   const { vault, loading, error, fetchVaultDetail } = useVaults();
   const [liked, setLiked] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
@@ -36,7 +37,7 @@ export default function VaultDetail() {
         <div className="text-center">
           <p className="text-gray-600 mb-4">Vault not found</p>
           <button
-            onClick={() => navigate('/vault-archive')}
+            onClick={() => setLocation('/vault-archive')}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Back to Archive
@@ -63,7 +64,7 @@ export default function VaultDetail() {
         <PortalNav activePage="archive" />
         <main className="max-w-6xl mx-auto px-6 pt-16 pb-28">
           <button
-            onClick={() => navigate('/vault-archive')}
+            onClick={() => setLocation('/vault-archive')}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -88,7 +89,7 @@ export default function VaultDetail() {
           initial="hidden"
           animate="visible"
           variants={fadeUp}
-          onClick={() => navigate('/vault-archive')}
+          onClick={() => setLocation('/vault-archive')}
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

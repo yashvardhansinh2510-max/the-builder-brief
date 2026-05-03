@@ -20,6 +20,8 @@ import PaymentSuccess from "@/pages/payment-success";
 import CreatorDashboard from "@/pages/creator-dashboard";
 import Marketplace from "@/pages/marketplace";
 import DeveloperPortal from "@/pages/developer-portal";
+import VaultArchive from "@/pages/vault-archive";
+import VaultDetail from "@/pages/vault-detail";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
 
@@ -126,6 +128,8 @@ const ProtectedDeveloperPortal = (props: any) => <ProtectedRoute component={Deve
 const ProtectedArchive = (props: any) => <ProtectedRoute component={Archive} {...props} />;
 const ProtectedIssuePage = (props: any) => <ProtectedRoute component={IssuePage} {...props} />;
 const ProtectedAbout = (props: any) => <ProtectedRoute component={About} {...props} />;
+const ProtectedVaultArchive = (props: any) => <ProtectedRoute component={VaultArchive} {...props} />;
+const ProtectedVaultDetail = (props: any) => <ProtectedRoute component={VaultDetail} {...props} />;
 
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
@@ -193,6 +197,8 @@ function ClerkProviderWithRoutes() {
             <Route path="/marketplace" component={ProtectedMarketplace} />
             <Route path="/developer-portal" component={ProtectedDeveloperPortal} />
             <Route path="/archive" component={ProtectedArchive} />
+            <Route path="/vault-archive" component={ProtectedVaultArchive} />
+            <Route path="/vault/:id" component={ProtectedVaultDetail} />
             <Route path="/issue/:slug" component={ProtectedIssuePage} />
             <Route path="/about" component={ProtectedAbout} />
             <Route component={NotFound} />
