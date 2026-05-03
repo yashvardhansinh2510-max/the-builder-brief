@@ -3,7 +3,7 @@ import React from "react";
 export interface HiringRoadmapData {
   roles: Array<{
     role: string;
-    responsibilities: string[];
+    responsibilities: string;
     salary: string;
     whyFirst: string;
     jobDescription: string;
@@ -28,14 +28,7 @@ export default function HiringRoadmap({ data }: { data: HiringRoadmapData }): Re
 
               <div>
                 <p className="text-xs font-medium uppercase text-muted-foreground">Key Responsibilities</p>
-                <ul className="text-sm mt-2 space-y-1">
-                  {role.responsibilities.map((resp) => (
-                    <li key={resp} className="flex gap-2">
-                      <span>•</span>
-                      <span>{resp}</span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-sm mt-2">{role.responsibilities}</p>
               </div>
             </div>
 

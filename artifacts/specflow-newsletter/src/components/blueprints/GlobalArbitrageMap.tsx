@@ -3,7 +3,7 @@ import React from "react";
 export interface GlobalArbitrageData {
   regions: Array<{
     region: string;
-    unmetDemandScore: number;
+    demandScore: number;
     regulatoryEase: number;
     entryStrategy: string;
   }>;
@@ -22,12 +22,12 @@ export default function GlobalArbitrageMap({ data }: { data: GlobalArbitrageData
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Unmet Demand</span>
-                  <span className="font-semibold">{region.unmetDemandScore}/10</span>
+                  <span className="font-semibold">{region.demandScore}/10</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-blue-500"
-                    style={{ width: `${(region.unmetDemandScore / 10) * 100}%` }}
+                    style={{ width: `${(region.demandScore / 10) * 100}%` }}
                   />
                 </div>
               </div>
