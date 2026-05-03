@@ -1,19 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { ArrowLeft } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { usePageTracking } from '@/hooks/useAnalytics';
 import PortalNav from '@/components/PortalNav';
-
-interface FilterState {
-  dateFrom: string;
-  dateTo: string;
-  sourceTypes: string[];
-  strengthMin: number;
-  trendDirection: 'All' | 'Rising' | 'Stable' | 'Declining';
-}
+import VaultFilterPanel, { type FilterState } from '@/components/VaultFilterPanel';
+import VaultDataTable from '@/components/VaultDataTable';
+import VaultTrendGraph from '@/components/VaultTrendGraph';
+import VaultSourceChart from '@/components/VaultSourceChart';
+import VaultHeatmap from '@/components/VaultHeatmap';
+import { useVaultData, type Vault, type Signal } from '@/hooks/useVaultData';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -31,21 +28,51 @@ export default function ArchivePage() {
     trendDirection: 'All',
   });
 
-  // Mock data for stats - to be replaced with actual useVaultData hook
-  const totalVaults = 42;
-  const activeSignalsThisWeek = 156;
-  const avgConfidence = '0.78';
-  const loading = false;
-  const error: string | null = null;
-  const vaults: any[] = [];
+  // Fetch all vaults (no server-side filter — filter client-side like vault-archive.tsx)
+  const { vaults: allVaults, loading, error } = useVaultData({
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+  });
+
+  // Client-side filter by source type, strength, trend
+  const vaults = useMemo(() => {
+    return allVaults.filter((v: Vault) => {
+      if (filters.sourceTypes.length > 0) {
+        const hasSource = filters.sourceTypes.some((s: string) => v.source_types.includes(s));
+        if (!hasSource) return false;
+      }
+      if (filters.strengthMin > 0 && v.avg_confidence * 100 < filters.strengthMin) return false;
+      if (filters.trendDirection !== 'All' && v.trend_direction !== filters.trendDirection) return false;
+      return true;
+    });
+  }, [allVaults, filters.sourceTypes, filters.strengthMin, filters.trendDirection]);
+
+  // Available source types for filter sidebar
+  const availableSources = useMemo(() => {
+    const set = new Set<string>();
+    allVaults.forEach((v: Vault) => v.source_types.forEach((s: string) => set.add(s)));
+    return Array.from(set).sort();
+  }, [allVaults]);
+
+  // Derived stats
+  const totalVaults = vaults.length;
+  const activeSignalsThisWeek = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return vaults.flatMap((v: Vault) => v.signals).filter((s: Signal) => new Date(s.timestamp).getTime() > cutoff).length;
+  }, [vaults]);
+  const avgConfidence = useMemo(() => {
+    if (vaults.length === 0) return '—';
+    const avg = vaults.reduce((s: number, v: Vault) => s + v.avg_confidence, 0) / vaults.length;
+    return (avg * 100).toFixed(0) + '%';
+  }, [vaults]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       <PortalNav activePage="archive" />
 
-      <main className="max-w-7xl mx-auto px-6 pt-16 pb-28">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-28">
         {/* Header */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="mb-12">
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="mb-10">
           <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
             <ArrowLeft className="w-4 h-4" /> Back to home
           </Link>
@@ -56,159 +83,94 @@ export default function ArchivePage() {
           </p>
         </motion.div>
 
+        {/* Stats Cards */}
+        <motion.section
+          initial="hidden"
+          animate="visible"
+          custom={1}
+          variants={fadeUp}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
+          data-testid="archive-stats"
+        >
+          {[
+            { label: 'Total Vaults', value: loading ? '…' : totalVaults },
+            { label: 'Active Signals (7d)', value: loading ? '…' : activeSignalsThisWeek },
+            { label: 'Avg Confidence', value: loading ? '…' : avgConfidence },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-card border border-border rounded-xl p-6">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">{label}</h3>
+              <p className="text-3xl font-semibold">{value}</p>
+            </div>
+          ))}
+        </motion.section>
+
+        {/* Main layout: sidebar + content */}
         <div className="archive-layout">
-          {/* Filter Panel Placeholder */}
-          <motion.aside
+          {/* Filter sidebar */}
+          <motion.div
             initial="hidden"
             animate="visible"
-            custom={1}
+            custom={2}
             variants={fadeUp}
-            className="w-full md:w-80 space-y-6 mb-8 md:mb-0"
+            className="archive-sidebar"
           >
-            <div className="space-y-4">
-              <h3 className="font-semibold text-sm">Filters</h3>
-
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Date Range</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                    className="flex-1 h-10 text-sm"
-                  />
-                  <Input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                    className="flex-1 h-10 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Trend Direction</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['All', 'Rising', 'Stable', 'Declining'].map(trend => (
-                    <button
-                      key={trend}
-                      onClick={() => setFilters({ ...filters, trendDirection: trend as FilterState['trendDirection'] })}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        filters.trendDirection === trend
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-card border border-border hover:border-foreground/40'
-                      }`}
-                    >
-                      {trend}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Min Strength</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={filters.strengthMin}
-                  onChange={(e) => setFilters({ ...filters, strengthMin: parseInt(e.target.value) })}
-                  className="w-full"
-                />
-                <span className="text-xs text-muted-foreground">{filters.strengthMin}%</span>
-              </div>
+            <div className="bg-card border border-border rounded-xl p-5 sticky top-20">
+              <VaultFilterPanel
+                filters={filters}
+                onFiltersChange={setFilters}
+                availableSources={availableSources}
+                resultCount={vaults.length}
+              />
             </div>
-          </motion.aside>
+          </motion.div>
 
-          <main className="archive-main flex-1">
-            {/* Stats Cards */}
-            <motion.section
-              initial="hidden"
-              animate="visible"
-              custom={2}
-              variants={fadeUp}
-              className="stats-grid grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
-            >
-              <div className="stat-card bg-card border border-border rounded-xl p-6">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Vaults</h3>
-                <p className="stat-value text-3xl font-semibold">{totalVaults}</p>
-              </div>
-              <div className="stat-card bg-card border border-border rounded-xl p-6">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Active Signals (7d)</h3>
-                <p className="stat-value text-3xl font-semibold">{activeSignalsThisWeek}</p>
-              </div>
-              <div className="stat-card bg-card border border-border rounded-xl p-6">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Avg Confidence</h3>
-                <p className="stat-value text-3xl font-semibold">{avgConfidence}</p>
-              </div>
-            </motion.section>
-
-            {/* Charts Section Placeholder */}
+          {/* Main content */}
+          <div className="archive-main">
+            {/* Charts row */}
             <motion.section
               initial="hidden"
               animate="visible"
               custom={3}
               variants={fadeUp}
-              className="charts-grid grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
+              data-testid="archive-charts"
             >
-              <div className="bg-card border border-border rounded-xl p-6 min-h-96 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <p className="text-sm font-medium mb-1">Trend Graph</p>
-                  <p className="text-xs">VaultTrendGraph component pending</p>
-                </div>
+              <div className="bg-card border border-border rounded-xl p-6">
+                <VaultTrendGraph vaults={vaults} />
               </div>
-              <div className="bg-card border border-border rounded-xl p-6 min-h-96 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <p className="text-sm font-medium mb-1">Source Chart</p>
-                  <p className="text-xs">VaultSourceChart component pending</p>
-                </div>
+              <div className="bg-card border border-border rounded-xl p-6">
+                <VaultSourceChart vaults={vaults} />
               </div>
             </motion.section>
 
-            {/* Heatmap Section Placeholder */}
+            {/* Heatmap */}
             <motion.section
               initial="hidden"
               animate="visible"
               custom={4}
               variants={fadeUp}
-              className="heatmap-section mb-8"
+              className="bg-card border border-border rounded-xl p-6 mb-6"
+              data-testid="archive-heatmap"
             >
-              <div className="bg-card border border-border rounded-xl p-6 min-h-80 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <p className="text-sm font-medium mb-1">Heatmap</p>
-                  <p className="text-xs">VaultHeatmap component pending</p>
-                </div>
-              </div>
+              <VaultHeatmap vaults={vaults} />
             </motion.section>
 
-            {/* Data Table Section Placeholder */}
+            {/* Data table */}
             <motion.section
               initial="hidden"
               animate="visible"
               custom={5}
               variants={fadeUp}
-              className="table-section"
+              data-testid="archive-table"
             >
-              {loading && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p className="text-sm">Loading vaults...</p>
-                </div>
-              )}
               {error && (
                 <div className="text-center py-12 text-red-500">
                   <p className="text-sm">Error: {error}</p>
                 </div>
               )}
-              {!loading && !error && (
-                <div className="bg-card border border-border rounded-xl p-6 min-h-96 flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <p className="text-sm font-medium mb-1">Data Table</p>
-                    <p className="text-xs">VaultDataTable component pending</p>
-                  </div>
-                </div>
-              )}
+              <VaultDataTable vaults={vaults} loading={loading} />
             </motion.section>
-          </main>
+          </div>
         </div>
 
         {/* CTA strip */}

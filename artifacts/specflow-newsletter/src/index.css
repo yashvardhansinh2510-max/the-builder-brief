@@ -400,3 +400,52 @@
   animation: rainbow 3s linear infinite;
   background-size: 200% 200%;
 }
+
+/* ── Archive page layout ──────────────────────────────────────────────────── */
+.archive-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.archive-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.archive-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Responsive: stack on mobile / tablet */
+@media (max-width: 900px) {
+  .archive-layout {
+    flex-direction: column;
+  }
+  .archive-sidebar {
+    width: 100%;
+  }
+}
+
+/* Heatmap cells */
+.heatmap-cell {
+  border-radius: 3px;
+  cursor: pointer;
+  transition: opacity 0.15s, outline 0.1s;
+  flex-shrink: 0;
+}
+.heatmap-cell:hover {
+  opacity: 0.75;
+  outline: 1.5px solid hsl(var(--primary));
+  outline-offset: 1px;
+}
+
+/* Mobile table → compact layout */
+@media (max-width: 640px) {
+  /* Hide lower-priority columns on small screens */
+  .vault-table-col-sources,
+  .vault-table-col-trend {
+    display: none;
+  }
+}
