@@ -27,6 +27,10 @@ import marketSizingRouter from "./market-sizing";
 import competitiveAnalysisRouter from "./competitive-analysis";
 import coFounderMatchingRouter from "./co-founder-matching";
 import funnelRouter from "./funnel";
+import ideaAgentRouter from "./idea-agent";
+import userRouter from "./user";
+import templatesRouter from "./templates";
+import investorRouter from "./investor";
 
 const router: IRouter = Router();
 
@@ -46,7 +50,7 @@ router.use(incubatorRouter);
 router.use(scorecardRouter);
 router.use(terminalRouter);
 router.use(wallsRouter);
-router.use(vaultsRouter);
+router.use('/vaults', vaultsRouter);
 router.use(contentRouter);
 router.use(briefsRouter);
 router.use(leadsRouter);
@@ -58,5 +62,9 @@ router.use('/market-sizing', marketSizingRouter);
 router.use('/competitive-analysis', competitiveAnalysisRouter);
 router.use('/co-founder-matching', coFounderMatchingRouter);
 router.use('/api/upgrades', funnelRouter);
+router.use('/api/idea-agent', ideaAgentRouter);
+router.use('/api/user', userRouter);
+router.use('/api/templates', templatesRouter);
+router.use('/api/investor', investorRouter);
 
 export default router;

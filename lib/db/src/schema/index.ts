@@ -20,3 +20,4 @@ export * from "./market-sizing";
 export * from "./competitive-analysis";
 export * from "./co-founder-matching";
 export * from "./funnel";
+export * from "./investors";

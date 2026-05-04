@@ -57,6 +57,13 @@
       "when": 1777139419134,
       "tag": "0007_elite_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777784124704,
+      "tag": "0008_foamy_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }

@@ -21,6 +21,8 @@ import GlobalArbitrageMap from "@/components/blueprints/GlobalArbitrageMap";
 import PLGSequence from "@/components/blueprints/PLGSequence";
 import ExitDashboard from "@/components/blueprints/ExitDashboard";
 import UnitEconomicsCalculator from "@/components/blueprints/UnitEconomicsCalculator";
+import { TierGate } from "@/components/TierGate";
+import { InvestorMatches } from "@/components/InvestorMatches";
 
 export default function IssuePage() {
   const [, params] = useRoute("/issue/:slug");
@@ -298,14 +300,16 @@ export default function IssuePage() {
 
             {/* Unit Economics Calculator (expanded) */}
             {issue.unitEconomicsExpanded && (
-              <UnitEconomicsCalculator
-                data={{
-                  unitPrice: parseFloat(issue.unitEconomicsExpanded.price.replace(/[^0-9.]/g, "")) || 199,
-                  cogs: parseFloat(issue.unitEconomicsExpanded.cogs.replace(/[^0-9.]/g, "")) || 8,
-                  cac: parseFloat(issue.unitEconomicsExpanded.cac.replace(/[^0-9.]/g, "")) || 400,
-                  assumptions: `Price: ${issue.unitEconomicsExpanded.price} | COGS: ${issue.unitEconomicsExpanded.cogs} | Payback: ${issue.unitEconomicsExpanded.paybackPeriod}`,
-                }}
-              />
+              <TierGate requiredTier="pro">
+                <UnitEconomicsCalculator
+                  data={{
+                    unitPrice: parseFloat(issue.unitEconomicsExpanded.price.replace(/[^0-9.]/g, "")) || 199,
+                    cogs: parseFloat(issue.unitEconomicsExpanded.cogs.replace(/[^0-9.]/g, "")) || 8,
+                    cac: parseFloat(issue.unitEconomicsExpanded.cac.replace(/[^0-9.]/g, "")) || 400,
+                    assumptions: `Price: ${issue.unitEconomicsExpanded.price} | COGS: ${issue.unitEconomicsExpanded.cogs} | Payback: ${issue.unitEconomicsExpanded.paybackPeriod}`,
+                  }}
+                />
+              </TierGate>
             )}
 
             {/* PLG Sequence */}
@@ -442,6 +446,9 @@ export default function IssuePage() {
                 </div>
               </div>
             )}
+
+            {/* Investor Matching for Max Tier */}
+            <InvestorMatches />
           </div>
         </div>
       </main>
