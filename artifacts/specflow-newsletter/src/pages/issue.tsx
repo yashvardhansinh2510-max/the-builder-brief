@@ -59,7 +59,7 @@ export default function IssuePage() {
   const graphData = issue.graphData || [];
   const graphTitle = issue.graphTitle || "Market Growth Trend";
   const revenueMilestones = issue.revenueMilestones || [];
-  const unitEconomics = issue.unitEconomics;
+  const unitEconomics = issue.unitEconomicsExpanded ?? null;
   const risks = issue.risks || [];
   const growthLoops = issue.growthLoops || [];
   const competitors = issue.competitors || [];
@@ -302,10 +302,7 @@ export default function IssuePage() {
                 data={{
                   unitPrice: parseFloat(issue.unitEconomicsExpanded.price.replace(/[^0-9.]/g, "")) || 199,
                   cogs: parseFloat(issue.unitEconomicsExpanded.cogs.replace(/[^0-9.]/g, "")) || 8,
-                  grossMarginPercent: parseFloat(issue.unitEconomicsExpanded.grossMarginPercent.replace(/[^0-9.]/g, "")) || 96,
                   cac: parseFloat(issue.unitEconomicsExpanded.cac.replace(/[^0-9.]/g, "")) || 400,
-                  ltv: parseFloat(issue.unitEconomicsExpanded.ltv.replace(/[^0-9.]/g, "")) || 4776,
-                  paybackMonths: parseFloat(issue.unitEconomicsExpanded.paybackPeriod.replace(/[^0-9.]/g, "")) || 3,
                   assumptions: `Price: ${issue.unitEconomicsExpanded.price} | COGS: ${issue.unitEconomicsExpanded.cogs} | Payback: ${issue.unitEconomicsExpanded.paybackPeriod}`,
                 }}
               />
@@ -367,7 +364,7 @@ export default function IssuePage() {
                   {[
                     { label: "Target CAC", value: unitEconomics.cac },
                     { label: "Expected LTV", value: unitEconomics.ltv },
-                    { label: "Gross Margin", value: unitEconomics.margin },
+                    { label: "Gross Margin", value: unitEconomics.grossMarginPercent },
                     { label: "Payback Period", value: unitEconomics.paybackPeriod },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-white p-3 rounded-xl border border-emerald-100">

@@ -4,10 +4,7 @@ import { Card } from "@/components/ui/card";
 export interface UnitEconomicsData {
   unitPrice: number;
   cogs: number;
-  grossMarginPercent: number;
   cac: number;
-  ltv: number;
-  paybackMonths: number;
   assumptions?: string;
 }
 

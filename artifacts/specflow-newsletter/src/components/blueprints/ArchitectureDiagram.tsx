@@ -20,13 +20,13 @@ export default function ArchitectureDiagram({
   // Re-render diagram when mermaidCode changes
   useEffect(() => {
     if (containerRef.current) {
-      try {
-        mermaid.run();
-      } catch (error) {
-        console.error("Failed to render mermaid diagram:", error);
+      const mermaidDiv = containerRef.current.querySelector('.mermaid');
+      if (mermaidDiv) {
+        mermaidDiv.removeAttribute('data-processed');
       }
+      mermaid.run();
     }
-  }, [mermaidCode, description]);
+  }, [mermaidCode]);
 
   return (
     <section className="py-12 border-b border-border">
