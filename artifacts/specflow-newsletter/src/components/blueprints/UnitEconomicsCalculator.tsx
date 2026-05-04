@@ -20,6 +20,11 @@ export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsD
     setCac(data.cac);
   }, [data.unitPrice, data.cogs, data.cac]);
 
+  // Clamp COGS to slider max whenever price changes to prevent negative gross margin
+  useEffect(() => {
+    setCogs((prev) => Math.min(prev, price * 0.8));
+  }, [price]);
+
   // Financial calculations:
   // - Gross Margin: (Price - COGS) / Price * 100%
   // - Payback Period: CAC ÷ Monthly Contribution Margin (assumes 1 customer/month, or 1 unit sold)
