@@ -26,8 +26,13 @@ export default function GlobalArbitrageMap({ data }: { data: GlobalArbitrageData
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
+                    role="progressbar"
+                    aria-valuenow={Math.min(Math.max(region.demandScore, 0), 10)}
+                    aria-valuemin={0}
+                    aria-valuemax={10}
+                    aria-label="Unmet Demand"
                     className="h-full bg-blue-500"
-                    style={{ width: `${(region.demandScore / 10) * 100}%` }}
+                    style={{ width: `${(Math.min(Math.max(region.demandScore, 0), 10) / 10) * 100}%` }}
                   />
                 </div>
               </div>
@@ -39,8 +44,13 @@ export default function GlobalArbitrageMap({ data }: { data: GlobalArbitrageData
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
+                    role="progressbar"
+                    aria-valuenow={Math.min(Math.max(region.regulatoryEase, 0), 10)}
+                    aria-valuemin={0}
+                    aria-valuemax={10}
+                    aria-label="Regulatory Ease"
                     className="h-full bg-green-500"
-                    style={{ width: `${(region.regulatoryEase / 10) * 100}%` }}
+                    style={{ width: `${(Math.min(Math.max(region.regulatoryEase, 0), 10) / 10) * 100}%` }}
                   />
                 </div>
               </div>

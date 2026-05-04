@@ -3,22 +3,11 @@ import { useState, useEffect } from 'react';
 export interface Vault {
   id: string;
   title: string;
-  created_at: string;
-  signals_count: number;
-  avg_confidence: number;
-  trend_direction: 'Rising' | 'Stable' | 'Declining';
-  source_types: string[];
-  signals: Signal[];
-}
-
-export interface Signal {
-  id: string;
-  vault_id: string;
-  source_type: string;
-  timestamp: string;
-  confidence_score: number;
+  description?: string;
   content: string;
-  reasoning: string;
+  created_at: string;
+  published_at?: string;
+  source_article_ids?: number[];
 }
 
 interface UseVaultDataParams {
@@ -66,8 +55,21 @@ export function useVaultData(params: UseVaultDataParams): UseVaultDataReturn {
           throw new Error(`API error: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        setVaults(data.vaults || []);
+        const rawData = await response.json();
+        const rawVaults = Array.isArray(rawData) ? rawData : (rawData.vaults || []);
+
+        // Map backend DB schema to the frontend Vault type requirements
+        const mappedVaults: Vault[] = rawVaults.map((v: any) => ({
+          id: String(v.id),
+          title: v.title || 'Untitled Vault',
+          description: v.description,
+          content: v.content,
+          created_at: v.createdAt || new Date().toISOString(),
+          published_at: v.publishedAt,
+          source_article_ids: v.sourceArticleIds || [],
+        }));
+
+        setVaults(mappedVaults);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error fetching vaults');
       } finally {

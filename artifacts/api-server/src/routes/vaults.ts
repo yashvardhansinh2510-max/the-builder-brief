@@ -17,6 +17,7 @@ router.get("/", async (req, res) => {
 
     return res.json(allVaults);
   } catch (error) {
+    console.error("DB Error in /api/vaults:", error);
     return res.status(500).json({ error: "Failed to fetch vaultsTable" });
   }
 });
