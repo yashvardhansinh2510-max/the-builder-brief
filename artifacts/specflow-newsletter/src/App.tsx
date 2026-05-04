@@ -5,12 +5,15 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
+import Blueprints from "@/pages/blueprints";
 import Archive from "@/pages/archive";
 import IssuePage from "@/pages/issue";
 import About from "@/pages/about";
 import UserPortal from "@/pages/user-portal";
 import ProPortal from "@/pages/pro-portal";
 import MaxPortal from "@/pages/max-portal";
+import IdeaAgent from "@/pages/idea-agent";
+import TemplatesPage from "@/pages/templates";
 import AdminPortal from "@/pages/admin-portal";
 import IncubatorDashboard from "@/pages/incubator-dashboard";
 import InvestorPortal from "@/pages/investor-portal";
@@ -125,11 +128,10 @@ const ProtectedPaymentSuccess = (props: any) => <ProtectedRoute component={Payme
 const ProtectedCreatorDashboard = (props: any) => <ProtectedRoute component={CreatorDashboard} {...props} />;
 const ProtectedMarketplace = (props: any) => <ProtectedRoute component={Marketplace} {...props} />;
 const ProtectedDeveloperPortal = (props: any) => <ProtectedRoute component={DeveloperPortal} {...props} />;
-const ProtectedArchive = (props: any) => <ProtectedRoute component={Archive} {...props} />;
-const ProtectedIssuePage = (props: any) => <ProtectedRoute component={IssuePage} {...props} />;
-const ProtectedAbout = (props: any) => <ProtectedRoute component={About} {...props} />;
 const ProtectedVaultArchive = (props: any) => <ProtectedRoute component={VaultArchive} {...props} />;
 const ProtectedVaultDetail = (props: any) => <ProtectedRoute component={VaultDetail} {...props} />;
+const ProtectedIdeaAgent = (props: any) => <ProtectedRoute component={IdeaAgent} {...props} />;
+const ProtectedTemplates = (props: any) => <ProtectedRoute component={TemplatesPage} {...props} />;
 
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
@@ -196,11 +198,14 @@ function ClerkProviderWithRoutes() {
             <Route path="/creator-dashboard" component={ProtectedCreatorDashboard} />
             <Route path="/marketplace" component={ProtectedMarketplace} />
             <Route path="/developer-portal" component={ProtectedDeveloperPortal} />
-            <Route path="/archive" component={ProtectedArchive} />
+            <Route path="/blueprints" component={Blueprints} />
+            <Route path="/archive" component={Archive} />
             <Route path="/vault-archive" component={ProtectedVaultArchive} />
             <Route path="/vault/:id" component={ProtectedVaultDetail} />
-            <Route path="/issue/:slug" component={ProtectedIssuePage} />
-            <Route path="/about" component={ProtectedAbout} />
+            <Route path="/issue/:slug" component={IssuePage} />
+            <Route path="/about" component={About} />
+            <Route path="/idea-agent" component={ProtectedIdeaAgent} />
+            <Route path="/templates" component={ProtectedTemplates} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />

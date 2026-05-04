@@ -9,7 +9,7 @@ import logoPath from "@assets/logo.jpg";
  * Shared navigation bar used across UserPortal, ProPortal, and MaxPortal.
  * It automatically adapts based on the user's tier and current page.
  */
-export default function PortalNav({ activePage }: { activePage: "dashboard" | "pro" | "max" | "archive" | "daily-drops" | "build-brief" | "about" | "issue" }) {
+export default function PortalNav({ activePage }: { activePage: "dashboard" | "pro" | "max" | "blueprints" | "archive" | "daily-drops" | "build-brief" | "about" | "issue" }) {
   const { tier, isPremium } = useAuth();
   const { signOut } = useClerk();
   const [, setLocation] = useLocation();
@@ -80,6 +80,17 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
                 : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
             }`}>
               Dashboard
+            </button>
+          </Link>
+
+          {/* Blueprints — always visible */}
+          <Link href="/blueprints">
+            <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+              activePage === "blueprints"
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
+            }`}>
+              Blueprints
             </button>
           </Link>
 
