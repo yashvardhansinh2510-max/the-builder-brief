@@ -31,6 +31,7 @@ import ideaAgentRouter from "./idea-agent";
 import userRouter from "./user";
 import templatesRouter from "./templates";
 import investorRouter from "./investor";
+import blueprintsRouter from "./blueprints";
 
 const router: IRouter = Router();
 
@@ -41,12 +42,12 @@ router.use(confirmRouter);
 router.use(cronRouter);
 router.use(earningsRouter);
 router.use(marketplaceRouter);
-router.use(creatorRouter);
+router.use('/creator', creatorRouter);
 router.use(teamSeatsRouter);
-router.use(engineRouter);
+router.use('/api/engine', engineRouter);
 router.use(paymentsRouter);
 router.use(referralsRouter);
-router.use(incubatorRouter);
+router.use('/incubator', incubatorRouter);
 router.use(scorecardRouter);
 router.use(terminalRouter);
 router.use(wallsRouter);
@@ -66,5 +67,6 @@ router.use('/api/idea-agent', ideaAgentRouter);
 router.use('/api/user', userRouter);
 router.use('/api/templates', templatesRouter);
 router.use('/api/investor', investorRouter);
+router.use('/api/blueprints', blueprintsRouter);
 
 export default router;
