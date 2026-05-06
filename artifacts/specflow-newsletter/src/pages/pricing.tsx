@@ -250,7 +250,7 @@ export default function PricingPage() {
               },
               {
                 q: 'Do startups get special pricing?',
-                a: 'Reach out to hello@thebuildbrief.com. We love supporting early-stage founders—let's talk.',
+                a: "Reach out to hello@thebuildbrief.com. We love supporting early-stage founders — let's talk.",
               },
             ].map((faq, idx) => (
               <div key={idx} className="bg-card border border-border rounded-xl p-6">

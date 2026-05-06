@@ -1,9 +1,8 @@
-import { useAuth } from '@clerk/react';
+import { useAuth } from '@/lib/AuthContext';
 import { Link } from 'wouter';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { TIER_LIMITS, Tier } from '@/lib/tiers';
-import { useEffect, useState } from 'react';
+import { Tier } from '@/lib/tiers';
 
 interface TierGateProps {
   requiredTier: Tier;
@@ -11,37 +10,15 @@ interface TierGateProps {
   fallback?: React.ReactNode;
 }
 
+const TIER_RANK: Record<string, number> = { free: 0, pro: 1, max: 2, incubator: 2 };
+
 export function TierGate({ requiredTier, children, fallback }: TierGateProps) {
-  const { userId } = useAuth();
-  const [userTier, setUserTier] = useState<Tier>('free');
+  const { tier, tierLoading } = useAuth();
 
-  useEffect(() => {
-    if (!userId) {
-      setUserTier('free');
-      return;
-    }
+  if (tierLoading) return null;
 
-    const fetchUserTier = async () => {
-      try {
-        const response = await fetch('/api/user/tier');
-        if (response.ok) {
-          const data = await response.json();
-          setUserTier(data.tier || 'free');
-        } else {
-          setUserTier('free');
-        }
-      } catch (error) {
-        console.error('Failed to fetch user tier:', error);
-        setUserTier('free');
-      }
-    };
-
-    fetchUserTier();
-  }, [userId]);
-
-  const tiers: Tier[] = ['free', 'pro', 'max'];
-  const requiredIndex = tiers.indexOf(requiredTier);
-  const userIndex = tiers.indexOf(userTier);
+  const requiredIndex = TIER_RANK[requiredTier] ?? 0;
+  const userIndex = TIER_RANK[tier] ?? 0;
 
   if (userIndex >= requiredIndex) {
     return <>{children}</>;
@@ -50,12 +27,16 @@ export function TierGate({ requiredTier, children, fallback }: TierGateProps) {
   return (
     fallback || (
       <div className="flex flex-col items-center justify-center py-16 px-6 bg-card border border-dashed border-border rounded-2xl">
-        <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+        <Lock className="w-10 h-10 text-muted-foreground mb-4" />
         <h3 className="font-serif text-2xl mb-2">
-          {requiredTier === 'pro' ? 'Pro Feature' : 'Premium Feature'}
+          {requiredTier === 'max' ? 'Inner Circle Feature' : 'Pro Member Feature'}
         </h3>
-        <p className="text-muted-foreground text-center mb-6 max-w-sm">
-          Upgrade to {requiredTier === 'max' ? 'Max' : 'Pro'} to unlock this feature and access our full suite of execution tools.
+        <p className="text-muted-foreground text-center mb-6 max-w-sm text-sm leading-relaxed">
+          {requiredTier === 'max' ? (
+            <>Upgrade to the <span className="font-bold text-foreground">Inner Circle</span> plan to unlock this section and access the full execution toolkit.</>
+          ) : (
+            <>Upgrade to <span className="font-bold text-foreground">Pro</span> or the <span className="font-bold text-foreground">Inner Circle</span> plan to unlock this section and access the full execution toolkit.</>
+          )}
         </p>
         <Button asChild className="rounded-full">
           <Link href="/pricing">Upgrade Now</Link>
