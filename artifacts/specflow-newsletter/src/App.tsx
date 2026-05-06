@@ -21,12 +21,14 @@ import BuildBrief from "@/pages/build-brief";
 import DailyDrops from "@/pages/daily-drops";
 import PaymentSuccess from "@/pages/payment-success";
 import CreatorDashboard from "@/pages/creator-dashboard";
+import CreatorTraction from "@/pages/creator-traction";
 import Marketplace from "@/pages/marketplace";
 import DeveloperPortal from "@/pages/developer-portal";
 import VaultArchive from "@/pages/vault-archive";
 import VaultDetail from "@/pages/vault-detail";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
+import PricingPage from "@/pages/pricing";
 
 const queryClient = new QueryClient();
 
@@ -126,6 +128,7 @@ const ProtectedBuildBrief = (props: any) => <ProtectedRoute component={BuildBrie
 const ProtectedDailyDrops = (props: any) => <ProtectedRoute component={DailyDrops} {...props} />;
 const ProtectedPaymentSuccess = (props: any) => <ProtectedRoute component={PaymentSuccess} {...props} />;
 const ProtectedCreatorDashboard = (props: any) => <ProtectedRoute component={CreatorDashboard} {...props} />;
+const ProtectedCreatorTraction = (props: any) => <ProtectedRoute component={CreatorTraction} {...props} />;
 const ProtectedMarketplace = (props: any) => <ProtectedRoute component={Marketplace} {...props} />;
 const ProtectedDeveloperPortal = (props: any) => <ProtectedRoute component={DeveloperPortal} {...props} />;
 const ProtectedVaultArchive = (props: any) => <ProtectedRoute component={VaultArchive} {...props} />;
@@ -196,6 +199,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/daily-drops" component={ProtectedDailyDrops} />
             <Route path="/payment-success" component={ProtectedPaymentSuccess} />
             <Route path="/creator-dashboard" component={ProtectedCreatorDashboard} />
+            <Route path="/creator-traction" component={ProtectedCreatorTraction} />
             <Route path="/marketplace" component={ProtectedMarketplace} />
             <Route path="/developer-portal" component={ProtectedDeveloperPortal} />
             <Route path="/blueprints" component={Blueprints} />
@@ -206,6 +210,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/about" component={About} />
             <Route path="/idea-agent" component={ProtectedIdeaAgent} />
             <Route path="/templates" component={ProtectedTemplates} />
+            <Route path="/pricing" component={PricingPage} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />
