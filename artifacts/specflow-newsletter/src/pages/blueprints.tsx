@@ -1,144 +1,504 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
-import { ArrowRight, Zap, Flame, CalendarDays, Rocket, BookOpen, Handshake, Users, Search, Check, DollarSign } from 'lucide-react';
+import {
+  ArrowRight, Lock, Check, TrendingUp, DollarSign,
+  Zap, Target, Layers, BarChart3, Users2
+} from 'lucide-react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer
+} from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { issues } from '@/lib/data';
+import { issues, Issue } from '@/lib/data';
+import { useAuth } from '@/lib/AuthContext';
+import { TierGate } from '@/components/TierGate';
 import { usePageTracking } from '@/hooks/useAnalytics';
-import PublicNav from '@/components/PublicNav';
-import logoPath from "@assets/logo.jpg";
+import PortalNav from '@/components/PortalNav';
+import Footer from '@/components/Footer';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.06 } }),
 };
 
-export default function BlueprintsPage() {
-  usePageTracking('/blueprints');
+const VERTICALS = ['All', 'B2B SaaS', 'Fintech', 'Health', 'Climate Tech', 'Consumer', 'AI-Native'];
 
-  const featured = issues[0]; 
+// ─── Filtering helpers ────────────────────────────────────────────────────────
 
+function filterByVertical(vertical: string): Issue[] {
+  return vertical === 'All' ? issues : issues.filter(i => i.category === vertical);
+}
+
+const DIFF_RANK: Record<string, number> = { Low: 0, Medium: 1, High: 2, Extreme: 3 };
+const DEV_RANK: Record<string, number> = { Days: 0, Weeks: 1, Months: 2 };
+
+function getStage1Issues(vertical: string): Issue[] {
+  const pool = filterByVertical(vertical);
+  return [...pool]
+    .sort((a, b) =>
+      (DIFF_RANK[a.difficulty ?? 'Medium'] ?? 1) - (DIFF_RANK[b.difficulty ?? 'Medium'] ?? 1) ||
+      (DEV_RANK[a.devTime ?? 'Weeks'] ?? 1) - (DEV_RANK[b.devTime ?? 'Weeks'] ?? 1)
+    )
+    .slice(0, 3);
+}
+
+function getStage2Issues(vertical: string): Issue[] {
+  const pool = filterByVertical(vertical);
+  const parseDay = (r: string) => {
+    const n = parseInt(r);
+    return isNaN(n) ? (r.toLowerCase().includes('week') ? 21 : 30) : n;
+  };
+  return [...pool].sort((a, b) => parseDay(a.revenueIn) - parseDay(b.revenueIn)).slice(0, 3);
+}
+
+function getStage3Issues(vertical: string): Issue[] {
+  const pool = filterByVertical(vertical);
+  const withExit = pool.filter(i => i.exitStrategy);
+  const fill = pool.filter(i => !i.exitStrategy);
+  return [...withExit, ...fill].slice(0, 3);
+}
+
+// ─── Mini blueprint card ──────────────────────────────────────────────────────
+
+function StageBlueprintCard({ issue, idx }: { issue: Issue; idx: number }) {
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">
-      <PublicNav activePage="blueprints" />
-
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-32">
-        
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between text-sm text-muted-foreground font-mono tracking-wider mb-10">
-          <span className="flex items-center gap-2 bg-card px-4 py-2 rounded-lg border border-border shadow-sm"><CalendarDays className="w-4 h-4 text-primary" /> {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-          <Button variant="outline" className="border-border bg-card text-foreground" asChild>
-            <Link href="/archive"><Search className="w-4 h-4 mr-2"/> Search Past Ideas</Link>
-          </Button>
-        </div>
-
-        {/* Idea of the Day Focus Section */}
-        {featured && (
-          <motion.div 
-            initial="hidden" animate="visible" custom={1} variants={fadeUp} 
-            className="mb-24 max-w-4xl mx-auto"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold mb-6 tracking-wide border border-primary/20">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Idea of the Day
+    <motion.div custom={idx} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+      <Link href={`/issue/${issue.slug}`} className="block group h-full">
+        <div className="bg-card border border-border rounded-2xl p-6 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 h-full flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+              Vault #{String(issue.number).padStart(3, '0')}
+            </span>
+            <Badge variant="secondary" className="text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider bg-primary/10 text-primary border-0">
+              {issue.category}
+            </Badge>
+          </div>
+          <h3 className="font-serif text-xl mb-2 group-hover:text-primary transition-colors leading-snug">
+            {issue.title}
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-4 flex-1">
+            {issue.tagline}
+          </p>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="bg-background rounded-lg p-3 border border-border">
+              <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest mb-1">TAM</p>
+              <p className="font-sans font-bold text-xs text-foreground">{issue.tam}</p>
             </div>
-            <h1 className="font-serif text-5xl md:text-7xl lg:text-[5rem] leading-[1.05] tracking-tight mb-8">
-              {featured.title}
-            </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed mb-10 max-w-2xl">
-              {featured.tagline}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href={`/issue/${featured.slug}`}>
-                <Button className="h-14 px-8 text-lg rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all hover:scale-[1.02]">
-                  Read Full Execution Playbook
-                </Button>
-              </Link>
-              <Link href="/archive">
-                <Button variant="outline" className="h-14 px-8 text-lg rounded-full border-border bg-card hover:bg-muted font-bold transition-all">
-                  Browse Archive <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
+            <div className="bg-background rounded-lg p-3 border border-border">
+              <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest mb-1">Revenue in</p>
+              <p className="font-sans font-bold text-xs text-primary">{issue.revenueIn}</p>
             </div>
-          </motion.div>
-        )}
-
-        <div className="w-full h-px bg-border mb-20" />
-
-        {/* Universal Startup Toolkit */}
-        <div className="max-w-6xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="mb-12">
-            <h2 className="font-serif text-[3.5rem] mb-4 text-foreground">The Launch Toolkit</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl">
-              Universal resources, sales scripts, and operational guides to help you scale any idea from $0 to $1M.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <div className="bg-card border border-border rounded-[2.5rem] p-10 md:p-12 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-8">
-                <Rocket className="w-7 h-7 text-indigo-600" />
-              </div>
-              <h3 className="font-serif text-3xl mb-4">Launch Playbook</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-                The exact step-by-step framework to go from zero to MVP to first revenue in under 30 days. No fluff.
-              </p>
-              <div className="space-y-4">
-                {['Validating without code', 'Building the MVP stack', 'Acquiring the first 10 users'].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-indigo-500" />
-                    <span className="font-medium text-sm text-foreground">{item}</span>
-                  </div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full mt-10 h-12 rounded-xl border-border bg-card hover:bg-muted font-bold text-indigo-600">
-                Access Playbook
-              </Button>
-            </div>
-
-            <div className="bg-card border border-border rounded-[2.5rem] p-10 md:p-12 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-8">
-                <DollarSign className="w-7 h-7 text-emerald-600" />
-              </div>
-              <h3 className="font-serif text-3xl mb-4">B2B Outbound Engine</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-                Copy-paste our highest converting cold email scripts, LinkedIn sequences, and objection handling matrices.
-              </p>
-              <div className="space-y-4">
-                {['Enterprise cold email scripts', 'LinkedIn voice-note strategy', 'Pricing objection handles'].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-emerald-500" />
-                    <span className="font-medium text-sm text-foreground">{item}</span>
-                  </div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full mt-10 h-12 rounded-xl border-border bg-card hover:bg-muted font-bold text-emerald-600">
-                Download Scripts
-              </Button>
-            </div>
-
+          </div>
+          <div className="flex items-center gap-1.5 font-bold text-primary text-sm group-hover:gap-2.5 transition-all">
+            Open Blueprint <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// ─── Stage 1 tool: Market Signal Preview ─────────────────────────────────────
+
+function MarketSignalTool({ issue }: { issue: Issue }) {
+  const { tier } = useAuth();
+  const isPaid = tier === 'pro' || tier === 'max' || tier === 'incubator';
+  const graphData = issue.graphData ?? [];
+  const visibleBullets = isPaid ? issue.whyNow : issue.whyNow.slice(0, 2);
+
+  return (
+    <div className="bg-background border border-border rounded-2xl p-5 h-full">
+      <div className="flex items-center gap-2 mb-3">
+        <TrendingUp className="w-3.5 h-3.5 text-primary" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Signal: {issue.title}</span>
+      </div>
+      {graphData.length > 0 && (
+        <div className="h-28 w-full mb-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={graphData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={9} tickLine={false} axisLine={false} />
+              <YAxis hide />
+              <RechartsTooltip
+                contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 10 }}
+              />
+              <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Why now</p>
+      <ul className="space-y-2">
+        {visibleBullets.map((bullet, i) => (
+          <li key={i} className="flex gap-2 items-start text-[11px] text-foreground leading-relaxed">
+            <Check className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+            {bullet}
+          </li>
+        ))}
+        {!isPaid && issue.whyNow.length > 2 && (
+          <li className="flex gap-2 items-start text-[11px] text-muted-foreground">
+            <Lock className="w-3 h-3 shrink-0 mt-0.5" />
+            <span className="blur-[3px] select-none">{issue.whyNow[2]}</span>
+          </li>
+        )}
+      </ul>
+      {!isPaid && (
+        <Link href="/pricing">
+          <p className="text-[10px] text-primary font-bold mt-3 hover:underline cursor-pointer">Unlock full analysis →</p>
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// ─── Stage 2 tool: First Revenue Playbook ────────────────────────────────────
+
+function FirstRevenueTool({ issue }: { issue: Issue }) {
+  const { tier } = useAuth();
+  const isPaid = tier === 'pro' || tier === 'max' || tier === 'incubator';
+  const steps = issue.blueprint;
+  const visible = isPaid ? steps : steps.slice(0, 2);
+
+  return (
+    <div className="bg-background border border-border rounded-2xl p-5 h-full">
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="w-3.5 h-3.5 text-primary" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Playbook: {issue.title}</span>
+      </div>
+      <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Build steps</p>
+      <ul className="space-y-2">
+        {visible.map((step, i) => (
+          <li key={i} className="flex gap-2 items-start text-[11px] text-foreground leading-relaxed">
+            <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-[9px] font-bold text-primary">
+              {i + 1}
+            </div>
+            {step}
+          </li>
+        ))}
+        {!isPaid && steps.length > 2 && (
+          <li className="flex gap-2 items-start text-[11px] text-muted-foreground">
+            <Lock className="w-3 h-3 shrink-0 mt-0.5" />
+            <span className="blur-[3px] select-none">{steps[2]}</span>
+          </li>
+        )}
+      </ul>
+      {!isPaid && (
+        <Link href="/pricing">
+          <p className="text-[10px] text-primary font-bold mt-3 hover:underline cursor-pointer">Unlock full blueprint →</p>
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// ─── Stage 3 tool: Unit Economics (Pro gate) ─────────────────────────────────
+
+function UnitEconomicsTool({ issue }: { issue: Issue }) {
+  const ue = issue.unitEconomicsExpanded;
+  if (!ue) return null;
+  return (
+    <TierGate requiredTier="pro">
+      <div className="bg-background border border-border rounded-2xl p-5 h-full">
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign className="w-3.5 h-3.5 text-primary" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Economics: {issue.title}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { label: 'Price', value: ue.price },
+            { label: 'Gross Margin', value: ue.grossMarginPercent },
+            { label: 'CAC', value: ue.cac },
+            { label: 'LTV', value: ue.ltv },
+            { label: 'COGS', value: ue.cogs },
+            { label: 'Payback', value: ue.paybackPeriod },
+          ] as { label: string; value: string }[]).map(({ label, value }) => (
+            <div key={label} className="bg-card p-2.5 rounded-xl border border-border">
+              <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest mb-0.5">{label}</p>
+              <p className="font-sans font-bold text-xs text-foreground truncate">{value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </TierGate>
+  );
+}
+
+// ─── Stage section ────────────────────────────────────────────────────────────
+
+interface StageSectionProps {
+  stageNum: string;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  blueprints: Issue[];
+  tool: React.ReactNode;
+  animIdx: number;
+}
+
+function StageSection({ stageNum, title, subtitle, icon, blueprints, tool, animIdx }: StageSectionProps) {
+  return (
+    <motion.section
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true }}
+      custom={animIdx}
+      variants={fadeUp}
+      className="mb-20"
+    >
+      <div className="flex items-start gap-4 mb-8">
+        <div className="flex flex-col items-center">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            {icon}
+          </div>
+          <div className="w-px h-6 bg-border mt-3" />
+        </div>
+        <div className="pt-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary mb-1">Stage {stageNum}</p>
+          <h2 className="font-serif text-3xl mb-1">{title}</h2>
+          <p className="text-muted-foreground text-sm">{subtitle}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+        <div className="lg:col-span-1">{tool}</div>
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {blueprints.map((issue, idx) => (
+            <StageBlueprintCard key={issue.slug} issue={issue} idx={idx} />
+          ))}
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+// ─── Vertical kit card ────────────────────────────────────────────────────────
+
+const VERTICAL_ICONS: Record<string, React.ReactNode> = {
+  'B2B SaaS': <BarChart3 className="w-5 h-5" />,
+  'Fintech': <DollarSign className="w-5 h-5" />,
+  'Health': <Target className="w-5 h-5" />,
+  'Climate Tech': <TrendingUp className="w-5 h-5" />,
+  'Consumer': <Users2 className="w-5 h-5" />,
+  'AI-Native': <Zap className="w-5 h-5" />,
+};
+
+function VerticalKitCard({ vertical, count, active, onClick }: { vertical: string; count: number; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-none w-40 text-left p-4 rounded-2xl border transition-all duration-200
+        ${active
+          ? 'bg-foreground text-background border-foreground shadow-lg'
+          : 'bg-card border-border text-foreground hover:border-primary/30 hover:shadow-md'
+        }`}
+    >
+      <div className={`mb-3 ${active ? 'text-background' : 'text-primary'}`}>
+        {VERTICAL_ICONS[vertical] ?? <Layers className="w-5 h-5" />}
+      </div>
+      <p className={`font-bold text-sm mb-1 ${active ? 'text-background' : 'text-foreground'}`}>{vertical}</p>
+      <p className={`text-[10px] uppercase tracking-wider font-bold ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
+        {count} blueprint{count !== 1 ? 's' : ''}
+      </p>
+    </button>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function BlueprintsPage() {
+  usePageTracking('/blueprints');
+  const { tier } = useAuth();
+  const isPremium = tier === 'pro' || tier === 'max' || tier === 'incubator';
+
+  const [selectedVertical, setSelectedVertical] = useState('All');
+
+  const stage1 = useMemo(() => getStage1Issues(selectedVertical), [selectedVertical]);
+  const stage2 = useMemo(() => getStage2Issues(selectedVertical), [selectedVertical]);
+  const stage3 = useMemo(() => getStage3Issues(selectedVertical), [selectedVertical]);
+
+  const stage3UETool = useMemo(() => {
+    const pool = filterByVertical(selectedVertical);
+    return pool.find(i => i.unitEconomicsExpanded) ?? pool[0];
+  }, [selectedVertical]);
+
+  const verticalCounts = useMemo(() =>
+    VERTICALS.slice(1).map(v => ({
+      vertical: v,
+      count: issues.filter(i => i.category === v).length,
+    })),
+    []
+  );
+
+  return (
+    <div className="min-h-screen bg-background text-foreground font-sans">
+      <PortalNav activePage="blueprints" />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-32">
+
+        {/* Hero */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="mb-12">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-bold uppercase tracking-widest text-primary">Execution Workspace</span>
+          </div>
+          <h1 className="font-serif text-5xl md:text-6xl tracking-tight mb-4">
+            Build Your<br />
+            <span className="text-primary">
+              {selectedVertical === 'All' ? 'Billion-Dollar Company' : `${selectedVertical} Company`}
+            </span>
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
+            Three stages. Every tool. Exact playbooks. Pick where you are and start moving.
+          </p>
+        </motion.div>
+
+        {/* Vertical Starter Kits */}
+        <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} className="mb-14">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Choose your vertical</p>
+          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => setSelectedVertical('All')}
+              className={`flex-none px-5 py-3 rounded-2xl border font-bold text-sm transition-all duration-200
+                ${selectedVertical === 'All'
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
+                }`}
+            >
+              All ({issues.length})
+            </button>
+            {verticalCounts.map(({ vertical, count }) => (
+              <VerticalKitCard
+                key={vertical}
+                vertical={vertical}
+                count={count}
+                active={selectedVertical === vertical}
+                onClick={() => setSelectedVertical(vertical)}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-4 mb-16">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Your Build Path</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* Stage 1 — Ideation & Validation */}
+        {stage1.length > 0 && (
+          <StageSection
+            stageNum="01"
+            title="Ideation & Validation"
+            subtitle="Prove the market before you build anything. Pick the lowest-risk entry point."
+            icon={<Target className="w-5 h-5 text-primary" />}
+            blueprints={stage1}
+            tool={<MarketSignalTool issue={stage1[0]} />}
+            animIdx={2}
+          />
+        )}
+
+        {/* Stage 2 — Build & Launch */}
+        {stage2.length > 0 && (
+          <StageSection
+            stageNum="02"
+            title="Build & Launch"
+            subtitle="Get to first revenue in 30 days or less. Execution over perfection."
+            icon={<Zap className="w-5 h-5 text-primary" />}
+            blueprints={stage2}
+            tool={<FirstRevenueTool issue={stage2[0]} />}
+            animIdx={3}
+          />
+        )}
+
+        {/* Stage 3 — Scale & Exit */}
+        {stage3.length > 0 && stage3UETool && (
+          <StageSection
+            stageNum="03"
+            title="Scale & Exit"
+            subtitle="Unit economics locked. Hire the right people. Plan the exit from day one."
+            icon={<TrendingUp className="w-5 h-5 text-primary" />}
+            blueprints={stage3}
+            tool={<UnitEconomicsTool issue={stage3UETool} />}
+            animIdx={4}
+          />
+        )}
+
+        {/* Pro/Max Exclusive Section */}
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          custom={5}
+          variants={fadeUp}
+          className="mt-4"
+        >
+          {isPremium ? (
+            <div className="bg-card border border-primary/20 rounded-2xl p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Inner Circle</p>
+                  <h3 className="font-serif text-2xl">Your Advanced Toolkit</h3>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link href="/investor-portal">
+                  <div className="bg-background border border-border rounded-xl p-5 hover:border-primary/30 transition-all cursor-pointer group">
+                    <DollarSign className="w-5 h-5 text-primary mb-3" />
+                    <h4 className="font-bold text-sm mb-1">Investor Matching</h4>
+                    <p className="text-xs text-muted-foreground">500+ VCs matched to your exact vertical and stage.</p>
+                    <p className="text-[10px] text-primary font-bold mt-2 group-hover:underline">Access →</p>
+                  </div>
+                </Link>
+                <Link href="/vault-archive">
+                  <div className="bg-background border border-border rounded-xl p-5 hover:border-primary/30 transition-all cursor-pointer group">
+                    <Layers className="w-5 h-5 text-primary mb-3" />
+                    <h4 className="font-bold text-sm mb-1">Full Vault Archive</h4>
+                    <p className="text-xs text-muted-foreground">Every idea scored, signaled, and verified.</p>
+                    <p className="text-[10px] text-primary font-bold mt-2 group-hover:underline">Access →</p>
+                  </div>
+                </Link>
+                <Link href="/build-brief">
+                  <div className="bg-background border border-border rounded-xl p-5 hover:border-primary/30 transition-all cursor-pointer group">
+                    <BarChart3 className="w-5 h-5 text-primary mb-3" />
+                    <h4 className="font-bold text-sm mb-1">Build Brief</h4>
+                    <p className="text-xs text-muted-foreground">Your personalised weekly brief. Built for your stage.</p>
+                    <p className="text-[10px] text-primary font-bold mt-2 group-hover:underline">Access →</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card border border-dashed border-border rounded-2xl p-10 text-center">
+              <Lock className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-2xl mb-2">Inner Circle Toolkit</h3>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
+                Investor matching, exit playbooks, hiring roadmaps, and full vault access. Unlocked for Pro and Max members.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link href="/pricing">
+                  <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6">
+                    Upgrade to Pro <ArrowRight className="w-4 h-4 ml-1.5" />
+                  </Button>
+                </Link>
+                <Link href="/archive">
+                  <Button variant="outline" className="rounded-full border-border">
+                    Browse Archive Instead
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </motion.section>
 
       </main>
 
-      <footer className="border-t border-border py-12 px-6 mt-20 bg-card">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <Link href="/" className="flex items-center gap-3">
-             <img src={logoPath} alt="The Build Brief" className="w-6 h-6 rounded-sm opacity-60 grayscale" />
-            <span className="font-serif text-xl text-foreground">The Build Brief</span>
-          </Link>
-          <div className="flex items-center gap-8 text-sm text-muted-foreground">
-            <Link href="/archive" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">Archive</Link>
-            <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
-          </div>
-          <Button variant="outline" className="rounded-full border-border bg-background hover:bg-muted text-sm px-6">
-            Sign In
-          </Button>
-        </div>
-      </footer>
+      <Footer variant="public" />
     </div>
   );
 }
