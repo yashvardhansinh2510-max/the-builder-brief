@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
+import { useMode } from '@/lib/ModeContext';
 import {
   ArrowRight, Lock, Check, TrendingUp, DollarSign,
   Zap, Target, Layers, BarChart3, Users2
@@ -247,7 +248,7 @@ function StageSection({ stageNum, title, subtitle, icon, blueprints, tool, animI
       variants={fadeUp}
       className="mb-20"
     >
-      <div className="flex items-start gap-4 mb-8">
+      <header className="flex items-start gap-4 mb-8">
         <div className="flex flex-col items-center">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             {icon}
@@ -259,7 +260,7 @@ function StageSection({ stageNum, title, subtitle, icon, blueprints, tool, animI
           <h2 className="font-serif text-3xl mb-1">{title}</h2>
           <p className="text-muted-foreground text-sm">{subtitle}</p>
         </div>
-      </div>
+      </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         <div className="lg:col-span-1">{tool}</div>
@@ -309,6 +310,7 @@ function VerticalKitCard({ vertical, count, active, onClick }: { vertical: strin
 
 export default function BlueprintsPage() {
   usePageTracking('/blueprints');
+  const { mode } = useMode();
   const { tier } = useAuth();
   const isPremium = tier === 'pro' || tier === 'max' || tier === 'incubator';
 

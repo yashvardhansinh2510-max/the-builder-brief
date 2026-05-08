@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search } from 'lucide-react';
+import { useMode } from "@/lib/ModeContext";
 import PortalNav from '@/components/PortalNav';
 import Footer from '@/components/Footer';
 import VaultCard from '@/components/VaultCard';
@@ -15,7 +16,8 @@ const fadeUp = {
 
 export default function VaultArchive() {
   usePageTracking('/vault-archive');
-  const { vaults, loading, error, total, page, hasMore, fetchVaults, setPage } = useVaults();
+  const { mode } = useMode();
+  const { vaults: rawVaults, loading, error, total, page, hasMore, fetchVaults, setPage } = useVaults();
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,7 +27,20 @@ export default function VaultArchive() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<'compact' | 'expanded'>('expanded');
 
-  // Apply filters
+  // Apply mode and filter processing
+  const vaults = useMemo(() => {
+    let result = rawVaults;
+    if (mode === "offline") {
+      result = result.filter(v => 
+        v.tags?.some(tag => 
+          tag.toLowerCase() === "offline" || tag.toLowerCase() === "hybrid"
+        )
+      );
+    }
+    return result;
+  }, [rawVaults, mode]);
+
+  // Apply API filters
   const handleFilterChange = async () => {
     const filter: VaultFilter = {
       searchQuery: searchQuery || undefined,

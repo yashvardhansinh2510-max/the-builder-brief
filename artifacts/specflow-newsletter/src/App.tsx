@@ -28,6 +28,8 @@ import VaultArchive from "@/pages/vault-archive";
 import VaultDetail from "@/pages/vault-detail";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
+import GroundGame from "@/pages/ground-game";
+import { ModeProvider } from "@/lib/ModeContext";
 import PricingPage from "@/pages/pricing";
 
 const queryClient = new QueryClient();
@@ -206,6 +208,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/archive" component={Archive} />
             <Route path="/vault-archive" component={ProtectedVaultArchive} />
             <Route path="/vault/:id" component={ProtectedVaultDetail} />
+            <Route path="/ground-game" component={GroundGame} />
             <Route path="/issue/:slug" component={IssuePage} />
             <Route path="/about" component={About} />
             <Route path="/idea-agent" component={ProtectedIdeaAgent} />
@@ -222,9 +225,11 @@ function ClerkProviderWithRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
-    </WouterRouter>
+    <ModeProvider>
+      <WouterRouter base={basePath}>
+        <ClerkProviderWithRoutes />
+      </WouterRouter>
+    </ModeProvider>
   );
 }
 

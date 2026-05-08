@@ -20,6 +20,9 @@ export default function PublicNav({ activePage }: { activePage?: string }) {
         <Link href="/archive" className={`hidden md:block text-sm transition-colors ${activePage === 'archive' ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
           Archive
         </Link>
+        <Link href="/ground-game" className={`hidden md:block text-sm transition-colors ${activePage === 'ground-game' ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
+          Ground Game
+        </Link>
         
         {isSignedIn ? (
           <Link href="/dashboard" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">

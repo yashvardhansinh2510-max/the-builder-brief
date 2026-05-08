@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/AuthContext";
+import { useAuth as useClerkAuth } from "@clerk/react";
 import { useClerk } from "@clerk/react";
-import { Star, LogOut } from "lucide-react";
+import { Star, LogOut, LogIn, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import logoPath from "@assets/logo.jpg";
 
@@ -9,8 +10,9 @@ import logoPath from "@assets/logo.jpg";
  * Shared navigation bar used across UserPortal, ProPortal, and MaxPortal.
  * It automatically adapts based on the user's tier and current page.
  */
-export default function PortalNav({ activePage }: { activePage: "dashboard" | "pro" | "max" | "blueprints" | "archive" | "daily-drops" | "build-brief" | "about" | "issue" }) {
+export default function PortalNav({ activePage }: { activePage: "dashboard" | "pro" | "max" | "blueprints" | "archive" | "daily-drops" | "build-brief" | "about" | "issue" | "ground-game" }) {
   const { tier, isPremium } = useAuth();
+  const { isSignedIn } = useClerkAuth();
   const { signOut } = useClerk();
   const [, setLocation] = useLocation();
   const handleSignOut = () => signOut(() => setLocation("/"));
@@ -35,18 +37,20 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
         </Link>
 
         <div className="flex items-center gap-4 md:gap-6">
-          {/* Tier Badge */}
-          <div className="hidden lg:flex items-center gap-3 mr-4 border-r border-border/40 pr-6">
-            <div className="flex flex-col items-end">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Tier</p>
-              <p className="text-sm font-medium text-primary flex items-center gap-1 uppercase">
-                <Star className="w-3 h-3 fill-current" /> {tier.toUpperCase()}
-              </p>
+          {/* Tier Badge — only for signed-in users */}
+          {isSignedIn && (
+            <div className="hidden lg:flex items-center gap-3 mr-4 border-r border-border/40 pr-6">
+              <div className="flex flex-col items-end">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Tier</p>
+                <p className="text-sm font-medium text-primary flex items-center gap-1 uppercase">
+                  <Star className="w-3 h-3 fill-current" /> {tier.toUpperCase()}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Premium badge */}
-          {isPremium && (
+          {isSignedIn && isPremium && (
             <Badge
               className={`px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] shadow-sm hidden sm:flex items-center gap-1.5 ${
                 tier === "max" || tier === "incubator"
@@ -59,30 +63,27 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
             </Badge>
           )}
 
-          <button
-            onClick={handleSignOut}
-            className="p-2 rounded-full hover:bg-card border border-transparent hover:border-border/40 transition-all text-muted-foreground hover:text-foreground"
-            title="Sign out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          {isSignedIn ? (
+            <button
+              onClick={handleSignOut}
+              className="p-2 rounded-full hover:bg-card border border-transparent hover:border-border/40 transition-all text-muted-foreground hover:text-foreground"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          ) : (
+            <Link href="/sign-in">
+              <button className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-widest hover:bg-primary/90 transition-colors">
+                <LogIn className="w-3.5 h-3.5" /> Sign In
+              </button>
+            </Link>
+          )}
         </div>
       </nav>
 
       {/* Secondary Nav — Page Switcher */}
       <div className="border-b border-border/20 bg-card/30 px-6 md:px-12 py-2.5 flex items-center justify-between sticky top-[57px] z-40 backdrop-blur-xl">
         <div className="flex items-center gap-1">
-          {/* Dashboard / User Portal — always visible */}
-          <Link href="/dashboard">
-            <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
-              activePage === "dashboard"
-                ? "bg-primary/10 text-primary border border-primary/20"
-                : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
-            }`}>
-              Dashboard
-            </button>
-          </Link>
-
           {/* Blueprints — always visible */}
           <Link href="/blueprints">
             <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
@@ -91,6 +92,18 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
                 : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
             }`}>
               Blueprints
+            </button>
+          </Link>
+
+          {/* Ground Game — always visible, between Blueprints and Archive */}
+          <Link href="/ground-game">
+            <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1 ${
+              activePage === "ground-game"
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
+            }`}>
+              <MapPin className="w-3 h-3" />
+              Ground Game
             </button>
           </Link>
 
@@ -105,8 +118,21 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
             </button>
           </Link>
 
+          {/* Dashboard — only for signed-in users */}
+          {isSignedIn && (
+            <Link href="/dashboard">
+              <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+                activePage === "dashboard"
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
+              }`}>
+                Dashboard
+              </button>
+            </Link>
+          )}
+
           {/* Premium Portal — only for Pro/Max */}
-          {isPremium && (
+          {isSignedIn && isPremium && (
             <Link href={premiumPortalPath}>
               <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${
                 activePage === "pro" || activePage === "max"
@@ -120,7 +146,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
           )}
 
           {/* Daily Drops — Pro/Max only */}
-          {isPremium && (
+          {isSignedIn && isPremium && (
             <Link href="/daily-drops">
               <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
                 activePage === "daily-drops"
@@ -133,7 +159,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
           )}
 
           {/* Build Brief — Pro/Max only */}
-          {isPremium && (
+          {isSignedIn && isPremium && (
             <Link href="/build-brief">
               <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
                 activePage === "build-brief"
