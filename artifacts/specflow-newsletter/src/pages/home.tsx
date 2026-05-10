@@ -32,6 +32,7 @@ import RuixenSection from "@/components/ui/ruixen-feature-section";
 import CombinedFeaturedSection from "@/components/ui/combined-featured-section";
 import PersonalizedBuildBriefFeatures from "@/components/ui/personalized-features";
 import CustomersTableCard from "@/components/ui/customers-table-card";
+import Footer from "@/components/Footer";
 
 const contents = [
   { title: "The Idea", desc: "A specific named startup concept — not a category, a company.", icon: Lightbulb },
@@ -655,20 +656,7 @@ export default function Home() {
         <BottomCTASection />
       </main>
 
-      <footer className="border-t border-border/40 py-12 px-6 mt-24">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <Link href="/" className="flex items-center gap-3">
-            <img src={logoPath} alt="The Build Brief" className="w-6 h-6 rounded-sm opacity-40 grayscale" />
-            <span className="font-serif text-lg text-muted-foreground">The Build Brief</span>
-          </Link>
-          <div className="flex items-center gap-8 text-sm text-muted-foreground">
-            <Link href="/archive" className="hover:text-foreground transition-colors">Archive</Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
-            <Link href="/sign-in" className="hover:text-foreground transition-colors">Sign in</Link>
-          </div>
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} The Build Brief</p>
-        </div>
-      </footer>
+      <Footer variant="public" />
     </div>
   );
 }

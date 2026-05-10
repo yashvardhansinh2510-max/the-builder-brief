@@ -9,7 +9,7 @@ export interface ArchitectureDiagramProps {
 export default function ArchitectureDiagram({
   mermaidCode,
   description
-}: ArchitectureDiagramProps): JSX.Element {
+}: ArchitectureDiagramProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize mermaid once on mount

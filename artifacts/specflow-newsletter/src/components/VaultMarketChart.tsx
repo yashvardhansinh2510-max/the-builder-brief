@@ -105,12 +105,12 @@ export const VaultMarketChart: React.FC<VaultMarketChartProps> = ({
     <div className="w-full space-y-4">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        {description && <p className="text-sm text-gray-600">{description}</p>}
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
 
       {/* Chart */}
-      <div className="w-full h-full bg-white rounded-lg border border-gray-200 p-4">
+      <div className="w-full h-full bg-card rounded-2xl border border-border p-4">
         <ResponsiveContainer width="100%" height={height}>
           {chartComponent}
         </ResponsiveContainer>
@@ -119,9 +119,9 @@ export const VaultMarketChart: React.FC<VaultMarketChartProps> = ({
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {marketSize && (
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-xs font-medium text-blue-600">Estimated Market Size</p>
-            <p className="text-lg font-bold text-blue-900 mt-1">{marketSize}</p>
+          <div className="p-3 bg-primary/5 rounded-xl border border-primary/20">
+            <p className="text-xs font-medium text-primary">Estimated Market Size</p>
+            <p className="text-lg font-bold text-foreground mt-1">{marketSize}</p>
           </div>
         )}
         {tam && (
@@ -135,12 +135,12 @@ export const VaultMarketChart: React.FC<VaultMarketChartProps> = ({
       {/* Keywords */}
       {keywords.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-900">Trending Keywords</h4>
+          <h4 className="text-sm font-semibold text-foreground">Trending Keywords</h4>
           <div className="flex flex-wrap gap-2">
             {keywords.map((keyword, idx) => (
               <span
                 key={idx}
-                className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full border border-gray-300"
+                className="px-3 py-1 bg-muted text-muted-foreground text-xs font-medium rounded-full border border-border"
               >
                 {keyword}
               </span>

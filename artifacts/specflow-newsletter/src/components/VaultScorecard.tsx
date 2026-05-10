@@ -18,17 +18,17 @@ const ScoreAxis: React.FC<{
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-center">
-        <label className="text-sm font-semibold text-gray-700">{label}</label>
-        <span className="text-sm font-bold text-gray-900">{value}</span>
+        <label className="text-sm font-semibold text-muted-foreground">{label}</label>
+        <span className="text-sm font-bold text-foreground">{value}</span>
       </div>
-      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full ${color} transition-all duration-300`}
           style={{ width: `${percentage * 100}%` }}
         />
       </div>
       {description && (
-        <p className="text-xs text-gray-500">{description}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       )}
     </div>
   );
@@ -77,12 +77,12 @@ export const VaultScorecard: React.FC<VaultScorecardProps> = ({
   return (
     <div className={`${layoutClasses} ${containerClasses}`}>
       {/* Overall Score Badge */}
-      <div className="col-span-2 md:col-span-4 flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+      <div className="col-span-2 md:col-span-4 flex items-center gap-4 p-4 bg-primary/5 rounded-2xl border border-primary/20">
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-gray-600">Overall Confidence</span>
+          <span className="text-sm font-medium text-muted-foreground">Overall Confidence</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-indigo-600">{scores.overall}</span>
-            <span className="text-xs text-gray-500">/ 100</span>
+            <span className="text-3xl font-bold text-primary">{scores.overall}</span>
+            <span className="text-xs text-muted-foreground">/ 100</span>
           </div>
         </div>
         <div className="ml-auto flex flex-col items-end">

@@ -62,6 +62,7 @@ export interface Vault {
 
   // Metadata
   tier: 'free' | 'pro' | 'max'; // which tier receives this
+  tags?: string[];
   createdAt: Date;
   updatedAt: Date;
   archivedAt?: Date;

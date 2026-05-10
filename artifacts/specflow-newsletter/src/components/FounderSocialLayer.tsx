@@ -70,7 +70,7 @@ const founderProfiles: FounderProfile[] = [
 ];
 
 const credibilityConfig = {
-  shipped: { icon: Zap, label: "Shipping", color: "bg-blue-500/10 text-blue-500" },
+  shipped: { icon: Zap, label: "Shipping", color: "bg-primary/10 text-primary" },
   scaling: { icon: TrendingUp, label: "Scaling", color: "bg-green-500/10 text-green-500" },
   exited: { icon: Award, label: "Exited", color: "bg-primary/10 text-primary" }
 };

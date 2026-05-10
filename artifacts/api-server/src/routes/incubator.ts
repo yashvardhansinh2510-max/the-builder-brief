@@ -8,7 +8,7 @@ import { Resend } from "resend";
 const router: IRouter = Router();
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-router.post("/incubator/apply", verifyUser, async (req: Request, res: Response): Promise<void> => {
+router.post("/apply", verifyUser, async (req: Request, res: Response): Promise<void> => {
   const email = req.user?.email;
   const applicationData = req.body;
 
@@ -45,11 +45,12 @@ router.post("/incubator/apply", verifyUser, async (req: Request, res: Response):
       })
       .where(eq(subscribersTable.email, email));
 
-    // Send notification to Admin (Yashvardhan)
+    // Send notification to Admin
+    const adminEmail = process.env.ADMIN_EMAIL || "founders@thebuildbrief.com";
     if (resend) {
       await resend.emails.send({
         from: "Incubator <system@thebuildbrief.com>",
-        to: "yashvardhan@specflowai.com",
+        to: adminEmail,
         subject: `New Incubator Application: ${email}`,
         text: `Founder ${email} has applied for the Incubator.\n\nData:\n${JSON.stringify(applicationData, null, 2)}`
       });

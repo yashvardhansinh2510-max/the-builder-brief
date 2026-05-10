@@ -66,7 +66,262 @@ export const validateGlobalArbitrage = (data: unknown) => globalArbitrageSchema.
 export const validatePlgLoops = (data: unknown) => plgLoopsSchema.parse(data);
 export const validateExitStrategy = (data: unknown) => exitStrategySchema.parse(data);
 
+// Traction tracking for blueprints (revenue proof feature)
+export interface BlueprintTraction {
+  status: "added" | "pending" | "archived"
+  mrr?: number              // Monthly recurring revenue, USD
+  arr?: number              // Annual recurring revenue, USD
+  users?: number            // Total active customers/users
+  monthsSinceLaunch?: number // Integer, >= 1
+  growthRate?: number       // Month-over-month percentage (0-100)
+  addedAt: string           // ISO 8601 timestamp
+  lastUpdated: string       // ISO 8601 timestamp
+  notes?: string            // Creator's narrative (max 500 chars)
+}
+
+export const tractioinSchema = z.object({
+  status: z.enum(["added", "pending", "archived"]),
+  mrr: z.number().min(0).optional(),
+  arr: z.number().min(0).optional(),
+  users: z.number().int().min(1).optional(),
+  monthsSinceLaunch: z.number().int().min(1),
+  growthRate: z.number().min(0).max(100).optional(),
+  addedAt: z.string().datetime(),
+  lastUpdated: z.string().datetime(),
+  notes: z.string().max(500).optional(),
+}).refine(
+  (data) => data.mrr !== undefined || data.arr !== undefined || data.users !== undefined,
+  { message: "At least one metric (MRR, ARR, or users) must be provided" }
+);
+
+export const validateTraction = (data: unknown) => tractioinSchema.parse(data);
+
 const manualIssues: Issue[] = [
+  {
+    number: "020",
+    slug: "legal-owl",
+    title: "LegalOwl",
+    category: "AI-Native",
+    tam: "$10B TAM",
+    revenueIn: "7 days",
+    tagline: "Generates state-compliant, profession-specific contracts for freelancers in 90 seconds — then tracks signatures and payment milestones.",
+    problem: "73 million freelancers in the US are running their businesses on PDF templates from Google. A photographer uses the same contract structure as a software engineer. A copywriter in California signs the same agreement as one in Texas — despite wildly different IP laws. When a client ghosts on payment, there's nothing enforceable because the contract was either missing, vague, or doesn't hold up in small claims court. The legal gap isn't lack of access to contracts — it's lack of contracts that actually match the work.",
+    whyNow: [
+      "The US freelance workforce hit 73M in 2023, contributing $1.35T to the economy — with near-zero legal infrastructure",
+      "State-specific freelance protection laws (NY Freelance Isn't Free, Illinois, California AB5) mean generic templates are now actively harmful",
+      "LLMs can generate jurisdiction-aware, profession-specific legal language faster and cheaper than any human lawyer",
+      "Stripe and Plaid now make payment milestone enforcement trivially automatable"
+    ],
+    tam_detail: "$10B legal tech market for SMBs and freelancers. HelloSign and DocuSign are just signature wrappers — they don't generate the contract. LegalZoom charges $299+ for a template a lawyer hasn't read in years. Zero competitors generate profession-specific, state-specific contracts with payment enforcement built in.",
+    blueprint: [
+      "Build an intake form: freelancer profession (30 categories), state, project type, deliverables, payment schedule, and revision policy",
+      "Use an LLM fine-tuned on 50,000 real freelance contracts to generate a state-compliant, profession-specific agreement in 90 seconds",
+      "Include auto-populated IP assignment, kill fee, and late payment penalty clauses based on profession norms",
+      "Send via embedded e-signature (use Docuseal or DocuSign API)",
+      "Trigger milestone payment reminders via SMS/email — if unpaid after 7 days, send auto-generated small claims demand letter",
+      "Charge $29 per contract generated, or $99/month for unlimited + clause library"
+    ],
+    prompts: [
+      "You are a freelance contract attorney. Generate a California-compliant services agreement for a UX designer being hired for a 6-week website redesign project. Include: IP assignment (work-for-hire), kill fee (50% if cancelled after kickoff), net-30 payment terms with 1.5%/month late fee, revision policy (2 rounds included, $150/hour after), and a dispute resolution clause favoring small claims court over arbitration.",
+      "A freelance photographer in New York is owed $3,200 from a client who stopped responding 45 days after delivery. Generate a formal demand letter citing the NYC Freelance Isn't Free Act (Admin Code §20-928), specifying the 90-day right to file a complaint with the NYC DCA, and demanding payment within 14 days to avoid legal action.",
+      "Compare these two freelance contracts and identify: (1) clauses missing from Contract A that are standard for this profession, (2) any clauses that are unenforceable in [state], (3) red flags that favor the client disproportionately, and (4) recommended additions that protect the freelancer."
+    ],
+    firstRevenue: "Post in r/freelance, r/graphic_design, r/webdev, and r/photography: 'I built a tool that generates a real contract for your exact profession and state in 90 seconds. First 50 people get it free.' Collect emails, run manual generation with LLM, charge $29 starting day 3. Target: 50 paid contracts by day 7 = $1,450.",
+    firstTen: "Partner with freelance platform communities: Dribbble, Behance, IndieHackers. Offer their audiences a free contract generator for one project type per platform. The platform promotes it as a member benefit. You get targeted acquisition at $0 CAC.",
+    difficulty: "Low",
+    capital: "Bootstrap (<$1k)",
+    devTime: "Days",
+    techStack: [
+      { name: "Next.js", category: "Frontend", description: "Simple intake form UI and contract preview — deploy on Vercel in a day." },
+      { name: "Claude API (claude-sonnet-4-6)", category: "AI Generation", description: "Generates profession-specific, jurisdiction-aware contract language. 90-second generation time." },
+      { name: "Docuseal (open-source)", category: "E-signature", description: "Self-hostable e-signature layer. Free up to 1000 documents/month — perfect for bootstrap." },
+      { name: "Stripe", category: "Payments", description: "Charge per contract or monthly subscription. Webhook triggers payment milestone reminders." },
+      { name: "Resend", category: "Email/Notifications", description: "Sends signed contract copies, milestone reminders, and demand letters automatically." }
+    ],
+    competitors: [
+      { name: "LegalZoom", weakness: "Generic templates written by lawyers years ago. Not profession-specific or state-updated. Costs $299+ per contract type. No payment enforcement." },
+      { name: "HelloSign / DocuSign", weakness: "Signature wrappers only. They don't generate a contract. You still need to bring your own template — which is the hard part." },
+      { name: "Honeybook / HubSpot", weakness: "Workflow tools with contract templates bolted on. Not legally specific enough. Miss IP, late fee, and jurisdiction clauses constantly." }
+    ],
+    monetization: [
+      { tier: "Per Contract", price: "$29/contract", description: "Generate one profession-specific, state-compliant contract. Includes e-signature and PDF download." },
+      { tier: "Pro", price: "$99/month", description: "Unlimited contracts, clause library customization, payment milestone tracker, and auto-demand letters." },
+      { tier: "Agency", price: "$299/month", description: "White-label for legal tech platforms or freelance agencies. 50 sub-accounts included." }
+    ],
+    regionalNuance: [
+      { region: "New York", insight: "NYC Freelance Isn't Free Act (2017) gives freelancers a private right of action for non-payment. Contracts must be written for contracts over $800. This creates massive demand — NYC has 1.5M+ freelancers." },
+      { region: "California", insight: "AB5 confusion makes every CA freelancer nervous about misclassification. LegalOwl can explicitly generate contracts that preserve independent contractor status while meeting AB5 exemption criteria." },
+      { region: "United Kingdom", insight: "UK IR35 rules create similar contractor anxiety. UK freelancers (4.2M+) need contracts that explicitly establish self-employment status for HMRC compliance." }
+    ],
+    graphTitle: "US Freelance Workforce Growth vs Legal Protection Gap",
+    graphData: [
+      { name: "2019", value: 57, pv: 12 },
+      { name: "2020", value: 59, pv: 14 },
+      { name: "2021", value: 64, pv: 15 },
+      { name: "2022", value: 70, pv: 16 },
+      { name: "2023", value: 73, pv: 17 },
+      { name: "2025", value: 90, pv: 19 }
+    ],
+    marketingStrategy: [
+      { platform: "Reddit (r/freelance, r/webdev, r/graphic_design)", action: "Post genuine problem posts: 'Client owes me $4k and ghosted. Here's what my contract had wrong.' Then mention LegalOwl as how you're fixing it next time.", hook: "'Your PDF template from Google is not a contract. Here's why freelancers keep losing in small claims court.'" },
+      { platform: "Twitter/X (Freelance Community)", action: "Thread: '7 clauses freelancers forget that cost them thousands.' Every clause links to a LegalOwl template. Pitch free first contract in thread.", hook: "'Lesson learned: $12k client dispute taught me the one clause every freelancer is missing.'" },
+      { platform: "YouTube (Freelance Channels)", action: "Sponsor 5 mid-tier freelance YouTube channels ($500-$2k per video) with a live demo of generating a contract in 90 seconds.", hook: "'Stop using that Google template. I'll show you what a real freelance contract looks like.'" }
+    ],
+    revenueMilestones: [
+      { target: "$10,000 MRR", milestone: "350 active Pro subscribers", focus: "Reddit and Twitter organic. Build clause library to 200 profession × state combinations. Partner with 3 freelance communities." },
+      { target: "$100,000 MRR", milestone: "3,500 Pro subscribers or hybrid of per-contract + subscriptions", focus: "Launch agency tier. Partner with Toptal, Contra, or Fiverr as embedded legal tool. Build Slack integration for payment reminders." },
+      { target: "$1,000,000 ARR", milestone: "Embedded in 1 major freelance platform", focus: "White-label deal with a major freelance marketplace. They embed LegalOwl as the default contract layer. License fee per user + rev share per contract." }
+    ],
+    architecture: {
+      mermaidCode: "graph TB\n  A[React Frontend] -->|Intake Form| B[Next.js API]\n  B -->|Contract Prompt| C[Claude API]\n  C -->|Generated Contract| B\n  B -->|Signature Request| D[Docuseal]\n  D -->|Signed PDF| E[S3 Storage]\n  B -->|Payment Trigger| F[Stripe]\n  F -->|Webhook| G[Resend Email]\n  G -->|Reminders + Demand Letters| H[Freelancer + Client]",
+      description: "Simple linear flow: intake → AI generation → e-signature → payment tracking → automated enforcement. All stateless per contract. Add PostgreSQL only when subscription tier requires history."
+    },
+    competitorKillSwitch: [
+      { name: "LegalZoom", weakness: "Static templates. Can't adapt to profession + state combination. No payment enforcement.", howWeBeat: "Dynamic generation means we produce a unique contract for every profession × state × project type combination — 10,000+ possible outputs from one system. LegalZoom would need 10,000 SKUs to match us." },
+      { name: "HelloSign / DocuSign", weakness: "Signature-only. Freelancers still have to bring a contract. The hard part is writing the contract, not signing it.", howWeBeat: "We own the contract generation step. Offer Docuseal (open-source) signatures free. Force competitors into the 'LegalOwl + competitor signature' framing, not 'competitor generates + signs.'" },
+      { name: "Honeybook", weakness: "Workflow tool first, contract tool second. Their contracts are marketing-speak templates, not enforceable legal documents.", howWeBeat: "Position explicitly: 'Honeybook contracts won't hold up in small claims court. LegalOwl contracts will.' Back it up with specific clause comparisons in marketing content." }
+    ],
+    unitEconomicsExpanded: {
+      price: "$99/month (Pro tier)",
+      cogs: "$2.80/month per user (Claude API for ~10 contracts/month avg)",
+      grossMarginPercent: "97% gross margin",
+      cac: "$18 (Reddit organic + word-of-mouth; $900 ad spend / 50 paid converts per month)",
+      ltv: "$891 (9-month avg retention × $99/month)",
+      paybackPeriod: "2.2 months"
+    },
+    hiringRoadmap: [
+      { role: "Full-Stack Engineer", responsibilities: "Build and maintain contract generation pipeline, e-signature integration, and payment tracking. Own Docuseal integration and Claude prompt engineering.", salary: "$80k-$100k or 2-5% equity", whyFirst: "You need this before you can scale. The founder can't run the LLM pipeline manually beyond 50 contracts/day.", jobDescription: "2+ years Next.js + API experience. You understand prompt engineering. You've integrated a payment provider. You ship fast. You're joining a 2-person team disrupting a $10B market." },
+      { role: "Legal Content Specialist", responsibilities: "Research and validate contract clauses per profession × state combination. Review LLM output for legal accuracy. Update clause library as laws change.", salary: "$50k-$65k or 1-2% equity", whyFirst: "The moat is legal accuracy. One viral post about a bad contract clause kills the brand permanently. Hire this before you scale marketing.", jobDescription: "Paralegal background or 2+ years contract review experience. You've worked with freelance or employment law. You can read state-specific labor codes without a guide." }
+    ],
+    plgLoops: [
+      { trigger: "Freelancer generates their first contract", ahaMoment: "Client signs without negotiation — the contract looked real and professional", viralMechanic: "Client asks 'what contract system do you use?' — freelancer shares LegalOwl. Client signs up as a freelancer themselves." },
+      { trigger: "Freelancer uses auto-demand letter", ahaMoment: "Client pays within 3 days of receiving the automated demand letter citing local law", viralMechanic: "Freelancer posts the outcome story publicly ('Got paid $4k in 3 days using this tool') — generates inbound signups." }
+    ],
+    exitStrategy: {
+      acquirers: ["Intuit (QuickBooks + FreshBooks ecosystem)", "Stripe (expand legal layer into their SMB financial stack)", "Adobe (DocuSign competitor play)", "LegalZoom (acqui-hire to modernize their AI capabilities)"],
+      metricsNeeded: ["$5M ARR with 25%+ MoM growth", "NPS > 70", "3 major freelance platform partnerships", "50,000+ contracts generated with <0.5% dispute rate"],
+      timeline: "3-4 years to acquisition-ready scale",
+      valuationTarget: "$40M-$80M (8-16x ARR at acquisition, SaaS + legal tech premium)"
+    },
+    globalArbitrage: [
+      { region: "United Kingdom", demandScore: 9, regulatoryEase: 7, entryStrategy: "IR35 reform created 4.2M freelancers desperate for contract clarity. Enter with UK-specific employment status language. Partner with IPSE (Association of Independent Professionals)." },
+      { region: "Canada", demandScore: 8, regulatoryEase: 9, entryStrategy: "Common law system similar to US. Province-specific employment standards (Ontario, BC, Quebec) create same state-specific demand. Lower CAC — Canadian freelancers are underserved by US-first tools." },
+      { region: "Australia", demandScore: 7, regulatoryEase: 8, entryStrategy: "Fair Work Act creates contractor misclassification risk identical to US. 2.5M+ freelancers. High-value market with no direct AI-native competitors." }
+    ]
+  },
+  {
+    number: "019",
+    slug: "churn-sheriff",
+    title: "ChurnSheriff",
+    category: "B2B SaaS",
+    tam: "$8B TAM",
+    revenueIn: "21 days",
+    tagline: "Predicts which B2B SaaS customers will churn 90 days before they cancel — using feature usage data they already track.",
+    problem: "The average B2B SaaS company loses 5-7% of its customers every month to churn. By the time a customer cancels, the decision was made 60-90 days earlier — when their feature usage dropped, their support tickets spiked, or their champion changed jobs. Customer Success teams at Series A-B companies (50-500 customers) can't see these signals because they're buried across Stripe, Intercom, Mixpanel, and a CRM that nobody updates. Gainsight fixes this — but costs $100k/year and requires a 6-month implementation. So early-stage SaaS founders just wait for the cancellation email.",
+    whyNow: [
+      "The 2024 SaaS funding crunch turned retention from a 'nice to have' into an existential metric — NRR below 100% kills fundraising conversations",
+      "Product-led growth means usage data is richer than ever — but nobody's watching it systematically",
+      "LLMs can now synthesize signals from multiple data sources (usage, support, email sentiment) into a single churn probability score",
+      "Plaid-style API aggregation across SaaS tools (Mixpanel, Intercom, Stripe) is now trivially buildable"
+    ],
+    tam_detail: "$8B customer success platform market. Gainsight ($100k+/year) and ChurnZero ($36k+/year) serve enterprise. Totango has a cheaper tier but requires extensive setup. Zero affordable, fast-to-implement options for Series A-B SaaS companies with 50-500 customers — the exact stage where churn is most existential.",
+    blueprint: [
+      "Connect to existing data sources via API: Stripe (billing), Intercom/Zendesk (support tickets), Mixpanel/Amplitude/Heap (feature usage), and optionally HubSpot/Salesforce (CRM)",
+      "Build a customer health score (0-100) using a weighted model: login frequency (25%), core feature usage (30%), support ticket volume and sentiment (20%), billing events (15%), stakeholder engagement (10%)",
+      "Train a churn prediction model on 6 months of historical data: customers who churned vs. retained — what did their usage look like 90 days before the decision?",
+      "Build a real-time dashboard showing every customer ranked by churn risk, with the specific signals driving the score",
+      "Auto-generate 'save playbooks': when a customer hits red zone, trigger a personalized outreach template for the CS team — with the exact context they need for the conversation",
+      "Charge $299/month for up to 100 customers tracked; $599/month for up to 500"
+    ],
+    prompts: [
+      "You are a customer success analyst. A B2B SaaS customer has shown the following usage changes over the last 60 days: [usage data]. Their last support ticket was [sentiment + topic]. Their champion [left company / is still there]. Their contract renews in [X] days. Score their churn risk from 0-100 and explain the top 3 driving factors. Generate a specific outreach email their CSM should send this week.",
+      "Analyze the following cohort of churned customers from the last 12 months: [data]. Identify the 3 behavioral patterns that appeared 60-90 days before each cancellation. Generate a rule-based early warning model using only the data points we track (logins, feature X usage, support tickets). Output the model as a weighted scoring formula.",
+      "A customer is in the 'red zone' (churn risk > 80%). Their primary complaint in their last support ticket was [issue]. They haven't used [feature] in 45 days. Their contract is $2,400/year and renews in 47 days. Generate a save playbook: what to say on the call, what to offer, and what the economics of a discount look like vs. the cost of churn."
+    ],
+    firstRevenue: "Cold email 30 Series A SaaS founders who have publicly discussed churn on Twitter or in podcast interviews. Subject: 'Your churn is predictable 90 days before it happens — want to see your numbers?' Offer a free 14-day pilot connecting to their Stripe + Intercom. The data does the selling. Target: 3 paid conversions at $299/month = $897 MRR in 21 days.",
+    firstTen: "Post an open analysis on IndieHackers or Twitter: 'I analyzed 6 months of data from 3 SaaS companies and found the churn signal that predicts cancellation 90 days out.' Share the pattern (feature usage cliff + support ticket spike). Build credibility. Offer free pilots to the first 5 companies who DM. Convert 3 of 5 to paid.",
+    difficulty: "Medium",
+    capital: "Bootstrap (<$1k)",
+    devTime: "Weeks",
+    techStack: [
+      { name: "Next.js + Vercel", category: "Frontend", description: "Dashboard UI for health scores and churn risk rankings. Vercel handles deployment — zero DevOps." },
+      { name: "Stripe API", category: "Data Source", description: "Pulls billing events, MRR per customer, failed payments, plan downgrades — the financial health layer." },
+      { name: "Intercom / Zendesk API", category: "Data Source", description: "Support ticket volume, sentiment, and response time — the relationship health layer." },
+      { name: "Mixpanel / Amplitude API", category: "Data Source", description: "Feature usage data — the product engagement layer. Core to the churn model." },
+      { name: "Claude API (claude-sonnet-4-6)", category: "AI Analysis", description: "Synthesizes multi-source signals into health scores and generates save playbook content for each at-risk customer." },
+      { name: "Supabase", category: "Database", description: "Stores customer health history, churn probability timeline, and playbook actions. Enables 90-day look-back analysis." }
+    ],
+    competitors: [
+      { name: "Gainsight", weakness: "Starts at $100k/year. Requires a 6-month implementation. Built for companies with dedicated CS teams of 5+. Overkill and unaffordable for Series A." },
+      { name: "ChurnZero", weakness: "Minimum $36k/year. Complex setup. Feature-rich for enterprise, but the complexity is the problem for a 2-person CS team at a 100-customer SaaS." },
+      { name: "Baremetrics / ProfitWell", weakness: "Revenue analytics only — they show you that churn happened, not that it's about to happen. Zero product usage or support signal integration." }
+    ],
+    monetization: [
+      { tier: "Starter", price: "$299/month", description: "Up to 100 customers tracked. Core health scores, churn risk rankings, and email alert when any account hits red zone." },
+      { tier: "Growth", price: "$599/month", description: "Up to 500 customers. All Starter features + AI save playbooks, CSM task assignments, and Slack alerts." },
+      { tier: "Scale", price: "$1,299/month", description: "Unlimited customers. Custom health score weighting, cohort analysis, churn forecasting, and API access for CRM sync." }
+    ],
+    regionalNuance: [
+      { region: "United States", insight: "SaaS density is highest in SF, NYC, and Austin. Founders are most receptive to churn tools post-fundraising (6-18 months into Series A) when board pressure on NRR is first felt." },
+      { region: "Europe", insight: "GDPR compliance is critical — health scoring must anonymize or process EU customer data within EU-hosted infrastructure. Supabase Frankfurt region solves this. Position GDPR compliance explicitly in European marketing." },
+      { region: "Southeast Asia", insight: "Emerging SaaS ecosystems in Singapore and Indonesia are earlier stage but growing fast. Lower CAC, less competition from Gainsight — strong opportunity for early land-grab at lower price points." }
+    ],
+    graphTitle: "SaaS Churn Signal Timing: When Customers Actually Decide to Leave",
+    graphData: [
+      { name: "Day -90", value: 85, pv: 15 },
+      { name: "Day -60", value: 72, pv: 28 },
+      { name: "Day -30", value: 55, pv: 45 },
+      { name: "Day -14", value: 38, pv: 62 },
+      { name: "Day -7", value: 20, pv: 80 },
+      { name: "Day 0", value: 5, pv: 95 }
+    ],
+    marketingStrategy: [
+      { platform: "Twitter/X (SaaS Founder Community)", action: "Publish weekly churn signal threads: '5 things that happen 90 days before a customer churns (and how to spot them).' Include real anonymized data patterns. CTA: 'We track this automatically.'", hook: "'Your customer decided to cancel 90 days ago. Your product just didn't know it yet.'" },
+      { platform: "IndieHackers + Hacker News", action: "Post a detailed analysis: 'I analyzed 500 churn events across 3 SaaS companies. Here's the single metric that predicted 78% of them.' Gate the full analysis behind email signup.", hook: "'NRR under 100%? Here's what your usage data is trying to tell you.'" },
+      { platform: "LinkedIn (CS and SaaS Leader Community)", action: "Target VP of Customer Success and Founders at 50-500 customer SaaS companies. Outbound with specific churn cost calculation: 'At your scale, each 1% of monthly churn costs you $X ARR/year. Want to see the signals 90 days earlier?'", hook: "'The Gainsight-sized problem. The anti-Gainsight price.'" }
+    ],
+    revenueMilestones: [
+      { target: "$10,000 MRR", milestone: "34 Growth subscribers", focus: "Manual onboarding for first 20 customers. Build integration library (Stripe + Intercom must work flawlessly). Collect 5 case studies with real churn reduction numbers." },
+      { target: "$100,000 MRR", milestone: "167 Growth subscribers or mixed tier", focus: "Self-serve onboarding under 30 minutes. Build HubSpot and Salesforce CRM sync. Launch referral program: 1 month free per referred paying customer." },
+      { target: "$1,000,000 ARR", milestone: "64 Scale subscribers or significant Growth base", focus: "API-first expansion. Partner with SaaS investor networks (Bessemer, a16z portfolio companies) as preferred CS tool. Launch churn benchmarking report as annual lead magnet." }
+    ],
+    architecture: {
+      mermaidCode: "graph TB\n  A[Next.js Dashboard] -->|Auth + Config| B[Supabase]\n  C[Stripe API] -->|Billing Events| D[Data Aggregation Layer]\n  E[Intercom API] -->|Support Data| D\n  F[Mixpanel API] -->|Usage Events| D\n  D -->|Normalized Customer Data| G[Health Score Engine]\n  G -->|Score + Signals| H[Claude API]\n  H -->|Save Playbook| A\n  G -->|Risk Alerts| I[Slack / Email Webhook]\n  B -->|History| G",
+      description: "Data aggregation layer normalizes signals from Stripe, Intercom, and Mixpanel into a unified customer record. Health score engine runs nightly (or on event trigger). Claude generates contextual save playbooks per at-risk customer. Alerts push to Slack or email."
+    },
+    competitorKillSwitch: [
+      { name: "Gainsight", weakness: "100k+/year minimum, 6-month implementation, requires dedicated CS operations team. Founders don't have this.", howWeBeat: "30-minute self-serve onboarding. Connect Stripe + Intercom in 10 minutes. Running health scores the same day. Pricing starts at $299/month — 4x cheaper per month than Gainsight's cheapest tier." },
+      { name: "ChurnZero", weakness: "Feature-rich and complex. The setup requires a project manager and 2 months of configuration work before you see any value.", howWeBeat: "ChurnZero works on the assumption you know where to look. ChurnSheriff tells you where to look. Different product philosophy — we generate the insight, not just the dashboard." },
+      { name: "Manual CS Spreadsheets", weakness: "The most common 'competitor' — a Google Sheet tracking renewal dates and last login. Breaks past 50 customers. Misses support ticket signals entirely.", howWeBeat: "Replace the spreadsheet with a direct integration pitch: 'Your spreadsheet is reactive. ChurnSheriff is predictive.' Demo showing health scores updating in real time is the killer demo." }
+    ],
+    unitEconomicsExpanded: {
+      price: "$599/month (Growth tier avg)",
+      cogs: "$15/month per customer (API calls to Claude + Stripe + Intercom + Mixpanel per 200-customer account)",
+      grossMarginPercent: "97.5% gross margin",
+      cac: "$320 (founder-led cold email + IndieHackers organic; $6,400 total spend / 20 converts/month)",
+      ltv: "$8,985 (15-month avg retention × $599/month)",
+      paybackPeriod: "6.4 months"
+    },
+    hiringRoadmap: [
+      { role: "Integration Engineer", responsibilities: "Build and maintain data connectors for Stripe, Intercom, Mixpanel, Amplitude, HubSpot, and Salesforce. Own the data aggregation layer reliability (99.9% uptime SLA).", salary: "$90k-$110k", whyFirst: "The product is only as good as the data it ingests. A broken Stripe webhook kills trust permanently. This hire protects the core product promise.", jobDescription: "3+ years API integration experience. You've built reliable webhook processing at scale. You understand rate limiting, retry logic, and data normalization. You've worked with at least 3 of our 6 target data sources." },
+      { role: "Customer Success Lead", responsibilities: "Onboard first 50 customers, own retention, gather product feedback, build customer case studies. Eventually own self-serve onboarding documentation.", salary: "$60k-$75k + 5% commission on expansion revenue", whyFirst: "You're selling a churn reduction tool. If you churn customers, you're dead. This hire protects NRR and builds the case studies that drive inbound sales.", jobDescription: "3+ years in CS at a B2B SaaS company. You've worked with 100+ customer portfolios. You know what health score questions founders ask in year 1. You have a framework for QBRs." }
+    ],
+    plgLoops: [
+      { trigger: "CS Manager invites first team member to ChurnSheriff", ahaMoment: "Team member opens a red zone alert and uses the AI save playbook to save a $12k/year account before the renewal call", viralMechanic: "Manager shares the win in team Slack: 'We saved [Company X] with ChurnSheriff.' AE and other CSMs sign up. Champion moves to a new company, subscribes there too." },
+      { trigger: "Founder enables Slack alerts", ahaMoment: "First red zone alert fires to #customer-success at 9am on a Monday — the team realizes they'd never have caught this manually", viralMechanic: "Founder mentions ChurnSheriff in their next board meeting when presenting NRR improvement. Board member introduces to 3 other portfolio companies." }
+    ],
+    exitStrategy: {
+      acquirers: ["Salesforce (customer 360 expansion)", "HubSpot (customer success layer for their CRM)", "Gainsight (acqui-hire to accelerate SMB offering)", "Zendesk (expand from reactive to predictive support)"],
+      metricsNeeded: ["$5M ARR with 110%+ NRR", "200+ active paying customers across 10+ SaaS verticals", "Demonstrable 25%+ churn reduction in customer base", "3 integration partnerships (Stripe/Mixpanel/HubSpot marketplace listings)"],
+      timeline: "3-5 years to strategic acquisition",
+      valuationTarget: "$40M-$100M (8-20x ARR; customer success tools command premium multiples due to high retention)"
+    },
+    globalArbitrage: [
+      { region: "North America", demandScore: 10, regulatoryEase: 10, entryStrategy: "Primary market. SaaS density is highest. Target SF and NYC-based Series A companies through founder networks and SaaS-focused investor portfolios." },
+      { region: "Europe (UK/Germany/Netherlands)", demandScore: 8, regulatoryEase: 7, entryStrategy: "Strong SaaS ecosystems. GDPR requires EU data residency — use Supabase Frankfurt. Partner with European SaaS communities (SaaStock, ProductLed). Price in EUR." },
+      { region: "Australia / New Zealand", demandScore: 6, regulatoryEase: 9, entryStrategy: "Small but high-value SaaS market. English-speaking, US-aligned SaaS culture. Low CAC due to limited competition. Enter via ANZ SaaS community (SaaS NZ, Canopy Tax, Atlassian ecosystem)." }
+    ]
+  },
   {
     number: "018",
     slug: "med-translate-pro",
@@ -257,6 +512,16 @@ const manualIssues: Issue[] = [
       metricsNeeded: ["500+ clinics across EU", "€2M ARR", "Proof of 30% reduction in misdiagnosis claims (data from insurance partners)", "98%+ medical translation accuracy benchmark"],
       timeline: "Year 3-4 (after proving unit economics at scale)",
       valuationTarget: "€50M-€100M (3-5x revenue multiple typical for healthcare SaaS)"
+    },
+    traction: {
+      status: "added",
+      mrr: 5000,
+      users: 150,
+      monthsSinceLaunch: 8,
+      growthRate: 12,
+      addedAt: "2026-04-20T10:30:00Z",
+      lastUpdated: "2026-05-05T14:30:00Z",
+      notes: "Launched quietly in stealth mode, steady organic growth from initial users"
     }
   },
   {
@@ -991,13 +1256,13 @@ export interface Issue {
   firstTen: string;
   
   // Execution Terminal Fields
-  difficulty: "Low" | "Medium" | "High" | "Extreme";
-  capital: "Bootstrap (<$1k)" | "Seed ($1k-$10k)" | "Venture ($10k+)";
-  devTime: "Days" | "Weeks" | "Months";
-  techStack: { name: string; category: string; description: string }[];
-  competitors: { name: string; weakness: string }[];
-  monetization: { tier: string; price: string; description: string }[];
-  regionalNuance: { region: string; insight: string }[];
+  difficulty?: "Low" | "Medium" | "High" | "Extreme";
+  capital?: "Bootstrap (<$1k)" | "Seed ($1k-$10k)" | "Venture ($10k+)";
+  devTime?: "Days" | "Weeks" | "Months";
+  techStack?: { name: string; category: string; description: string }[];
+  competitors?: { name: string; weakness: string }[];
+  monetization?: { tier: string; price: string; description: string }[];
+  regionalNuance?: { region: string; insight: string }[];
   
   // New Million-Dollar Execution Fields
   graphData?: { name: string; value: number; pv?: number }[];
@@ -1072,6 +1337,9 @@ export interface Issue {
 
   isBonus?: boolean;
   buildBrief?: string[];
+
+  // Traction proof (revenue validation)
+  traction?: BlueprintTraction;
 }
 
 import generatedVaults from './generated-vaults.json';

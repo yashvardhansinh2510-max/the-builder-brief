@@ -141,7 +141,7 @@ export default function JourneyTracker() {
   }
 
   const stageColors: Record<string, string> = {
-    Ideation: 'bg-blue-500/10 text-blue-600 border-blue-200',
+    Ideation: 'bg-primary/10 text-primary border-primary/30',
     Building: 'bg-purple-500/10 text-purple-600 border-purple-200',
     Validating: 'bg-amber-500/10 text-amber-600 border-amber-200',
     Revenue: 'bg-green-500/10 text-green-600 border-green-200',

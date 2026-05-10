@@ -43,7 +43,7 @@ export default function DailyBriefUI() {
       </div>
 
       <div className="flex items-center gap-4 mb-8">
-        <Badge className="bg-primary text-black border-none text-[10px] tracking-[0.3em] font-bold">DAILY VENTURE DROP</Badge>
+        <Badge className="bg-primary text-primary-foreground border-none text-[10px] tracking-[0.3em] font-bold">DAILY VENTURE DROP</Badge>
         <span className="text-zinc-500 text-xs font-mono">{brief.briefDate}</span>
       </div>
 
@@ -64,7 +64,7 @@ export default function DailyBriefUI() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
-        <button className="h-12 px-8 rounded-full bg-primary text-black font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all">
+        <button className="h-12 px-8 rounded-full bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all">
           Explore Research Data <ChevronRight className="w-4 h-4" />
         </button>
         <button className="h-12 px-8 rounded-full bg-white/5 text-white border border-white/10 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all">

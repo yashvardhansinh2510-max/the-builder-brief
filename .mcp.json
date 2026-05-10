@@ -3,6 +3,11 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=ivlfrcacbysiynnlzray"
+    },
+    "code-review-graph": {
+      "type": "stdio",
+      "command": "code-review-graph",
+      "args": ["mcp", "--repo", "/Users/yashvardhansinhjhala/the builder brief"]
     }
   }
 }

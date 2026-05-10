@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import PortalNav from "@/components/PortalNav";
 import FounderChat from "@/components/FounderChat";
+import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import DottedMap from "dotted-map";
 import RuixenSection from "@/components/ui/ruixen-feature-section";
@@ -726,17 +727,7 @@ export default function MaxPortal() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-border/40 py-16 bg-card/60 backdrop-blur-xl">
-          <div className="max-w-[1200px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-4">
-              <img src={logoPath} alt="The Build Brief" className="w-8 h-8 rounded-lg object-cover grayscale opacity-50" />
-              <p className="font-serif text-lg text-muted-foreground tracking-tight italic">The Builder Brief — Inner Circle</p>
-            </div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground/50">
-              © {new Date().getFullYear()} Max Tier • All Rights Reserved
-            </p>
-          </div>
-        </footer>
+        <Footer variant="authenticated" />
       </div>
     </div>
   );

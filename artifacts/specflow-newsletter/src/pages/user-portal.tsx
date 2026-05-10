@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useClerk } from "@clerk/react";
 import { useSubscriberCount } from "@/hooks/useSubscriberCount";
 import FounderChat from "@/components/FounderChat";
+import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
@@ -589,7 +590,7 @@ export default function UserPortal() {
                           </h4>
                           <button
                             onClick={() => claimReward(eligibleReward)}
-                            className="w-full bg-white text-primary text-[10px] font-black py-4 rounded-2xl uppercase tracking-widest hover:bg-opacity-90 transition-all hover:translate-y-[-2px] active:translate-y-[0px] shadow-lg shadow-black/5"
+                            className="w-full bg-primary-foreground text-primary text-[10px] font-black py-4 rounded-2xl uppercase tracking-widest hover:bg-primary-foreground/90 transition-all hover:translate-y-[-2px] active:translate-y-[0px] shadow-lg shadow-black/5"
                           >
                             {eligibleReward.actionLabel}
                           </button>
@@ -3155,36 +3156,7 @@ export default function UserPortal() {
         )}
       </AnimatePresence>
 
-      <footer className="border-t border-border/40 py-16 px-6 mt-20">
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <img
-              src={logoPath}
-              alt="The Build Brief"
-              className="w-6 h-6 opacity-40 grayscale"
-            />
-            <span className="font-serif text-lg">The Build Brief</span>
-          </div>
-          <div className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-widest">
-            <Link
-              href="/dashboard"
-              className="hover:text-primary transition-colors"
-            >
-              Founder Portal
-            </Link>
-            <Link
-              href="/archive"
-              className="hover:text-primary transition-colors"
-            >
-              Blueprint Archive
-            </Link>
-            <Link href="/" className="hover:text-primary transition-colors">
-              Back to Home
-            </Link>
-          </div>
-          <p className="text-xs">© 2026 BUILDING THE FUTURE.</p>
-        </div>
-      </footer>
+      <Footer variant="authenticated" />
       {/* Alliance Member Modal */}
       <AnimatePresence>
         {selectedMember && (
@@ -3354,7 +3326,7 @@ export default function UserPortal() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                   {/* Pro Plan */}
                   <div className="relative p-8 rounded-[2rem] bg-primary border border-primary shadow-2xl shadow-primary/20 flex flex-col">
-                    <div className="absolute -top-3 left-8 bg-white text-primary text-[9px] font-black px-4 py-1 rounded-full tracking-widest">
+                    <div className="absolute -top-3 left-8 bg-primary-foreground text-primary text-[9px] font-black px-4 py-1 rounded-full tracking-widest">
                       MOST POPULAR
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-6">
@@ -3392,7 +3364,7 @@ export default function UserPortal() {
                         setShowUpgradeModal(false);
                         initiatePayment("pro");
                       }}
-                      className="w-full py-4 rounded-xl bg-white text-primary font-bold text-sm hover:bg-white/90 transition-all"
+                      className="w-full py-4 rounded-xl bg-primary-foreground text-primary font-bold text-sm hover:bg-primary-foreground/90 transition-all"
                     >
                       Upgrade to Pro — $9.99/mo
                     </button>

@@ -36,8 +36,8 @@ export default function ExitDashboard({ data }: { data: ExitStrategyData }): Rea
         <div className="space-y-6">
           <div>
             <h3 className="font-semibold text-lg mb-3">Valuation Target</h3>
-            <div className="p-4 border-2 border-blue-500 rounded-lg bg-blue-50">
-              <p className="text-2xl font-bold text-blue-900">{data.valuationTarget}</p>
+            <div className="p-4 border-2 border-primary rounded-2xl bg-primary/5">
+              <p className="text-2xl font-bold text-primary">{data.valuationTarget}</p>
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 import { Router, IRouter } from "express";
 import { db, subscribersTable, wallsTable, investorProfilesTable, investorPreferencesTable, investorMatchesTable, investorConnectionsTable, investorEngagementTable } from "@workspace/db";
-import { eq, desc, and, isNotNull, inArray } from "drizzle-orm";
+import { eq, desc, and, isNotNull, inArray, sql } from "drizzle-orm";
 import { verifyUser } from "../middleware/verifyUser";
 
 const router: IRouter = Router();
@@ -16,8 +16,8 @@ const verifyInvestor = async (req: any, res: any, next: any) => {
   }
 };
 
-// GET /api/investor/dealflow — Returns top performing founders
-router.get("/investor/dealflow", verifyUser, verifyInvestor, async (req, res) => {
+// GET /dealflow — Returns top performing founders
+router.get("/dealflow", verifyUser, verifyInvestor, async (req, res) => {
   try {
     const topFounders = await db
       .select({
@@ -40,10 +40,10 @@ router.get("/investor/dealflow", verifyUser, verifyInvestor, async (req, res) =>
   }
 });
 
-// GET /api/investor/profile/:subscriberId — Get investor profile
-router.get("/investor/profile/:subscriberId", verifyUser, async (req, res) => {
+// GET /profile/:subscriberId — Get investor profile
+router.get("/profile/:subscriberId", verifyUser, async (req, res) => {
   try {
-    const { subscriberId } = req.params;
+    const subscriberId = String(req.params.subscriberId);
     const investor = await db
       .select()
       .from(investorProfilesTable)
@@ -60,19 +60,19 @@ router.get("/investor/profile/:subscriberId", verifyUser, async (req, res) => {
       .where(eq(investorPreferencesTable.investorId, investor[0].id))
       .limit(1);
 
-    res.json({
+    return res.json({
       profile: investor[0],
       preferences: preferences[0] || null,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch investor profile" });
+    return res.status(500).json({ error: "Failed to fetch investor profile" });
   }
 });
 
-// GET /api/investor/matches/:subscriberId — Get matched startups for an investor
-router.get("/investor/matches/:subscriberId", verifyUser, verifyInvestor, async (req, res) => {
+// GET /matches/:subscriberId — Get matched startups for an investor
+router.get("/matches/:subscriberId", verifyUser, verifyInvestor, async (req, res) => {
   try {
-    const { subscriberId } = req.params;
+    const subscriberId = String(req.params.subscriberId);
     const investor = await db
       .select()
       .from(investorProfilesTable)
@@ -100,14 +100,14 @@ router.get("/investor/matches/:subscriberId", verifyUser, verifyInvestor, async 
       .orderBy(desc(investorMatchesTable.overallScore))
       .limit(50);
 
-    res.json(matches);
+    return res.json(matches);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch matches" });
+    return res.status(500).json({ error: "Failed to fetch matches" });
   }
 });
 
-// POST /api/investor/connection — Create a connection between investor and startup
-router.post("/investor/connection", verifyUser, async (req, res) => {
+// POST /connection — Create a connection between investor and startup
+router.post("/connection", verifyUser, async (req, res) => {
   try {
     const { investorId, startupSubscriberId, initiatedBy } = req.body;
 
@@ -140,14 +140,14 @@ router.post("/investor/connection", verifyUser, async (req, res) => {
     }).onConflictDoUpdate({
       target: [investorEngagementTable.investorId, investorEngagementTable.startupSubscriberId],
       set: {
-        messagesSent: investorEngagementTable.messagesSent + 1,
+        messagesSent: sql`${investorEngagementTable.messagesSent} + 1`,
         lastInteractionAt: new Date(),
       },
     }).catch(() => null); // Ignore conflicts
 
-    res.json(connection);
+    return res.json(connection);
   } catch (error) {
-    res.status(500).json({ error: "Failed to create connection" });
+    return res.status(500).json({ error: "Failed to create connection" });
   }
 });
 

@@ -350,7 +350,7 @@ If [situation], then [response]`,
 
 router.get("/:templateId", verifyUser, async (req, res) => {
   try {
-    const { templateId } = req.params;
+    const templateId = String(req.params.templateId);
     const template = TEMPLATES[templateId as keyof typeof TEMPLATES];
 
     if (!template) {
@@ -360,7 +360,7 @@ router.get("/:templateId", verifyUser, async (req, res) => {
     const filename = `${templateId.replace(/_/g, "-")}.md`;
     res.setHeader("Content-Type", "text/markdown");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.send(template.content);
+    return res.send(template.content);
   } catch (error) {
     console.error("Error downloading template:", error);
     return res.status(500).json({ error: "Failed to download template" });

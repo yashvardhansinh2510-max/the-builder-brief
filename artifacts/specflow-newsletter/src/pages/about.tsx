@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useSubscribe } from "@/hooks/useSubscribe";
 import { usePageTracking } from "@/hooks/useAnalytics";
 import PortalNav from "@/components/PortalNav";
+import Footer from "@/components/Footer";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -171,19 +172,7 @@ export default function About() {
         </motion.div>
       </main>
 
-      <footer className="border-t border-border/40 py-10 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <Link href="/" className="flex items-center gap-3">
-            <img src={logoPath} alt="The Build Brief" className="w-6 h-6 rounded-sm opacity-40 grayscale" />
-            <span className="font-serif text-lg text-muted-foreground">The Build Brief</span>
-          </Link>
-          <div className="flex items-center gap-8 text-sm text-muted-foreground">
-            <Link href="/archive" className="hover:text-foreground transition-colors">Archive</Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
-          </div>
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} The Build Brief</p>
-        </div>
-      </footer>
+      <Footer variant="public" />
     </div>
   );
 }

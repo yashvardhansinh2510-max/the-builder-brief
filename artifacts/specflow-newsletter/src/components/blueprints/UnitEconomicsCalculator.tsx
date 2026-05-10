@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 
 export interface UnitEconomicsData {
@@ -8,7 +8,7 @@ export interface UnitEconomicsData {
   assumptions?: string;
 }
 
-export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsData }): JSX.Element {
+export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsData }): React.JSX.Element {
   const [price, setPrice] = useState(data.unitPrice);
   const [cogs, setCogs] = useState(data.cogs);
   const [cac, setCac] = useState(data.cac);
@@ -31,8 +31,13 @@ export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsD
   // - LTV (12-month): Price × 12 (simplified, no churn assumed)
   // - LTV:CAC Ratio: Annual revenue / CAC (12-month revenue per customer acquired)
   const grossMargin = price > 0 ? ((price - cogs) / price) * 100 : 0;
-  // Payback = CAC ÷ Monthly Contribution Margin (assuming 1 customer/month generates revenue = price)
-  const paybackMonths = cac > 0 && price > cogs ? Math.ceil(cac / (price - cogs)) : 0;
+  const contributionMargin = price - cogs;
+  const paybackDisplay: string =
+    contributionMargin <= 0
+      ? "N/A — contribution margin too low"
+      : Math.round(cac / contributionMargin) > 120
+      ? "> 10 years"
+      : `${Math.round(cac / contributionMargin)} months`;
 
   return (
     <section className="py-12 border-b border-border">
@@ -98,7 +103,7 @@ export default function UnitEconomicsCalculator({ data }: { data: UnitEconomicsD
 
           <Card className="p-4">
             <p className="text-sm text-muted-foreground">Payback Period</p>
-            <p className="text-3xl font-bold">{paybackMonths} months</p>
+            <p className="text-3xl font-bold">{paybackDisplay}</p>
           </Card>
 
           <Card className="p-4">

@@ -48,8 +48,11 @@ function getStage1Issues(vertical: string): Issue[] {
 function getStage2Issues(vertical: string): Issue[] {
   const pool = filterByVertical(vertical);
   const parseDay = (r: string) => {
+    const lower = r.toLowerCase();
     const n = parseInt(r);
-    return isNaN(n) ? (r.toLowerCase().includes('week') ? 21 : 30) : n;
+    if (lower.includes('week')) return (isNaN(n) ? 1 : n) * 7;
+    if (lower.includes('month')) return (isNaN(n) ? 1 : n) * 30;
+    return isNaN(n) ? 30 : n;
   };
   return [...pool].sort((a, b) => parseDay(a.revenueIn) - parseDay(b.revenueIn)).slice(0, 3);
 }
@@ -107,7 +110,8 @@ function MarketSignalTool({ issue }: { issue: Issue }) {
   const { tier } = useAuth();
   const isPaid = tier === 'pro' || tier === 'max' || tier === 'incubator';
   const graphData = issue.graphData ?? [];
-  const visibleBullets = isPaid ? issue.whyNow : issue.whyNow.slice(0, 2);
+  const whyNow = issue.whyNow ?? [];
+  const visibleBullets = isPaid ? whyNow : whyNow.slice(0, 2);
 
   return (
     <div className="bg-background border border-border rounded-2xl p-5 h-full">
@@ -138,10 +142,10 @@ function MarketSignalTool({ issue }: { issue: Issue }) {
             {bullet}
           </li>
         ))}
-        {!isPaid && issue.whyNow.length > 2 && (
+        {!isPaid && whyNow.length > 2 && (
           <li className="flex gap-2 items-start text-[11px] text-muted-foreground">
             <Lock className="w-3 h-3 shrink-0 mt-0.5" />
-            <span className="blur-[3px] select-none">{issue.whyNow[2]}</span>
+            <span className="blur-[3px] select-none">{whyNow[2]}</span>
           </li>
         )}
       </ul>
@@ -159,7 +163,7 @@ function MarketSignalTool({ issue }: { issue: Issue }) {
 function FirstRevenueTool({ issue }: { issue: Issue }) {
   const { tier } = useAuth();
   const isPaid = tier === 'pro' || tier === 'max' || tier === 'incubator';
-  const steps = issue.blueprint;
+  const steps = issue.blueprint ?? [];
   const visible = isPaid ? steps : steps.slice(0, 2);
 
   return (
@@ -197,6 +201,7 @@ function FirstRevenueTool({ issue }: { issue: Issue }) {
 // ─── Stage 3 tool: Unit Economics (Pro gate) ─────────────────────────────────
 
 function UnitEconomicsTool({ issue }: { issue: Issue }) {
+  if (!issue) return null;
   const ue = issue.unitEconomicsExpanded;
   if (!ue) return null;
   return (
@@ -289,6 +294,8 @@ function VerticalKitCard({ vertical, count, active, onClick }: { vertical: strin
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
+      aria-label={`Filter by ${vertical}`}
       className={`flex-none w-40 text-left p-4 rounded-2xl border transition-all duration-200
         ${active
           ? 'bg-foreground text-background border-foreground shadow-lg'
@@ -362,6 +369,8 @@ export default function BlueprintsPage() {
           <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
             <button
               onClick={() => setSelectedVertical('All')}
+              aria-pressed={selectedVertical === 'All'}
+              aria-label="Show all verticals"
               className={`flex-none px-5 py-3 rounded-2xl border font-bold text-sm transition-all duration-200
                 ${selectedVertical === 'All'
                   ? 'bg-foreground text-background border-foreground'
@@ -397,7 +406,7 @@ export default function BlueprintsPage() {
             subtitle="Prove the market before you build anything. Pick the lowest-risk entry point."
             icon={<Target className="w-5 h-5 text-primary" />}
             blueprints={stage1}
-            tool={<MarketSignalTool issue={stage1[0]} />}
+            tool={<MarketSignalTool key={stage1[0]?.slug} issue={stage1[0]} />}
             animIdx={2}
           />
         )}
@@ -410,7 +419,7 @@ export default function BlueprintsPage() {
             subtitle="Get to first revenue in 30 days or less. Execution over perfection."
             icon={<Zap className="w-5 h-5 text-primary" />}
             blueprints={stage2}
-            tool={<FirstRevenueTool issue={stage2[0]} />}
+            tool={<FirstRevenueTool key={stage2[0]?.slug} issue={stage2[0]} />}
             animIdx={3}
           />
         )}
@@ -423,9 +432,25 @@ export default function BlueprintsPage() {
             subtitle="Unit economics locked. Hire the right people. Plan the exit from day one."
             icon={<TrendingUp className="w-5 h-5 text-primary" />}
             blueprints={stage3}
-            tool={<UnitEconomicsTool issue={stage3UETool} />}
+            tool={<UnitEconomicsTool key={stage3UETool?.slug} issue={stage3UETool!} />}
             animIdx={4}
           />
+        )}
+
+        {stage1.length === 0 && stage2.length === 0 && stage3.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Layers className="w-10 h-10 text-muted-foreground mb-4" />
+            <h3 className="font-serif text-2xl mb-2">No blueprints yet for {selectedVertical}</h3>
+            <p className="text-muted-foreground text-sm max-w-sm">
+              We're adding new verticals every week. Browse all blueprints in the meantime.
+            </p>
+            <button
+              onClick={() => setSelectedVertical('All')}
+              className="mt-6 text-sm font-bold text-primary hover:underline"
+            >
+              Show all blueprints →
+            </button>
+          </div>
         )}
 
         {/* Pro/Max Exclusive Section */}
@@ -457,14 +482,6 @@ export default function BlueprintsPage() {
                     <p className="text-[10px] text-primary font-bold mt-2 group-hover:underline">Access →</p>
                   </div>
                 </Link>
-                <Link href="/vault-archive">
-                  <div className="bg-background border border-border rounded-xl p-5 hover:border-primary/30 transition-all cursor-pointer group">
-                    <Layers className="w-5 h-5 text-primary mb-3" />
-                    <h4 className="font-bold text-sm mb-1">Full Vault Archive</h4>
-                    <p className="text-xs text-muted-foreground">Every idea scored, signaled, and verified.</p>
-                    <p className="text-[10px] text-primary font-bold mt-2 group-hover:underline">Access →</p>
-                  </div>
-                </Link>
                 <Link href="/build-brief">
                   <div className="bg-background border border-border rounded-xl p-5 hover:border-primary/30 transition-all cursor-pointer group">
                     <BarChart3 className="w-5 h-5 text-primary mb-3" />
@@ -488,11 +505,6 @@ export default function BlueprintsPage() {
                     Upgrade to Pro <ArrowRight className="w-4 h-4 ml-1.5" />
                   </Button>
                 </Link>
-                <Link href="/archive">
-                  <Button variant="outline" className="rounded-full border-border">
-                    Browse Archive Instead
-                  </Button>
-                </Link>
               </div>
             </div>
           )}
@@ -500,7 +512,7 @@ export default function BlueprintsPage() {
 
       </main>
 
-      <Footer variant="public" />
+      <Footer variant="authenticated" />
     </div>
   );
 }

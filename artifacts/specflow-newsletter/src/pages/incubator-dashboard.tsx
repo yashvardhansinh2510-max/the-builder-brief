@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import logoPath from "@assets/logo.jpg";
 import { Badge } from "@/components/ui/badge";
+import Footer from "@/components/Footer";
 
 const timelinePhases = [
   {
@@ -546,15 +547,7 @@ export default function IncubatorDashboard() {
 
       </main>
 
-      <footer className="py-10 border-t border-border/40">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src={logoPath} alt="The Build Brief" className="w-6 h-6 rounded-sm object-cover opacity-60" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 font-sans">The Build Brief Incubator</p>
-          </div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 font-sans">Private & Confidential • By Invitation Only</p>
-        </div>
-      </footer>
+      <Footer variant="authenticated" />
     </div>
   );
 }

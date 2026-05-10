@@ -91,7 +91,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
                 ? "bg-primary/10 text-primary border border-primary/20"
                 : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
             }`}>
-              Blueprints
+              Build
             </button>
           </Link>
 
@@ -114,7 +114,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
                 ? "bg-primary/10 text-primary border border-primary/20"
                 : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
             }`}>
-              Archive
+              Library
             </button>
           </Link>
 

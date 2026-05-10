@@ -22,9 +22,9 @@ export default function CreatorDashboard() {
   const { totalRevenue, referralTier, annualizedRevenue } = earnings;
 
   return (
-    <div className="min-h-screen bg-black p-8">
+    <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-12">Creator Hub</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-12">Creator Hub</h1>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
@@ -90,7 +90,7 @@ export default function CreatorDashboard() {
             <p className="text-slate-400 text-sm mt-2">Next payout: Processing monthly on the 15th</p>
           </div>
           <div className="flex gap-4">
-            <Button className="bg-blue-600 hover:bg-blue-700">Request Payout</Button>
+            <Button className="bg-primary hover:bg-primary/90">Request Payout</Button>
             <Button className="bg-slate-700 hover:bg-slate-600" variant="outline">View Payout History</Button>
           </div>
         </div>

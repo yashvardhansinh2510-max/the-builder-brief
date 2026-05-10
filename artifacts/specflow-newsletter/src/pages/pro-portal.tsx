@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import PortalNav from "@/components/PortalNav";
 import FounderChat from "@/components/FounderChat";
+import Footer from "@/components/Footer";
 import { useSubscriberCount } from "@/hooks/useSubscriberCount";
 import DailyBriefUI from "@/components/DailyBriefUI";
 import PersonalizationUI from "@/components/PersonalizationUI";
@@ -484,15 +485,7 @@ export default function ProPortal() {
       </main>
 
       {/* ── FOOTER ── */}
-      <footer className="py-12 border-t border-border/40 bg-card">
-        <div className="max-w-[1400px] mx-auto px-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={logoPath} alt="The Build Brief" className="w-8 h-8 rounded-sm object-cover opacity-80" />
-            <p className="text-sm font-serif tracking-tight">The Build Brief Pro</p>
-          </div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground font-sans">Pro Execution Vault • Active</p>
-        </div>
-      </footer>
+      <Footer variant="authenticated" />
     </div>
   );
 }

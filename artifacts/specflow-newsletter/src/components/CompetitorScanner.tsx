@@ -96,9 +96,9 @@ export default function CompetitorScanner() {
       case 'medium':
         return 'bg-yellow-500/20 text-yellow-700 border-yellow-200';
       case 'low':
-        return 'bg-blue-500/20 text-blue-700 border-blue-200';
+        return 'bg-primary/10 text-primary border-primary/30';
       default:
-        return 'bg-gray-500/20 text-gray-700 border-gray-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -250,7 +250,7 @@ export default function CompetitorScanner() {
                   <AlertTriangle className="w-5 h-5 text-red-500" />
                 </div>
                 <div className="text-3xl font-bold text-red-600">{analysis.overallVulnerabilityScore}/100</div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div className="w-full bg-muted rounded-full h-2 mt-2">
                   <div
                     className="bg-red-500 h-2 rounded-full"
                     style={{ width: `${analysis.overallVulnerabilityScore}%` }}
@@ -306,7 +306,7 @@ export default function CompetitorScanner() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
                   <h5 className="font-semibold text-foreground text-sm mb-2">Strengths</h5>
                   <p className="text-sm text-foreground">{analysis.strengths}</p>
                 </div>

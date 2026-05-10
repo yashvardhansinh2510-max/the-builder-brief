@@ -177,10 +177,10 @@ export default function MarketSizingEngine() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="border border-border rounded-lg p-4 bg-blue-500/5"
+                    className="border border-border rounded-2xl p-4 bg-primary/5"
                   >
                     <p className="text-xs text-muted-foreground mb-1">TAM</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-2xl font-bold text-primary">
                       {formatCurrency(report.analysis.tam.estimate)}
                     </p>
                     <p className="text-xs mt-3 text-foreground">{report.analysis.tam.reasoning}</p>

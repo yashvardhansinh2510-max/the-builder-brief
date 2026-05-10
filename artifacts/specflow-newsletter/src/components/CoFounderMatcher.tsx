@@ -41,7 +41,7 @@ interface Candidate extends CoFounderProfile {
 }
 
 const SkillLevelColor = {
-  beginner: 'bg-blue-100 text-blue-800',
+  beginner: 'bg-primary/10 text-primary',
   intermediate: 'bg-green-100 text-green-800',
   advanced: 'bg-orange-100 text-orange-800',
   expert: 'bg-red-100 text-red-800',

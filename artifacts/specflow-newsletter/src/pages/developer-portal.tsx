@@ -27,23 +27,23 @@ export default function DeveloperPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-black py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-2">Developer Portal</h1>
         <p className="text-slate-400 mb-12">Build with the Specflow API</p>
 
         {/* Documentation Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-          <a href="#docs" className="bg-slate-900 rounded-lg p-6 border border-slate-800 hover:border-blue-600 transition group">
-            <h3 className="text-white font-semibold mb-2 group-hover:text-blue-400 transition">Documentation</h3>
+          <a href="#docs" className="bg-slate-900 rounded-lg p-6 border border-slate-800 hover:border-primary transition group">
+            <h3 className="text-white font-semibold mb-2 group-hover:text-primary transition">Documentation</h3>
             <p className="text-slate-400 text-sm">REST API reference and guides</p>
           </a>
-          <a href="#webhooks" className="bg-slate-900 rounded-lg p-6 border border-slate-800 hover:border-blue-600 transition group">
-            <h3 className="text-white font-semibold mb-2 group-hover:text-blue-400 transition">Webhooks</h3>
+          <a href="#webhooks" className="bg-slate-900 rounded-lg p-6 border border-slate-800 hover:border-primary transition group">
+            <h3 className="text-white font-semibold mb-2 group-hover:text-primary transition">Webhooks</h3>
             <p className="text-slate-400 text-sm">Real-time event notifications</p>
           </a>
-          <a href="#status" className="bg-slate-900 rounded-lg p-6 border border-slate-800 hover:border-blue-600 transition group">
-            <h3 className="text-white font-semibold mb-2 group-hover:text-blue-400 transition">API Status</h3>
+          <a href="#status" className="bg-slate-900 rounded-lg p-6 border border-slate-800 hover:border-primary transition group">
+            <h3 className="text-white font-semibold mb-2 group-hover:text-primary transition">API Status</h3>
             <p className="text-slate-400 text-sm">99.99% uptime SLA</p>
           </a>
         </div>
@@ -52,7 +52,7 @@ export default function DeveloperPortal() {
         <div className="bg-slate-900 rounded-lg border border-slate-800 p-8 mb-12">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">API Keys</h2>
-            <Button className="bg-blue-600 hover:bg-blue-700">Create New Key</Button>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Create New Key</Button>
           </div>
 
           <div className="space-y-4">

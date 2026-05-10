@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
 
+export interface Signal {
+  id: string;
+  source_type: string;
+  content: string;
+  timestamp: string;
+  confidence_score: number;
+  reasoning?: string;
+}
+
 export interface Vault {
   id: string;
   title: string;
@@ -8,6 +17,12 @@ export interface Vault {
   created_at: string;
   published_at?: string;
   source_article_ids?: number[];
+  // Enriched analytics fields
+  signals: Signal[];
+  signals_count: number;
+  avg_confidence: number;
+  trend_direction: 'Rising' | 'Stable' | 'Declining';
+  source_types: string[];
 }
 
 interface UseVaultDataParams {
@@ -59,15 +74,32 @@ export function useVaultData(params: UseVaultDataParams): UseVaultDataReturn {
         const rawVaults = Array.isArray(rawData) ? rawData : (rawData.vaults || []);
 
         // Map backend DB schema to the frontend Vault type requirements
-        const mappedVaults: Vault[] = rawVaults.map((v: any) => ({
-          id: String(v.id),
-          title: v.title || 'Untitled Vault',
-          description: v.description,
-          content: v.content,
-          created_at: v.createdAt || new Date().toISOString(),
-          published_at: v.publishedAt,
-          source_article_ids: v.sourceArticleIds || [],
-        }));
+        const mappedVaults: Vault[] = rawVaults.map((v: any) => {
+          const signals: Signal[] = (v.signals || []).map((s: any) => ({
+            id: String(s.id),
+            source_type: s.source_type || s.sourceType || 'unknown',
+            content: s.content || '',
+            timestamp: s.timestamp || s.createdAt || new Date().toISOString(),
+            confidence_score: typeof s.confidence_score === 'number' ? s.confidence_score : (s.confidenceScore ?? 0),
+            reasoning: s.reasoning,
+          }));
+          const source_types: string[] = v.source_types || v.sourceTypes ||
+            [...new Set(signals.map((s: Signal) => s.source_type))];
+          return {
+            id: String(v.id),
+            title: v.title || 'Untitled Vault',
+            description: v.description,
+            content: v.content,
+            created_at: v.createdAt || new Date().toISOString(),
+            published_at: v.publishedAt,
+            source_article_ids: v.sourceArticleIds || [],
+            signals,
+            signals_count: v.signals_count ?? v.signalsCount ?? signals.length,
+            avg_confidence: v.avg_confidence ?? v.avgConfidence ?? 0,
+            trend_direction: v.trend_direction || v.trendDirection || 'Stable',
+            source_types,
+          };
+        });
 
         setVaults(mappedVaults);
       } catch (err) {

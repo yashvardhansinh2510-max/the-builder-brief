@@ -14,7 +14,7 @@ import {
 const router = Router();
 
 // Create creator subscription (set up tiered offering)
-router.post("/creator/subscriptions", verifyUser, async (req, res) => {
+router.post("/subscriptions", verifyUser, async (req, res) => {
   try {
     const creatorId = req.user?.id;
     if (!creatorId) return unauthorizedError(res);
@@ -47,7 +47,7 @@ router.post("/creator/subscriptions", verifyUser, async (req, res) => {
 });
 
 // Get creator subscriptions
-router.get("/creator/subscriptions", verifyUser, async (req, res) => {
+router.get("/subscriptions", verifyUser, async (req, res) => {
   try {
     const creatorId = req.user?.id;
     if (!creatorId) return unauthorizedError(res);
@@ -66,7 +66,7 @@ router.get("/creator/subscriptions", verifyUser, async (req, res) => {
 });
 
 // Update creator subscription tier/pricing
-router.put("/creator/subscriptions/:id", verifyUser, async (req, res) => {
+router.put("/subscriptions/:id", verifyUser, async (req, res) => {
   try {
     const creatorId = req.user?.id;
     const { id } = req.params;
@@ -127,7 +127,7 @@ router.put("/creator/subscriptions/:id", verifyUser, async (req, res) => {
 });
 
 // Delete creator subscription
-router.delete("/creator/subscriptions/:id", verifyUser, async (req, res) => {
+router.delete("/subscriptions/:id", verifyUser, async (req, res) => {
   try {
     const creatorId = req.user?.id;
     const { id } = req.params;

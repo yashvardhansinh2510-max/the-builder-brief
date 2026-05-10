@@ -17,23 +17,23 @@ const SignalBadge: React.FC<{
   const truncatedItems = items.slice(0, 2);
 
   return (
-    <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+    <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-xl border border-border hover:border-foreground/30 transition-colors">
       <div className="flex items-center gap-2">
         <div className="text-lg">{icon}</div>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold text-gray-900">{platform}</span>
-          <span className="text-xs text-gray-500">{count} mentions</span>
+          <span className="text-sm font-semibold text-foreground">{platform}</span>
+          <span className="text-xs text-muted-foreground">{count} mentions</span>
         </div>
       </div>
       {truncatedItems.length > 0 && (
         <div className="flex flex-col gap-1">
           {truncatedItems.map((item, idx) => (
-            <span key={idx} className="text-xs text-gray-600 line-clamp-1">
+            <span key={idx} className="text-xs text-muted-foreground line-clamp-1">
               "{item}"
             </span>
           ))}
           {items.length > 2 && (
-            <span className="text-xs text-gray-500 font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               +{items.length - 2} more
             </span>
           )}
@@ -54,8 +54,8 @@ export const VaultSignals: React.FC<VaultSignalsProps> = ({
     { key: 'youtube', name: 'YouTube', icon: '📺', color: 'bg-red-50 border-red-200' },
     { key: 'hn', name: 'Hacker News', icon: '⚙️', color: 'bg-amber-50 border-amber-200' },
     { key: 'ph', name: 'Product Hunt', icon: '🎯', color: 'bg-pink-50 border-pink-200' },
-    { key: 'linkedin', name: 'LinkedIn', icon: '💼', color: 'bg-blue-50 border-blue-200' },
-    { key: 'twitter', name: 'X/Twitter', icon: '𝕏', color: 'bg-gray-50 border-gray-200' },
+    { key: 'linkedin', name: 'LinkedIn', icon: '💼', color: 'bg-primary/5 border-primary/20' },
+    { key: 'twitter', name: 'X/Twitter', icon: '𝕏', color: 'bg-muted/50 border-border' },
   ];
 
   const containerClass = layout === 'horizontal'
@@ -67,8 +67,8 @@ export const VaultSignals: React.FC<VaultSignalsProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Community Signals</h3>
-          <p className="text-sm text-gray-600">{totalCount} total mentions across sources</p>
+          <h3 className="text-lg font-semibold text-foreground">Community Signals</h3>
+          <p className="text-sm text-muted-foreground">{totalCount} total mentions across sources</p>
         </div>
         {showTrendIndicator && (
           <div className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full border border-green-200">
@@ -92,9 +92,9 @@ export const VaultSignals: React.FC<VaultSignalsProps> = ({
       </div>
 
       {/* Signal Details */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">How we measure signals</h4>
-        <ul className="text-xs text-blue-800 space-y-1">
+      <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
+        <h4 className="text-sm font-semibold text-foreground mb-2">How we measure signals</h4>
+        <ul className="text-xs text-foreground/70 space-y-1">
           <li>• Reddit: Mentions in startup & business subreddits</li>
           <li>• YouTube: View counts on relevant content</li>
           <li>• Hacker News: Post ranking & discussion activity</li>

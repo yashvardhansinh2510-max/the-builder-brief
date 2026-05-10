@@ -15,7 +15,7 @@ export default function ComplianceTimeline({ data }: { data: ComplianceTimelineD
       case "Low": return "bg-green-50 border-green-200";
       case "Medium": return "bg-yellow-50 border-yellow-200";
       case "High": return "bg-red-50 border-red-200";
-      default: return "bg-gray-50 border-gray-200";
+      default: return "bg-muted/50 border-border";
     }
   };
 
@@ -32,7 +32,7 @@ export default function ComplianceTimeline({ data }: { data: ComplianceTimelineD
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">{item.timeline}</p>
-                <p className="text-xs bg-white px-2 py-1 rounded mt-1 text-muted-foreground">
+                <p className="text-xs bg-card px-2 py-1 rounded-lg mt-1 text-muted-foreground">
                   {item.effortLevel} effort
                 </p>
               </div>

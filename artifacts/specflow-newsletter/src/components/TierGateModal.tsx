@@ -65,14 +65,14 @@ export function TierGateModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+    <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50">
+      <div className="bg-card rounded-2xl shadow-xl max-w-2xl w-full mx-4 border border-border">
         {/* Header */}
-        <div className="border-b px-6 py-4">
-          <h2 className="text-2xl font-bold text-gray-900">
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-2xl font-bold text-foreground">
             Upgrade to {requiredTier === "pro" ? "Pro" : requiredTier === "max" ? "Max" : "Incubator"}
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             {featureName} is available on higher tiers
           </p>
         </div>
@@ -84,25 +84,25 @@ export function TierGateModal({
             return (
               <div
                 key={tier}
-                className="border rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition"
+                className="border border-border rounded-2xl p-4 hover:border-primary/50 hover:shadow-md transition"
               >
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                  <h3 className="text-lg font-semibold text-foreground capitalize">
                     {tier}
                   </h3>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-foreground">
                       ${info.price}
                     </div>
                     {typeof info.price === "number" && (
-                      <div className="text-sm text-gray-600">/month</div>
+                      <div className="text-sm text-muted-foreground">/month</div>
                     )}
                   </div>
                 </div>
 
                 <ul className="space-y-2 mb-4">
                   {info.benefits.slice(0, 3).map((benefit, idx) => (
-                    <li key={idx} className="text-sm text-gray-700 flex items-start">
+                    <li key={idx} className="text-sm text-foreground/80 flex items-start">
                       <span className="text-green-500 mr-2">✓</span>
                       {benefit}
                     </li>
@@ -114,10 +114,10 @@ export function TierGateModal({
                     onUpgrade(tier);
                     onClose();
                   }}
-                  className={`w-full py-2 px-4 rounded font-medium transition ${
+                  className={`w-full py-2 px-4 rounded-xl font-medium transition ${
                     tier === requiredTier
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
-                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-foreground hover:bg-muted/80"
                   }`}
                 >
                   Upgrade to {tier.charAt(0).toUpperCase() + tier.slice(1)}
@@ -128,10 +128,10 @@ export function TierGateModal({
         </div>
 
         {/* Footer */}
-        <div className="border-t px-6 py-4 flex justify-end gap-2">
+        <div className="border-t border-border px-6 py-4 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded font-medium"
+            className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-xl font-medium"
           >
             Maybe later
           </button>

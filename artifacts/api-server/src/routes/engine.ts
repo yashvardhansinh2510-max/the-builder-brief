@@ -25,8 +25,12 @@ const deepseek = process.env.DEEPSEEK_API_KEY
 // Chat limits per tier
 const CHAT_LIMITS: Record<string, number> = { free: 3, pro: 30, max: 100, incubator: 100 };
 
-const ADMIN_EMAILS = new Set(["yashvardhan@specflowai.com", "yashvardhansinhjhala@gmail.com", "yashvardhanjhala@gmail.com"]);
-const PRO_EMAILS = new Set(["yashvardhansinh2510@gmail.com"]);
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAILS || "").split(",").filter(Boolean).map(e => e.trim())
+);
+const PRO_EMAILS = new Set(
+  (process.env.PRO_EMAILS || "").split(",").filter(Boolean).map(e => e.trim())
+);
 
 const DEEPSEEK_MODEL = "deepseek-chat";
 
@@ -71,8 +75,8 @@ function apiKeyGuard(req: Request, res: Response): boolean {
   return true;
 }
 
-// ── POST /api/engine/analyze — Deterministic Strategy Report ──────────────────
-router.post("/engine/analyze", verifyUser, async (req: Request, res: Response): Promise<void> => {
+// ── POST /analyze — Deterministic Strategy Report ──────────────────
+router.post("/analyze", verifyUser, async (req: Request, res: Response): Promise<void> => {
   try {
     const email = req.user?.email;
     const { industry, audienceSize, complexity, currentMRR, description } = req.body;
@@ -184,8 +188,8 @@ Description: ${description || "N/A"}`;
   }
 });
 
-// ── POST /api/engine/send-weekly — trigger weekly signal blast ────────────────
-router.post("/engine/send-weekly", async (req: Request, res: Response): Promise<void> => {
+// ── POST /send-weekly — trigger weekly signal blast ────────────────
+router.post("/send-weekly", async (req: Request, res: Response): Promise<void> => {
   if (!apiKeyGuard(req, res)) return;
   try {
     const result = await sendWeeklySignal();
@@ -196,8 +200,8 @@ router.post("/engine/send-weekly", async (req: Request, res: Response): Promise<
   }
 });
 
-// ── POST /api/engine/send-daily — trigger daily briefing ─────────────────────
-router.post("/engine/send-daily", async (req: Request, res: Response): Promise<void> => {
+// ── POST /send-daily — trigger daily briefing ─────────────────────
+router.post("/send-daily", async (req: Request, res: Response): Promise<void> => {
   if (!apiKeyGuard(req, res)) return;
   try {
     // Note: sendDailyBriefing was likely intended for bulk, but we'll use a placeholder or dummy for now
@@ -209,8 +213,8 @@ router.post("/engine/send-daily", async (req: Request, res: Response): Promise<v
   }
 });
 
-// ── POST /api/engine/chat — DeepSeek AI Advisor (SSE streaming) ────────────
-router.post("/engine/chat", verifyUser, async (req: Request, res: Response): Promise<void> => {
+// ── POST /chat — DeepSeek AI Advisor (SSE streaming) ────────────
+router.post("/chat", verifyUser, async (req: Request, res: Response): Promise<void> => {
   const email = req.user?.email;
   const { message, persona, useWebSearch } = req.body;
 
@@ -415,7 +419,7 @@ const upload = multer({
   },
 });
 
-router.get("/engine/files", verifyUser, async (req, res): Promise<void> => {
+router.get("/files", verifyUser, async (req, res): Promise<void> => {
   if (!ADMIN_EMAILS.has(req.user?.email || "")) {
     res.status(403).json({ error: "Admin only" });
     return;
@@ -440,7 +444,7 @@ router.get("/engine/files", verifyUser, async (req, res): Promise<void> => {
   res.json(stats);
 });
 
-router.post("/engine/upload", verifyUser, upload.single("file"), async (req, res): Promise<void> => {
+router.post("/upload", verifyUser, upload.single("file"), async (req, res): Promise<void> => {
   if (!ADMIN_EMAILS.has(req.user?.email || "")) {
     res.status(403).json({ error: "Admin only" });
     return;
@@ -454,7 +458,7 @@ router.post("/engine/upload", verifyUser, upload.single("file"), async (req, res
   res.json({ message: "File uploaded and indexed successfully", file: req.file.filename });
 });
 
-router.post("/engine/roadmap", verifyUser, async (req: Request, res: Response): Promise<void> => {
+router.post("/roadmap", verifyUser, async (req: Request, res: Response): Promise<void> => {
   const email = req.user?.email;
   if (!email) {
     res.status(401).json({ error: "Unauthorized" });
@@ -525,7 +529,7 @@ Be aggressive, tactical, and use YC-style logic. NO FLUFF.`;
   }
 });
 
-router.post("/engine/investor-matches", verifyUser, async (req: Request, res: Response): Promise<void> => {
+router.post("/investor-matches", verifyUser, async (req: Request, res: Response): Promise<void> => {
   const email = req.user?.email;
   if (!email) {
     res.status(401).json({ error: "Unauthorized" });
@@ -580,7 +584,7 @@ Be ruthless, analytical, and professional.`;
   }
 });
 
-router.get("/engine/pulse", verifyUser, async (req: Request, res: Response): Promise<void> => {
+router.get("/pulse", verifyUser, async (req: Request, res: Response): Promise<void> => {
   try {
     const pulse = await getLiveMarketPulse();
     res.json({ success: true, pulse });

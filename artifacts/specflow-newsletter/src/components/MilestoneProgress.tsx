@@ -30,6 +30,7 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [displayedMilestones, milestonesHit]);
 
   const revenueProgress = Math.min(
@@ -63,12 +64,12 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div className="w-full max-w-2xl mx-auto p-6 bg-card rounded-2xl border border-border">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-2xl font-semibold text-foreground mb-2">
           Pro Milestones
         </h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           You're building. Here's what you're hitting along the way.
         </p>
       </div>
@@ -80,10 +81,10 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
           transition={{ duration: 0.3 }}
           className="text-center mb-6"
         >
-          <div className="text-5xl font-bold text-gray-900">
+          <div className="text-5xl font-bold text-foreground">
             {displayedMilestones}
           </div>
-          <div className="text-sm text-gray-500 mt-1">
+          <div className="text-sm text-muted-foreground mt-1">
             of {milestonesHit < 2 ? "3" : milestonesHit >= 3 ? "3" : "3"}{" "}
             milestones hit
           </div>
@@ -93,7 +94,7 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-3 bg-green-50 border border-green-200 rounded-md"
+            className="mb-6 p-3 bg-green-50 border border-green-200 rounded-xl"
           >
             <p className="text-sm text-green-800">
               You've hit 2+ milestones. You're eligible to explore Max tier.
@@ -111,34 +112,34 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
             transition={{ delay: idx * 0.1 }}
           >
             <div
-              className={`p-4 rounded-lg border ${
+              className={`p-4 rounded-xl border ${
                 milestone.completed
                   ? "bg-green-50 border-green-200"
-                  : "bg-gray-50 border-gray-200"
+                  : "bg-muted/50 border-border"
               }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-gray-900">
+                <h3 className="font-medium text-foreground">
                   {milestone.completed && "✓ "}
                   {milestone.name}
                 </h3>
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900">
+                  <div className="text-sm font-semibold text-foreground">
                     {milestone.current}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     Target: {milestone.target}
                   </div>
                 </div>
               </div>
 
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-muted rounded-full h-2">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${milestone.progress}%` }}
                   transition={{ duration: 0.6, delay: idx * 0.1 + 0.2 }}
                   className={`h-2 rounded-full ${
-                    milestone.completed ? "bg-green-600" : "bg-blue-600"
+                    milestone.completed ? "bg-green-600" : "bg-primary"
                   }`}
                 />
               </div>
@@ -153,14 +154,14 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
           onClick={onMaxClickRedirect}
-          className="w-full bg-black text-white py-3 px-4 rounded-md font-semibold hover:bg-gray-800 transition"
+          className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-xl font-semibold hover:bg-primary/90 transition"
         >
           You're Eligible! Upgrade to Max
         </motion.button>
       )}
 
       {!maxUpgradeEligible && (
-        <div className="text-center text-sm text-gray-500">
+        <div className="text-center text-sm text-muted-foreground">
           Hit 2+ milestones to unlock Max tier
         </div>
       )}

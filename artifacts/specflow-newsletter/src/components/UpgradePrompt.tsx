@@ -79,46 +79,46 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   };
 
   return (
-    <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-6 max-w-sm border border-gray-200">
+    <div className="fixed bottom-4 right-4 bg-card rounded-2xl shadow-lg p-6 max-w-sm border border-border">
       <div className="flex justify-between items-start mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-foreground">
           {tierInfo.title}
         </h3>
         <button
           onClick={handleDismiss}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-muted-foreground hover:text-foreground"
         >
           ✕
         </button>
       </div>
 
-      <p className="text-gray-600 mb-4 text-sm">{tierInfo.description}</p>
+      <p className="text-muted-foreground mb-4 text-sm">{tierInfo.description}</p>
 
       <div className="mb-4 text-center">
-        <div className="text-2xl font-bold text-gray-900">
+        <div className="text-2xl font-bold text-foreground">
           {tierInfo.price}
         </div>
         {targetTier !== "incubator" && (
-          <div className="text-xs text-gray-500 mt-1">Limited time offer</div>
+          <div className="text-xs text-muted-foreground mt-1">Limited time offer</div>
         )}
       </div>
 
       <div className="flex gap-2">
         <button
           onClick={handleUpgrade}
-          className="flex-1 bg-black text-white py-2 px-4 rounded-md font-medium hover:bg-gray-800 transition"
+          className="flex-1 bg-primary text-primary-foreground py-2 px-4 rounded-xl font-medium hover:bg-primary/90 transition"
         >
           {tierInfo.cta}
         </button>
         <button
           onClick={handleDismiss}
-          className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-50 transition"
+          className="flex-1 border border-border text-muted-foreground py-2 px-4 rounded-xl font-medium hover:bg-muted transition"
         >
           Maybe Later
         </button>
       </div>
 
-      <div className="mt-4 text-xs text-gray-500 text-center">
+      <div className="mt-4 text-xs text-muted-foreground text-center">
         Offer expires in 7 days. No credit card required.
       </div>
     </div>

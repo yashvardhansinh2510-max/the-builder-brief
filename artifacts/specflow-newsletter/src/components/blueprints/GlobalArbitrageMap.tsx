@@ -31,7 +31,7 @@ export default function GlobalArbitrageMap({ data }: { data: GlobalArbitrageData
                     aria-valuemin={0}
                     aria-valuemax={10}
                     aria-label="Unmet Demand"
-                    className="h-full bg-blue-500"
+                    className="h-full bg-primary"
                     style={{ width: `${(Math.min(Math.max(region.demandScore, 0), 10) / 10) * 100}%` }}
                   />
                 </div>
