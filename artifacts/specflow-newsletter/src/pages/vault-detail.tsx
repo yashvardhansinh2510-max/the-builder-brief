@@ -196,7 +196,72 @@ export default function VaultDetail() {
             {vault.unitEconomics && (
               <div className="bg-card p-6 rounded-2xl border border-border">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Unit Economics</h3>
-                <p className="text-muted-foreground leading-relaxed">{vault.unitEconomics}</p>
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Narrative */}
+                  <div className="flex-1">
+                    <p className="text-muted-foreground leading-relaxed">{vault.unitEconomics}</p>
+                  </div>
+
+                  {/* Quick Metrics Snapshot */}
+                  <div className="w-full md:w-56 shrink-0 flex flex-col gap-3">
+                    {[
+                      {
+                        label: "Opportunity",
+                        value: `${vault.scores?.opportunity ?? "—"}/100`,
+                        color:
+                          (vault.scores?.opportunity ?? 0) >= 70
+                            ? "text-green-600"
+                            : (vault.scores?.opportunity ?? 0) >= 40
+                            ? "text-amber-600"
+                            : "text-destructive",
+                      },
+                      {
+                        label: "Feasibility",
+                        value: `${vault.scores?.feasibility ?? "—"}/100`,
+                        color:
+                          (vault.scores?.feasibility ?? 0) >= 70
+                            ? "text-green-600"
+                            : (vault.scores?.feasibility ?? 0) >= 40
+                            ? "text-amber-600"
+                            : "text-destructive",
+                      },
+                      {
+                        label: "Confidence",
+                        value: vault.verificationData
+                          ? `${vault.verificationData.confidenceScore}%`
+                          : "—",
+                        color: "text-foreground",
+                      },
+                      {
+                        label: "Verdict",
+                        value: vault.verificationData
+                          ? vault.verificationData.confidenceScore >= 70
+                            ? "Healthy"
+                            : vault.verificationData.confidenceScore >= 40
+                            ? "Tight"
+                            : "Broken"
+                          : "—",
+                        color: vault.verificationData
+                          ? vault.verificationData.confidenceScore >= 70
+                            ? "text-green-600"
+                            : vault.verificationData.confidenceScore >= 40
+                            ? "text-amber-600"
+                            : "text-destructive"
+                          : "text-muted-foreground",
+                      },
+                    ].map((m) => (
+                      <div
+                        key={m.label}
+                        className="bg-background border border-border rounded-xl p-3"
+                      >
+                        <p className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1">
+                          {m.label}
+                        </p>
+                        <p className={`text-xl font-bold ${m.color}`}>{m.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </motion.div>

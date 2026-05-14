@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 interface UserContext {
   user?: { id: string; email: string; tier?: string };

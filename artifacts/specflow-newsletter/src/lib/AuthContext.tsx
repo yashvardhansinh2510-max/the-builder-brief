@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { useUser, useAuth as useClerkAuth } from "@clerk/react";
 
-const ADMIN_EMAILS = ["yashvardhan@specflowai.com", "yashvardhansinhjhala@gmail.com", "yashvardhanjhala@gmail.com"];
-const PRO_EMAILS = ["yashvardhansinh2510@gmail.com"];
-
 export type UserTier = "free" | "pro" | "max" | "incubator";
 
+export interface CompatUser {
+  id: string;
+  email: string;
+  user_metadata: { full_name: string; avatar_url: string };
+}
+
 export interface AuthContextType {
-  user: any;
-  session: any;
+  user: CompatUser | null;
+  session: { user: CompatUser; access_token: string | null } | null;
   loading: boolean;
   tierLoading: boolean;
   tier: UserTier;
@@ -25,6 +28,7 @@ export function useAuth(): AuthContextType {
   const { isSignedIn, getToken } = useClerkAuth();
   const [clerkToken, setClerkToken] = useState<string | null>(null);
   const [dbTier, setDbTier] = useState<UserTier | null>(null);
+  const [dbIsAdmin, setDbIsAdmin] = useState(false);
   const [tierLoading, setTierLoading] = useState(false);
 
   const email = user?.emailAddresses[0]?.emailAddress || "";
@@ -35,6 +39,7 @@ export function useAuth(): AuthContextType {
     } else {
       setClerkToken(null);
       setDbTier(null);
+      setDbIsAdmin(false);
     }
   }, [isSignedIn, getToken]);
 
@@ -47,22 +52,15 @@ export function useAuth(): AuthContextType {
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data?.tier) setDbTier(data.tier as UserTier);
+          setDbIsAdmin(data?.isAdmin || false);
           setTierLoading(false);
         })
         .catch(() => setTierLoading(false));
     }
   }, [isSignedIn, clerkToken]);
 
-  // Priority: DB tier > Admin list > Pro list > free
   let tier: UserTier = dbTier || "free";
-  let isAdmin = false;
-
-  if (ADMIN_EMAILS.includes(email)) {
-    tier = dbTier || "max"; // DB tier takes priority, fallback to max for admin
-    isAdmin = true;
-  } else if (PRO_EMAILS.includes(email)) {
-    tier = dbTier || "pro";
-  }
+  const isAdmin = dbIsAdmin;
 
   const isPremium = tier === "pro" || tier === "max" || tier === "incubator";
   const loading = !isLoaded;
@@ -81,7 +79,7 @@ export function useAuth(): AuthContextType {
 
   return {
     user: compatUser,
-    session: isSignedIn
+    session: isSignedIn && compatUser
       ? { user: compatUser, access_token: clerkToken }
       : null,
     loading,

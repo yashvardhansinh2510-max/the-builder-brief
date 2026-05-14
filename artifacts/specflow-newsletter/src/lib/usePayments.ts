@@ -60,7 +60,7 @@ export function usePayments() {
           }
         },
         prefill: {
-          email: session?.user?.email,
+          email: session?.user?.email ?? "",
         },
         theme: {
           color: "#F97316"

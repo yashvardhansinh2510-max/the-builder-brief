@@ -20,7 +20,7 @@ const STAGES = ['Ideation', 'Building', 'Validating', 'Revenue', 'Scaling'];
 const GOALS = ['Ship in 90 days', 'Reach $10K MRR', 'Raise Series A', 'Exit'];
 
 export default function OnboardingQuiz({ onComplete }: { onComplete?: () => void }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({
     sector: '',
@@ -93,7 +93,10 @@ export default function OnboardingQuiz({ onComplete }: { onComplete?: () => void
     try {
       const response = await fetch('/api/onboarding/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({
           email: user.email,
           ...answers,

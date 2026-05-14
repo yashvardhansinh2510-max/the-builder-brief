@@ -15,7 +15,7 @@ import { issues } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { useSubscribe } from "@/hooks/useSubscribe";
 import { usePageTracking } from "@/hooks/useAnalytics";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/lib/AuthContext";
 import { SubscribeSuccessOverlay } from "@/components/SubscribeSuccessOverlay";
 import { PainPointsSection } from "@/components/PainPointsSection";
 import { DashboardPreviewSection } from "@/components/DashboardPreviewSection";
@@ -576,7 +576,7 @@ function BottomCTASection() {
 
 export default function Home() {
   usePageTracking("/");
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const [showOverlay, setShowOverlay] = useState(false);
   const [navLocked, setNavLocked] = useState(false);
 
@@ -607,7 +607,7 @@ export default function Home() {
           <Link href="/archive" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">Archive</Link>
           <Link href="/about" className="hidden md:block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
           {!navLocked && (
-            isSignedIn ? (
+            !!user ? (
               <Link href="/dashboard" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
                 Dashboard
               </Link>

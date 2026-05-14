@@ -54,3 +54,19 @@ Thumbs.db
 .env*.local
 # Added by code-review-graph
 .code-review-graph/
+
+# Root-level screenshots (development artifacts)
+/*.png
+/*.jpg
+
+# Local databases and vectors
+ruvector.db
+
+# AI agent runtime data
+training_data/
+context/
+scratch/
+.playwright-mcp/
+
+# Claude worktree state
+.claude-flow/

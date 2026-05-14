@@ -1,10 +1,10 @@
 import { Link } from "wouter";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import logoPath from "@assets/logo.jpg";
 
 export default function PublicNav({ activePage }: { activePage?: string }) {
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
 
   return (
     <nav className="border-b border-border/40 py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 bg-background/90 backdrop-blur-md z-50">
@@ -24,7 +24,7 @@ export default function PublicNav({ activePage }: { activePage?: string }) {
           Ground Game
         </Link>
         
-        {isSignedIn ? (
+        {!!user ? (
           <Link href="/dashboard" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
             Dashboard
           </Link>

@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import logoPath from "@assets/logo.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/AuthContext";
 import {
   Crown, Workflow, Shield, Target, Lock,
   Calendar, LineChart, Sparkles, Globe,
-  MapPin, Activity, Brain, ArrowRight, Files, Zap
+  MapPin, Activity, Brain, ArrowRight, Files, Zap,
+  Send, User, TrendingUp, Layers
 } from "lucide-react";
 import PortalNav from "@/components/PortalNav";
 import FounderChat from "@/components/FounderChat";
@@ -59,6 +60,17 @@ export default function MaxPortal() {
   const [activeDay, setActiveDay] = useState(1);
   const [chatUsage, setChatUsage] = useState(0);
 
+  // Profile fields for personalized advantage cards
+  const [vertical, setVertical] = useState<string | null>(null);
+  const [stage, setStage] = useState<string | null>(null);
+  const [unfairAdvantage, setUnfairAdvantage] = useState<string | null>(null);
+
+  // Cognitive Brain state
+  const [brainInput, setBrainInput] = useState("");
+  const [brainOutput, setBrainOutput] = useState("");
+  const [brainDisplayed, setBrainDisplayed] = useState("");
+  const [brainLoading, setBrainLoading] = useState(false);
+
   useEffect(() => {
     if (user?.email) {
       fetch(`/api/subscribers/me?email=${encodeURIComponent(user.email)}`)
@@ -68,9 +80,78 @@ export default function MaxPortal() {
             const monthKey = new Date().toISOString().slice(0, 7);
             setChatUsage(data.portalState.chatUsage[monthKey] || 0);
           }
+          if (data?.vertical) setVertical(data.vertical);
+          if (data?.stage) setStage(data.stage);
+          if (data?.unfairAdvantage) setUnfairAdvantage(data.unfairAdvantage);
         });
     }
   }, [user]);
+
+  // Typewriter effect when brainOutput changes
+  useEffect(() => {
+    if (!brainOutput) return;
+    setBrainDisplayed("");
+    let i = 0;
+    const interval = setInterval(() => {
+      setBrainDisplayed(brainOutput.slice(0, i + 1));
+      i++;
+      if (i >= brainOutput.length) clearInterval(interval);
+    }, 18);
+    return () => clearInterval(interval);
+  }, [brainOutput]);
+
+  const handleBrainSubmit = async (query: string) => {
+    if (!query.trim() || brainLoading) return;
+    const token = session?.access_token;
+    if (!token) return;
+    setBrainLoading(true);
+    setBrainOutput("");
+    setBrainDisplayed("");
+    try {
+      const res = await fetch("/api/engine/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: query, persona: "elite-coach" }),
+      });
+      if (!res.ok || !res.body) {
+        setBrainOutput("Engine unavailable. Try again.");
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let full = "";
+      while (true) {
+        const { value: chunk, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(chunk, { stream: true });
+        const events = buf.split("\n\n");
+        buf = events.pop() ?? "";
+        for (const evt of events) {
+          const line = evt.trim();
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (payload === "[DONE]") continue;
+          let tok: string;
+          try {
+            const parsed = JSON.parse(payload);
+            tok = typeof parsed === "string" ? parsed : (parsed.content ?? parsed.text ?? "");
+          } catch {
+            tok = payload;
+          }
+          full += tok;
+        }
+      }
+      setBrainOutput(full || "No response from engine.");
+    } catch {
+      setBrainOutput("Network error. Please try again.");
+    } finally {
+      setBrainLoading(false);
+    }
+  };
 
   const handleSpecFlow = () => {
     if (specFlowState !== "idle") return;
@@ -238,50 +319,132 @@ export default function MaxPortal() {
                 </div>
               </div>
 
-              {/* BOTTOM LEFT — Scale Trajectory */}
-              <div className="bg-card border-r border-border p-6 flex flex-col justify-center items-center">
+              {/* BOTTOM LEFT — Unfair Advantage Cards */}
+              <div className="bg-card border-r border-border p-6 flex flex-col">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
-                  <LineChart className="w-4 h-4 text-primary" />
-                  Scale Trajectory
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  Your Unfair Advantage
                 </div>
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground font-light">Coming soon. Real trajectory data appears after admission.</p>
-                </div>
+                {/* TODO: Replace with /api/unfair-advantage endpoint. */}
+                {vertical || stage ? (
+                  <div className="flex flex-col gap-3 flex-1">
+                    {[
+                      {
+                        icon: <Layers className="w-3.5 h-3.5 text-primary" />,
+                        label: vertical ?? "Your Vertical",
+                        body: vertical
+                          ? `In ${vertical}, your distribution moat is speed of deployment. Founders who ship 2 iterations per week capture 60% more early adopters than monthly releasers.`
+                          : "Complete your profile to unlock vertical-specific insight.",
+                      },
+                      {
+                        icon: <TrendingUp className="w-3.5 h-3.5 text-primary" />,
+                        label: stage ?? "Your Stage",
+                        body: stage
+                          ? `At ${stage}, your highest-leverage unlock is your first 3 anchor case studies. One customer result, told well, is worth 50 cold emails.`
+                          : "Set your stage in profile settings.",
+                      },
+                      {
+                        icon: <User className="w-3.5 h-3.5 text-primary" />,
+                        label: "Declared Edge",
+                        body: unfairAdvantage
+                          ? `Your declared edge — "${unfairAdvantage}" — is most powerful when embedded in your cold outreach subject line. Make the prospect see the edge before they see the ask.`
+                          : "Add your unfair advantage in profile settings to unlock this card.",
+                      },
+                    ].map((card, i) => (
+                      <div key={i} className="p-4 bg-background border border-border/50 rounded-xl flex-1">
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                          {card.icon} {card.label}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-light leading-relaxed">{card.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
+                    <p className="text-sm text-muted-foreground font-light mb-3">
+                      Complete your founder profile to unlock your personalized advantage analysis.
+                    </p>
+                    <a
+                      href="/settings"
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary hover:opacity-70 transition-opacity"
+                    >
+                      Complete Profile <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
               </div>
 
-              {/* BOTTOM RIGHT — Two feature cards */}
-              <div className="grid grid-cols-2 bg-background">
-                {[
-                  {
-                    icon: <Brain className="w-4 h-4" />,
-                    title: "Cognitive Brain",
-                    subtitle: "Uncapped AI Access",
-                    desc: "Unlimited advisor sessions powered by DeepSeek V3 with live web telemetry.",
-                  },
-                  {
-                    icon: <Zap className="w-4 h-4" />,
-                    title: "Private Deal Flow",
-                    subtitle: "Exit Architecture",
-                    desc: "Sanitized acquisition deals and PE introductions from our verified network.",
-                  },
-                ].map((card, i) => (
-                  <div key={i} className="relative flex flex-col gap-3 p-5 border border-border group">
-                    <div>
-                      <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                        {card.icon} {card.title}
+              {/* BOTTOM RIGHT — Cognitive Brain */}
+              <div className="bg-background border-border p-6 flex flex-col gap-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  <Brain className="w-4 h-4 text-primary" />
+                  Cognitive Brain
+                </div>
+                <h3 className="font-serif text-lg leading-tight">
+                  Uncapped AI Access{" "}
+                  <span className="text-muted-foreground font-light text-sm">— ask anything, get operator-grade answers.</span>
+                </h3>
+
+                {/* Input row */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={brainInput}
+                    onChange={e => setBrainInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        handleBrainSubmit(brainInput);
+                        setBrainInput("");
+                      }
+                    }}
+                    placeholder="Ask your Brain..."
+                    className="flex-1 bg-card border border-border/60 rounded-lg px-3 py-2 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+                  />
+                  <button
+                    onClick={() => {
+                      handleBrainSubmit(brainInput);
+                      setBrainInput("");
+                    }}
+                    disabled={brainLoading || !brainInput.trim()}
+                    className="px-3 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Output */}
+                {(brainLoading || brainDisplayed) && (
+                  <div className="bg-card border border-border/40 rounded-lg p-4 min-h-[80px] font-mono text-xs text-foreground leading-relaxed">
+                    {brainLoading && !brainDisplayed ? (
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                        <span className="text-primary">{">"}</span>
+                        <motion.span
+                          animate={{ opacity: [1, 0] }}
+                          transition={{ repeat: Infinity, duration: 0.6 }}
+                          className="inline-block w-2 h-3 bg-primary"
+                        />
                       </span>
-                      <h3 className="font-serif text-lg leading-tight">
-                        {card.subtitle}{" "}
-                        <span className="text-muted-foreground font-light text-sm">{card.desc}</span>
-                      </h3>
-                    </div>
-                    <div className="mt-auto">
-                      <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary group-hover:gap-3 transition-all">
-                        Explore <ArrowRight className="w-3 h-3" />
-                      </div>
-                    </div>
+                    ) : (
+                      <span>
+                        <span className="text-primary mr-1.5">{">"}</span>
+                        {brainDisplayed}
+                        {brainDisplayed.length < brainOutput.length && (
+                          <motion.span
+                            animate={{ opacity: [1, 0] }}
+                            transition={{ repeat: Infinity, duration: 0.6 }}
+                            className="inline-block w-1.5 h-3 bg-primary ml-0.5 align-middle"
+                          />
+                        )}
+                      </span>
+                    )}
                   </div>
-                ))}
+                )}
+
+                <div className="mt-auto">
+                  <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary hover:opacity-70 transition-opacity cursor-pointer">
+                    Full Advisor Access <ArrowRight className="w-3 h-3" />
+                  </div>
+                </div>
               </div>
             </div>
           </section>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/react';
+import { useAuth } from '@/lib/AuthContext';
 import { Redirect, useLocation } from 'wouter';
 import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ interface FormErrors {
 }
 
 export default function CreatorTractionPage() {
-  const { isLoaded, userId } = useAuth();
+  const { user, loading: authLoading, session } = useAuth();
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -52,8 +52,8 @@ export default function CreatorTractionPage() {
     }
   }, [featuredBlueprint]);
 
-  if (!isLoaded) return null;
-  if (!userId) return <Redirect to="/sign-in" />;
+  if (authLoading) return null;
+  if (!authLoading && !user) return <Redirect to="/sign-in" />;
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -103,7 +103,10 @@ export default function CreatorTractionPage() {
 
       const res = await fetch(`/api/blueprints/${featuredBlueprint.slug}/traction`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify(payload),
       });
 

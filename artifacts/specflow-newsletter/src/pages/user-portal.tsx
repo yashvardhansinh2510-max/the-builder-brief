@@ -36,7 +36,18 @@ import {
   Target,
 } from "lucide-react";
 import { typedIssues as issues, Issue } from "@/lib/data";
+import { projections, type IntelligenceProjection } from "@/lib/data/projections";
 import { playbookModules, type Lesson } from "@/lib/playbook";
+import type { Tool } from "@/lib/arsenal";
+import type {
+  DailyDrop,
+  PlaybookModule,
+  WallMember,
+  ReferralData,
+  MarketplaceProduct,
+  OwnedProduct,
+  Scorecard,
+} from "@/types/portal";
 import { featuredVentures } from "@/lib/ventures";
 import { roadmapSteps } from "@/lib/roadmap";
 import {
@@ -66,6 +77,13 @@ import StartupContextModal from "@/components/StartupContextModal";
 import ContextManager from "@/components/ContextManager";
 import MarketPulseFeed from "@/components/MarketPulseFeed";
 import { usePayments } from "@/lib/usePayments";
+import WelcomeHero from "@/components/portal/WelcomeHero";
+import PlaybookTab from "@/components/portal/PlaybookTab";
+import VaultTab from "@/components/portal/VaultTab";
+import IntelligenceFeed from "@/components/portal/IntelligenceFeed";
+import PathTab from "@/components/portal/PathTab";
+import AllianceTab from "@/components/portal/AllianceTab";
+import ArsenalTab from "@/components/portal/ArsenalTab";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -93,29 +111,32 @@ export default function UserPortal() {
   const isPro = isPremium; // alias for existing code
   const subscriberCount = useSubscriberCount();
   const [chatUsageThisMonth, setChatUsageThisMonth] = useState(0);
-  const [dailyDrop, setDailyDrop] = useState<any>(null);
-  const [playbookData, setPlaybookData] = useState<any[]>([]);
-  const [wallMembers, setWallMembers] = useState<any[]>([]);
-  const [myWallProfile, setMyWallProfile] = useState<any>(null);
-  const [referralData, setReferralData] = useState<any>(null);
+  const [dailyDrop, setDailyDrop] = useState<DailyDrop | null>(null);
+  const [playbookData, setPlaybookData] = useState<PlaybookModule[]>([]);
+  const [wallMembers, setWallMembers] = useState<WallMember[]>([]);
+  const [myWallProfile, setMyWallProfile] = useState<WallMember | null>(null);
+  const [referralData, setReferralData] = useState<ReferralData | null>(null);
   const [personalizedBrief, setPersonalizedBrief] = useState<string | null>(
     null,
   );
-  const [products, setProducts] = useState<any[]>([]);
-  const [ownedProducts, setOwnedProducts] = useState<any[]>([]);
-  const [scorecard, setScorecard] = useState<any>(null);
+  const [products, setProducts] = useState<MarketplaceProduct[]>([]);
+  const [ownedProducts, setOwnedProducts] = useState<OwnedProduct[]>([]);
+  const [scorecard, setScorecard] = useState<Scorecard | null>(null);
 
   // Local state
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [activeProjection, setActiveProjection] = useState(projections[0].id);
   const [hasClaimedDaily, setHasClaimedDaily] = useState(false);
   const [deployedArsenal, setDeployedArsenal] = useState<string[]>([]);
-  const [selectedMember, setSelectedMember] = useState<any>(null);
-  const [selectedTool, setSelectedTool] = useState<any>(null);
+  const [selectedMember, setSelectedMember] = useState<WallMember | null>(null);
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [showJoinAlliance, setShowJoinAlliance] = useState(false);
-  const [allianceJoinData, setAllianceJoinData] = useState<any>({});
+  const [allianceJoinData, setAllianceJoinData] = useState<Partial<WallMember>>(
+    {},
+  );
 
   // Sync portal state to backend
   const syncPortalState = (newState: any) => {
@@ -164,7 +185,7 @@ export default function UserPortal() {
             .then(setPlaybookData);
           fetch("/api/walls")
             .then((res) => (res.ok ? res.json() : null))
-            .then((data) => data && setWallMembers(data));
+            .then((data) => data?.data && setWallMembers(data.data));
           fetch("/api/walls/me", {
             headers: { Authorization: `Bearer ${session?.access_token}` },
           })
@@ -281,6 +302,8 @@ export default function UserPortal() {
 
   // Live telemetry from real API
   const [telemetryLogs, setTelemetryLogs] = useState<string[]>([]);
+  const [engineBusy, setEngineBusy] = useState(false);
+  const [milestoneBusy, setMilestoneBusy] = useState(false);
 
   useEffect(() => {
     const buildLogs = (total: number, week: number) => [
@@ -523,179 +546,15 @@ export default function UserPortal() {
           {/* Main Content Area (8 columns) */}
           <div className="lg:col-span-8 space-y-12">
             {/* Welcome Hero — conditional by tier */}
-
-            {/* FREE TIER HERO */}
-            {tier === "free" && (
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={fadeUp}
-                className="relative p-10 rounded-[3rem] bg-card/30 border border-primary/5 overflow-hidden group"
-              >
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-colors duration-700" />
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    <p className="text-[10px] uppercase font-bold tracking-[0.4em] text-primary/60">
-                      System Operational • {new Date().toLocaleDateString()}
-                    </p>
-                  </div>
-                  <h1 className="font-serif text-5xl md:text-7xl leading-[1.1]">
-                    Good to have
-                    <br />
-                    you back,{" "}
-                    <span className="italic text-primary/90">{firstName}.</span>
-                  </h1>
-                  {/* Streak HERO */}
-                  <div className="flex items-center gap-6 mt-8 mb-2">
-                    <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-primary/10 border border-primary/20">
-                      <Flame className="w-6 h-6 text-primary" />
-                      <div>
-                        <p className="text-3xl font-black text-primary leading-none">
-                          {streak}
-                        </p>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary/60 mt-0.5">
-                          Day Streak
-                        </p>
-                      </div>
-                    </div>
-                    {nextReward && (
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-bold text-foreground">
-                          {nextReward.day - streak} days
-                        </span>{" "}
-                        until {nextReward.title}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mt-6">
-                    <p className="text-muted-foreground text-lg max-w-xl leading-relaxed">
-                      The next drop lands Friday. Your blueprints are waiting.
-                      The only question is — what are you building this week?
-                    </p>
-                    {eligibleReward && (
-                      <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="bg-primary/95 backdrop-blur-xl p-8 rounded-[2.5rem] text-primary-foreground shadow-[0_0_50px_rgba(249,115,22,0.3)] relative overflow-hidden group/reward min-w-[300px] border border-white/20"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-                        <Sparkles className="absolute top-6 right-6 w-6 h-6 text-white/40 group-hover/reward:rotate-90 transition-transform duration-500" />
-                        <div className="relative z-10">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 opacity-70">
-                            MILESTONE UNLOCKED: DAY {eligibleReward.day}
-                          </p>
-                          <h4 className="font-serif text-2xl mb-6 leading-tight">
-                            {eligibleReward.title}
-                          </h4>
-                          <button
-                            onClick={() => claimReward(eligibleReward)}
-                            className="w-full bg-primary-foreground text-primary text-[10px] font-black py-4 rounded-2xl uppercase tracking-widest hover:bg-primary-foreground/90 transition-all hover:translate-y-[-2px] active:translate-y-[0px] shadow-lg shadow-black/5"
-                          >
-                            {eligibleReward.actionLabel}
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* PRO TIER HERO */}
-            {tier === "pro" && (
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={fadeUp}
-                className="relative p-10 rounded-2xl bg-card/80 border border-primary/10 overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.04] to-transparent h-10 w-full animate-scanline pointer-events-none" />
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                    <p className="text-[10px] uppercase font-black tracking-[0.4em] text-primary/70 font-mono">
-                      Operator Mode • {new Date().toLocaleDateString()}
-                    </p>
-                  </div>
-                  <h1 className="font-serif text-5xl md:text-7xl leading-[1.1]">
-                    Back at it,
-                    <br />
-                    <span className="italic text-primary">{firstName}.</span>
-                  </h1>
-                  <p className="text-muted-foreground text-base mt-4 max-w-xl leading-relaxed">
-                    Daily briefing is live. Vault is open. You've got signals to
-                    run through — let's go.
-                  </p>
-                  <div className="flex gap-6 p-6 mt-6 rounded-2xl bg-background/40 border border-primary/20 font-mono w-fit">
-                    <div>
-                      <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-                        Streak
-                      </p>
-                      <p className="text-2xl font-bold text-primary">
-                        {streak}d
-                      </p>
-                    </div>
-                    <div className="w-px bg-border/40" />
-                    <div>
-                      <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-                        Vault
-                      </p>
-                      <p className="text-2xl font-bold">OPEN</p>
-                    </div>
-                    <div className="w-px bg-border/40" />
-                    <div>
-                      <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-                        Briefings
-                      </p>
-                      <p className="text-2xl font-bold">DAILY</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* MAX / INCUBATOR TIER HERO */}
-            {(tier === "max" || tier === "incubator") && (
-              <motion.div
-                initial={{ opacity: 0, filter: "blur(8px)" }}
-                animate={{ opacity: 1, filter: "blur(0px)" }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
-                className="py-16 px-2"
-              >
-                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground/60 mb-4">
-                  {new Date().toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-                <h1 className="font-serif text-6xl md:text-8xl leading-[1.0] mb-8">
-                  Good morning,
-                  <br />
-                  <span className="italic text-primary">{firstName}.</span>
-                </h1>
-                <div className="flex gap-8 pt-8 border-t border-border/20">
-                  <div>
-                    <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-1">
-                      AI Advisor
-                    </p>
-                    <p className="font-serif text-lg">
-                      Active — {20 - chatUsageThisMonth} sessions remaining
-                    </p>
-                  </div>
-                  <div className="w-px bg-border/20" />
-                  <div>
-                    <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-1">
-                      Next Call
-                    </p>
-                    <p className="font-serif text-lg italic">
-                      Book via Inner Circle
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+            <WelcomeHero
+              tier={tier}
+              firstName={firstName}
+              streak={streak}
+              chatUsageThisMonth={chatUsageThisMonth}
+              eligibleReward={eligibleReward}
+              nextReward={nextReward}
+              onClaimReward={claimReward}
+            />
 
             {/* Venture Hall of Fame - High Visibility Spotlight */}
             <motion.section
@@ -926,46 +785,111 @@ export default function UserPortal() {
                 </>
               )}
 
-              {/* MAX / INCUBATOR: This Week's Intelligence */}
+              {/* MAX / INCUBATOR: Intelligence Projections */}
               {(tier === "max" || tier === "incubator") && (
                 <>
                   <div>
                     <h2 className="font-serif text-3xl">
-                      This Week's Intelligence
+                      Intelligence Projections
                     </h2>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Select a strategy. Execute the steps. Track the metric.
+                    </p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[
-                      {
-                        label: "Friday Signal",
-                        val: latestIssue.title,
-                        sub: latestIssue.category || "Blueprint",
-                      },
-                      {
-                        label: "AI Advisor",
-                        val: `${20 - chatUsageThisMonth} sessions`,
-                        sub: "this month",
-                      },
-                      {
-                        label: "Streak",
-                        val: `${streak} days`,
-                        sub: "consecutive",
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="p-8 border border-border/20 rounded-none"
-                      >
-                        <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-4">
-                          {item.label}
+
+                  {/* Tab strip */}
+                  <div className="overflow-x-auto no-scrollbar">
+                    <div className="flex gap-0 border-b border-border/30 w-max min-w-full">
+                      {projections.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => setActiveProjection(p.id)}
+                          className={`px-5 py-3 text-[11px] font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${
+                            activeProjection === p.id
+                              ? "border-b-2 border-primary text-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {p.codename}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Projection panel */}
+                  {(() => {
+                    const p = projections.find((x) => x.id === activeProjection)!;
+                    const riskColor =
+                      p.riskLevel === "low"
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : p.riskLevel === "medium"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : "bg-red-50 text-red-700 border-red-200";
+                    return (
+                      <div className="p-8 border border-border/20 rounded-none">
+                        {/* Header */}
+                        <p className="font-mono text-2xl font-bold tracking-tight mb-2">
+                          {p.codename.toUpperCase()}
                         </p>
-                        <p className="font-serif text-3xl mb-1">{item.val}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.sub}
+                        <p className="text-sm text-muted-foreground mb-5">
+                          {p.tagline}
                         </p>
+
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-2 mb-6">
+                          <span className="text-[10px] font-bold uppercase tracking-widest border px-3 py-1 rounded-full bg-card border-border/40">
+                            {p.timeHorizon}
+                          </span>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest border px-3 py-1 rounded-full ${riskColor}`}>
+                            {p.riskLevel} risk
+                          </span>
+                          {p.verticals.slice(0, 2).map((v) => (
+                            <span
+                              key={v}
+                              className="text-[10px] font-bold uppercase tracking-widest border px-3 py-1 rounded-full bg-card border-border/40 text-muted-foreground"
+                            >
+                              {v}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Key metric KPI */}
+                        <div className="mb-6 p-5 bg-primary/5 border border-primary/15 rounded-none">
+                          <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-2">
+                            Target Metric
+                          </p>
+                          <p className="font-mono text-3xl font-bold text-primary">
+                            {p.keyMetric}
+                          </p>
+                        </div>
+
+                        {/* Action steps */}
+                        <ol className="space-y-3 mb-6">
+                          {p.steps.map((step, i) => (
+                            <li
+                              key={i}
+                              className="flex gap-4 text-sm text-muted-foreground leading-relaxed"
+                            >
+                              <span className="font-mono text-[10px] font-bold text-primary mt-0.5 shrink-0 w-4">
+                                {String(i + 1).padStart(2, "0")}
+                              </span>
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+
+                        {/* Vault link */}
+                        {p.issueRef && (
+                          <Link
+                            href={p.issueRef}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-primary hover:opacity-70 transition-opacity"
+                          >
+                            Go deep <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -1027,120 +951,14 @@ export default function UserPortal() {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
                   {activeTab === "playbook" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {activePlaybook.map((module) => (
-                        <div
-                          key={module.id || module.slug}
-                          className="group flex flex-col bg-card/40 border border-border/20 rounded-[2.5rem] p-8 hover:border-primary/30 transition-all overflow-hidden relative backdrop-blur-sm shadow-xl shadow-primary/[0.02]"
-                        >
-                          <div className="mb-6">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2 italic opacity-60">
-                              FOUNDRY_INTERNAL://
-                              {(module.id || module.slug).toUpperCase()}
-                            </p>
-                            <h3 className="font-serif text-2xl mb-3 group-hover:text-primary transition-colors">
-                              {module.title}
-                            </h3>
-                            <p className="text-xs text-muted-foreground leading-relaxed font-sans line-clamp-2">
-                              {module.description}
-                            </p>
-                          </div>
-
-                          <div className="space-y-3">
-                            {module.lessons.map((lesson: any) => (
-                              <button
-                                key={lesson.id || lesson.slug}
-                                onClick={() => handleLessonOpen(lesson)}
-                                className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left ${lesson.free || isPro ? "bg-background/30 border-border/40 hover:border-primary/40 hover:bg-background/50" : "bg-background/10 border-dashed border-border/20 opacity-50 cursor-not-allowed"}`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  {lesson.free || isPro ? (
-                                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                                  ) : (
-                                    <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                                  )}
-                                  <span className="text-[11px] font-medium tracking-tight font-sans">
-                                    {lesson.title}
-                                  </span>
-                                </div>
-                                {lesson.free || isPro ? (
-                                  <ArrowRight className="w-3 h-3 text-primary" />
-                                ) : (
-                                  <span className="text-[9px] font-bold text-muted-foreground/40 uppercase">
-                                    SERIES_A
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <PlaybookTab
+                      activePlaybook={activePlaybook}
+                      isPro={isPro}
+                      onLessonOpen={handleLessonOpen}
+                    />
                   )}
 
-                  {activeTab === "path" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {[
-                        {
-                          title: "Free",
-                          sub: "Foundations",
-                          icon: BookOpen,
-                          val: "Knowledge",
-                          detail:
-                            "Foundational blueprints and weekly market tracking.",
-                        },
-                        {
-                          title: "Pro",
-                          sub: "Industrial",
-                          icon: Zap,
-                          val: "Execution",
-                          detail:
-                            "Premium toolkits, scripts, and private community access.",
-                        },
-                        {
-                          title: "Max",
-                          sub: "Venture Elite",
-                          icon: Layers,
-                          val: "Leverage",
-                          detail:
-                            "Direct advisory, advanced networking, and scaling secrets.",
-                        },
-                        {
-                          title: "Incubator",
-                          sub: "Alliance",
-                          icon: Star,
-                          val: "Partnership",
-                          detail:
-                            "0-to-1 building, equity alignment, and exit strategy.",
-                        },
-                      ].map((tier) => (
-                        <div
-                          key={tier.title}
-                          className="bg-card/40 border border-border/20 p-8 rounded-[2.5rem] relative group hover:border-primary/30 transition-all backdrop-blur-sm"
-                        >
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                              <tier.icon className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <h3 className="font-serif text-2xl mb-0.5">
-                                {tier.title}
-                              </h3>
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                                {tier.sub}
-                              </p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                            {tier.detail}
-                          </p>
-                          <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 text-center font-bold text-[10px] uppercase tracking-tighter text-primary">
-                            POWERED BY: {tier.val}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {activeTab === "path" && <PathTab />}
                   {activeTab === "engine" && (
                     <div className="space-y-6">
                       <ContextManager />
@@ -1172,402 +990,27 @@ export default function UserPortal() {
                     </div>
                   )}
                   {activeTab === "vault" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {currentPastIssues.map((issue) => (
-                        <div
-                          key={issue.number}
-                          className={`group relative p-8 rounded-[2.5rem] border transition-all overflow-hidden ${
-                            issue.isBonus
-                              ? "bg-primary/[0.03] border-primary/40 shadow-[0_0_40px_rgba(249,115,22,0.15)]"
-                              : "bg-card/40 border-border/20 hover:border-primary/20 backdrop-blur-sm shadow-xl shadow-primary/[0.02]"
-                          }`}
-                        >
-                          {issue.isBonus && (
-                            <div className="absolute top-4 right-4 flex items-center gap-2">
-                              <Sparkles className="w-3.5 h-3.5 text-primary" />
-                              <span className="text-[8px] font-bold text-primary uppercase tracking-[0.2em]">
-                                Bonus Unlock
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-4 mb-6">
-                            <div
-                              className={`w-10 h-10 rounded-2xl flex items-center justify-center font-mono font-bold shrink-0 ${issue.isBonus ? "bg-primary text-white shadow-lg shadow-primary/20 text-[9px]" : "bg-primary/10 text-primary border border-primary/20 text-xs"}`}
-                            >
-                              {issue.isBonus ? "MB" : issue.number}
-                            </div>
-                            <div>
-                              <h3 className="font-serif text-xl group-hover:text-primary transition-colors leading-tight">
-                                {issue.title}
-                              </h3>
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                {issue.category}
-                              </p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed mb-6 opacity-60 line-clamp-2">
-                            {issue.tagline}
-                          </p>
-
-                          <button
-                            onClick={() => handleIssueOpen(issue)}
-                            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary group-hover:gap-3 transition-all"
-                          >
-                            Access Blueprint <ArrowRight className="w-3 h-3" />
-                          </button>
-
-                          {!isPro && !issue.isBonus && (
-                            <div className="absolute inset-0 bg-background/80 backdrop-blur-[6px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                              <div className="bg-card border border-border/40 p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center max-w-[220px]">
-                                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                                  <Lock className="w-6 h-6 text-primary" />
-                                </div>
-                                <p className="text-[10px] font-bold text-center uppercase tracking-widest mb-6 opacity-60">
-                                  Pro & Max access only
-                                </p>
-                                <button
-                                  onClick={handleUpgradeClick}
-                                  className="w-full bg-primary text-white text-[10px] font-bold py-3.5 rounded-full uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.05] transition-transform"
-                                >
-                                  Unlock Full Archive
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <VaultTab
+                      currentPastIssues={currentPastIssues}
+                      isPro={isPro}
+                      onIssueOpen={handleIssueOpen}
+                      onUpgradeClick={handleUpgradeClick}
+                    />
                   )}
 
                   {activeTab === "alliance" && (
-                    <div className="space-y-16">
-                      {/* Global Nexus: 3D Visualization */}
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
-                        <div className="lg:col-span-1 space-y-8">
-                          <div>
-                            <div className="flex items-center gap-3 mb-4">
-                              <Globe className="w-5 h-5 text-primary animate-spin-slow" />
-                              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
-                                Global_Nexus // Live_Network
-                              </p>
-                            </div>
-                            <h2 className="font-serif text-5xl mb-6">
-                              The Alliance Pulse.
-                            </h2>
-                            <p className="text-muted-foreground leading-relaxed">
-                              Visualize the global surge of building activity.
-                              You aren't just building a startup; you're part of
-                              a synchronized movement.
-                            </p>
-                          </div>
-
-                          <div className="p-6 rounded-[2.5rem] bg-card/40 border border-border/40 backdrop-blur-md">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-4">
-                              LIVE_ACTIVITY_FEED
-                            </p>
-                            <div className="space-y-4">
-                              {[
-                                {
-                                  user: "Founder_72",
-                                  action: "Completed Blueprint Phase 1",
-                                  time: "2m ago",
-                                },
-                                {
-                                  user: "Nexus_Alpha",
-                                  action: "Initialized Marketplace Asset",
-                                  time: "5m ago",
-                                },
-                                {
-                                  user: "Builder_Zero",
-                                  action: "Referral Reward Claimed",
-                                  time: "12m ago",
-                                },
-                              ].map((item, i) => (
-                                <div
-                                  key={i}
-                                  className="flex items-center justify-between text-[11px]"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="font-mono text-primary">
-                                      {item.user}
-                                    </span>
-                                    <span className="text-muted-foreground ml-1">
-                                      {item.action}
-                                    </span>
-                                  </div>
-                                  <span className="text-[9px] opacity-40 font-mono">
-                                    {item.time}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="lg:col-span-2 relative h-[500px] flex items-center justify-center overflow-hidden rounded-[4rem] bg-gradient-to-b from-primary/5 to-transparent border border-primary/10">
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] opacity-20" />
-                          <CobeGlobe
-                            className="w-[800px] h-[800px] opacity-80"
-                            markerSize={0.05}
-                            markers={[
-                              {
-                                id: "1",
-                                location: [37.7749, -122.4194],
-                                label: "SF",
-                              },
-                              {
-                                id: "2",
-                                location: [51.5074, -0.1278],
-                                label: "LON",
-                              },
-                              {
-                                id: "3",
-                                location: [1.3521, 103.8198],
-                                label: "SGP",
-                              },
-                              {
-                                id: "4",
-                                location: [19.076, 72.8777],
-                                label: "MUM",
-                              },
-                            ]}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="h-px bg-border/40" />
-                      {/* Own Profile Management */}
-                      {!myWallProfile ? (
-                        <div className="p-10 rounded-[3rem] bg-primary/5 border border-primary/20 backdrop-blur-md relative overflow-hidden group">
-                          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] -mr-32 -mt-32" />
-                          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                            <div className="max-w-xl">
-                              <div className="flex items-center gap-3 mb-4">
-                                <div className="px-3 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-black tracking-widest">
-                                  ECOSYSTEM_JOIN
-                                </div>
-                              </div>
-                              <h2 className="font-serif text-4xl mb-4">
-                                Join The Alliance.
-                              </h2>
-                              <p className="text-muted-foreground text-sm leading-relaxed">
-                                Put your startup on the map. Connect with other
-                                founders building on the Builder Brief stack.
-                                Pro members get featured status.
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => {
-                                // Quick join with existing context
-                                const data = {
-                                  name:
-                                    user?.user_metadata?.full_name ||
-                                    user?.email?.split("@")[0],
-                                  startupName: "Stealth Mode",
-                                  sector: "SaaS",
-                                  stage: "Idea",
-                                  bio: "Building something new.",
-                                };
-                                fetch("/api/walls/me", {
-                                  method: "POST",
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                    Authorization: `Bearer ${session?.access_token}`,
-                                  },
-                                  body: JSON.stringify(data),
-                                })
-                                  .then((res) => res.json())
-                                  .then((p) => {
-                                    setMyWallProfile(p);
-                                    setWallMembers((prev) => [p, ...prev]);
-                                    toast.success("Welcome to the Alliance.");
-                                  });
-                              }}
-                              className="px-10 py-5 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20"
-                            >
-                              Initialize Profile
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-6 rounded-2xl bg-card border border-border/40 flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                              {myWallProfile.name[0]}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold">
-                                {myWallProfile.name}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                Your profile is{" "}
-                                {myWallProfile.isVisible ? "visible" : "hidden"}
-                              </p>
-                            </div>
-                          </div>
-                          <button className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">
-                            Edit Profile
-                          </button>
-                        </div>
-                      )}
-
-                      <div className="h-px bg-border/40" />
-
-                      {/* Co-Founder Nexus: AI Matching */}
-                      {scorecard && (
-                        <div className="p-10 rounded-[3rem] bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 relative overflow-hidden">
-                          <div className="absolute top-0 right-0 p-8 opacity-10">
-                            <Zap className="w-20 h-20 text-primary" />
-                          </div>
-                          <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-4">
-                              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                              <p className="text-[10px] font-black uppercase tracking-widest text-primary">
-                                Nexus_Matching // Talent_Layer
-                              </p>
-                            </div>
-                            <h2 className="font-serif text-4xl mb-6">
-                              Co-Founder Matches.
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                              {wallMembers
-                                .filter((m) => m.id !== myWallProfile?.id)
-                                .slice(0, 3)
-                                .map((match, i) => (
-                                  <div
-                                    key={i}
-                                    className="p-8 rounded-[2.5rem] bg-background/60 border border-border/40 backdrop-blur-sm group hover:border-primary/40 transition-all"
-                                  >
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-primary mb-4">
-                                      92%_COMPATIBILITY
-                                    </p>
-                                    <h3 className="font-serif text-2xl mb-2">
-                                      {match.name}
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground mb-6">
-                                      Looking for:{" "}
-                                      <span className="text-primary font-bold">
-                                        {
-                                          (match.lookingFor || [
-                                            "GTM Support",
-                                          ])[0]
-                                        }
-                                      </span>
-                                    </p>
-                                    <button className="w-full py-4 rounded-2xl bg-primary/5 border border-primary/20 text-[10px] font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
-                                      Request Intro
-                                    </button>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="h-px bg-border/40" />
-
-                      <div>
-                        <div className="flex items-center justify-between mb-8">
-                          <h3 className="font-serif text-3xl">
-                            Vetted Directory
-                          </h3>
-                          {!myWallProfile && (
-                            <button
-                              onClick={() => setShowJoinAlliance(true)}
-                              className="px-6 py-3 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-primary/20"
-                            >
-                              Initialize Profile
-                            </button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {activeAlliance.map((member) => (
-                            <div
-                              key={member.id}
-                              onClick={() => setSelectedMember(member)}
-                              className={`p-8 rounded-[2.5rem] bg-card/40 border ${member.is_featured ? "border-primary/40 shadow-primary/[0.05]" : "border-border/20"} backdrop-blur-sm relative group hover:border-primary/40 transition-all overflow-hidden shadow-xl cursor-pointer`}
-                            >
-                              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl" />
-                              <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-6">
-                                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                    <UsersIcon className="w-6 h-6" />
-                                  </div>
-                                  <Badge
-                                    className={`border-none text-[8px] tracking-[0.2em] px-3 py-1 ${member.status === "exited" ? "bg-emerald-500/10 text-emerald-500" : member.status === "scaling" || member.is_featured ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
-                                  >
-                                    {(
-                                      member.status ||
-                                      (member.is_featured ? "PRO" : "BUILDING")
-                                    ).toUpperCase()}
-                                  </Badge>
-                                </div>
-                                <h3 className="font-serif text-2xl mb-1">
-                                  {member.name}
-                                </h3>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60 mb-4">
-                                  {member.role || member.sector || "FOUNDER"}
-                                </p>
-
-                                {member.skills && (
-                                  <div className="flex flex-wrap gap-1.5 mb-6">
-                                    {member.skills.map((s: string) => (
-                                      <Badge
-                                        key={s}
-                                        variant="outline"
-                                        className="text-[7px] py-0 border-primary/10 text-primary/80"
-                                      >
-                                        {s.toUpperCase()}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-
-                                <div className="space-y-4 pt-4 border-t border-border/20">
-                                  <div>
-                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">
-                                      {member.specialty ? "Specialty" : "Stage"}
-                                    </p>
-                                    <p className="text-xs font-medium">
-                                      {member.specialty || member.stage}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">
-                                      Active Venture
-                                    </p>
-                                    <p className="text-xs font-serif italic text-primary">
-                                      {member.currentVenture ||
-                                        member.startupName}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-primary/10">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{
-                                    width:
-                                      member.status === "exited"
-                                        ? "100%"
-                                        : member.status === "scaling" ||
-                                            member.is_featured
-                                          ? "70%"
-                                          : "30%",
-                                  }}
-                                  transition={{
-                                    duration: 1.5,
-                                    ease: "easeOut",
-                                  }}
-                                  className="h-full bg-primary"
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <AllianceTab
+                      activeAlliance={activeAlliance}
+                      myWallProfile={myWallProfile}
+                      setMyWallProfile={setMyWallProfile}
+                      setWallMembers={setWallMembers}
+                      setSelectedMember={setSelectedMember}
+                      setShowJoinAlliance={setShowJoinAlliance}
+                      scorecard={scorecard}
+                      wallMembers={wallMembers}
+                      session={session}
+                      user={user}
+                    />
                   )}
 
                   {activeTab === "performance" && (
@@ -1584,32 +1027,38 @@ export default function UserPortal() {
                             roadmap.
                           </p>
                           <button
+                            disabled={engineBusy}
                             onClick={async () => {
+                              setEngineBusy(true);
                               const tid = toast.loading(
                                 "Analyzing startup context...",
                               );
-                              const res = await fetch(
-                                "/api/scorecard/generate",
-                                {
-                                  method: "POST",
-                                  headers: {
-                                    Authorization: `Bearer ${session?.access_token}`,
+                              try {
+                                const res = await fetch(
+                                  "/api/scorecard/generate",
+                                  {
+                                    method: "POST",
+                                    headers: {
+                                      Authorization: `Bearer ${session?.access_token}`,
+                                    },
                                   },
-                                },
-                              );
-                              if (res.ok) {
-                                const data = await res.json();
-                                setScorecard(data);
-                                toast.success("Scorecard Generated", {
-                                  id: tid,
-                                });
-                              } else {
-                                toast.error("Analysis failed", { id: tid });
+                                );
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setScorecard(data);
+                                  toast.success("Scorecard Generated", {
+                                    id: tid,
+                                  });
+                                } else {
+                                  toast.error("Analysis failed", { id: tid });
+                                }
+                              } finally {
+                                setEngineBusy(false);
                               }
                             }}
-                            className="px-12 py-5 rounded-[2rem] bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20"
+                            className="px-12 py-5 rounded-[2rem] bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                           >
-                            Generate Diagnostic
+                            {engineBusy ? "Analyzing…" : "Generate Diagnostic"}
                           </button>
                         </div>
                       ) : (
@@ -1854,45 +1303,51 @@ export default function UserPortal() {
 
                             {(referralData?.referralCount || 0) >= 3 && (
                               <button
+                                disabled={milestoneBusy}
                                 onClick={async () => {
+                                  setMilestoneBusy(true);
                                   const tid = toast.loading(
                                     "Verifying milestones...",
                                   );
-                                  const res = await fetch(
-                                    "/api/referrals/verify-milestone",
-                                    {
-                                      method: "POST",
-                                      headers: {
-                                        Authorization: `Bearer ${session?.access_token}`,
+                                  try {
+                                    const res = await fetch(
+                                      "/api/referrals/verify-milestone",
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          Authorization: `Bearer ${session?.access_token}`,
+                                        },
                                       },
-                                    },
-                                  );
-                                  if (res.ok) {
-                                    const data = await res.json();
-                                    if (data.upgraded) {
-                                      toast.success(
-                                        `Milestone Verified! Tier upgraded to ${data.currentTier.toUpperCase()}.`,
-                                        { id: tid },
-                                      );
-                                      setTimeout(
-                                        () => window.location.reload(),
-                                        2000,
-                                      );
+                                    );
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      if (data.upgraded) {
+                                        toast.success(
+                                          `Milestone Verified! Tier upgraded to ${data.currentTier.toUpperCase()}.`,
+                                          { id: tid },
+                                        );
+                                        setTimeout(
+                                          () => window.location.reload(),
+                                          2000,
+                                        );
+                                      } else {
+                                        toast.info(
+                                          "No new milestones to claim yet.",
+                                          { id: tid },
+                                        );
+                                      }
                                     } else {
-                                      toast.info(
-                                        "No new milestones to claim yet.",
-                                        { id: tid },
-                                      );
+                                      toast.error("Verification failed", {
+                                        id: tid,
+                                      });
                                     }
-                                  } else {
-                                    toast.error("Verification failed", {
-                                      id: tid,
-                                    });
+                                  } finally {
+                                    setMilestoneBusy(false);
                                   }
                                 }}
-                                className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-emerald-500/20"
+                                className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                               >
-                                Claim Tier Upgrade
+                                {milestoneBusy ? "Verifying…" : "Claim Tier Upgrade"}
                               </button>
                             )}
                           </div>
@@ -1971,34 +1426,40 @@ export default function UserPortal() {
                                 </p>
 
                                 <button
+                                  disabled={engineBusy}
                                   onClick={async () => {
+                                    setEngineBusy(true);
                                     const tid = toast.loading(
                                       "Synthesizing roadmap...",
                                     );
-                                    const res = await fetch(
-                                      "/api/engine/roadmap",
-                                      {
-                                        method: "POST",
-                                        headers: {
-                                          Authorization: `Bearer ${session?.access_token}`,
+                                    try {
+                                      const res = await fetch(
+                                        "/api/engine/roadmap",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            Authorization: `Bearer ${session?.access_token}`,
+                                          },
                                         },
-                                      },
-                                    );
-                                    if (res.ok) {
-                                      const data = await res.json();
-                                      setPersonalizedBrief(data.roadmap);
-                                      toast.success("Roadmap Generated", {
-                                        id: tid,
-                                      });
-                                    } else {
-                                      toast.error("Synthesis failed", {
-                                        id: tid,
-                                      });
+                                      );
+                                      if (res.ok) {
+                                        const data = await res.json();
+                                        setPersonalizedBrief(data.roadmap);
+                                        toast.success("Roadmap Generated", {
+                                          id: tid,
+                                        });
+                                      } else {
+                                        toast.error("Synthesis failed", {
+                                          id: tid,
+                                        });
+                                      }
+                                    } finally {
+                                      setEngineBusy(false);
                                     }
                                   }}
-                                  className="px-8 py-4 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20"
+                                  className="px-8 py-4 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 >
-                                  Generate Roadmap
+                                  {engineBusy ? "Synthesizing…" : "Generate Roadmap"}
                                 </button>
                               </div>
                             </div>
@@ -2021,34 +1482,40 @@ export default function UserPortal() {
                                 </p>
 
                                 <button
+                                  disabled={engineBusy}
                                   onClick={async () => {
+                                    setEngineBusy(true);
                                     const tid = toast.loading(
                                       "Analyzing investor fit...",
                                     );
-                                    const res = await fetch(
-                                      "/api/engine/investor-matches",
-                                      {
-                                        method: "POST",
-                                        headers: {
-                                          Authorization: `Bearer ${session?.access_token}`,
+                                    try {
+                                      const res = await fetch(
+                                        "/api/engine/investor-matches",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            Authorization: `Bearer ${session?.access_token}`,
+                                          },
                                         },
-                                      },
-                                    );
-                                    if (res.ok) {
-                                      const data = await res.json();
-                                      setPersonalizedBrief(data.matches);
-                                      toast.success("Matches Found", {
-                                        id: tid,
-                                      });
-                                    } else {
-                                      toast.error("Analysis failed", {
-                                        id: tid,
-                                      });
+                                      );
+                                      if (res.ok) {
+                                        const data = await res.json();
+                                        setPersonalizedBrief(data.matches);
+                                        toast.success("Matches Found", {
+                                          id: tid,
+                                        });
+                                      } else {
+                                        toast.error("Analysis failed", {
+                                          id: tid,
+                                        });
+                                      }
+                                    } finally {
+                                      setEngineBusy(false);
                                     }
                                   }}
-                                  className="px-8 py-4 rounded-2xl bg-background border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all"
+                                  className="px-8 py-4 rounded-2xl bg-background border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 >
-                                  Find Matches
+                                  {engineBusy ? "Analyzing…" : "Find Matches"}
                                 </button>
                               </div>
                             </div>
@@ -2088,146 +1555,13 @@ export default function UserPortal() {
                     </div>
                   )}
                   {activeTab === "arsenal" && (
-                    <div className="space-y-12">
-                      {/* Premium Marketplace Section */}
-                      <div>
-                        <div className="flex items-center gap-3 mb-8">
-                          <Sparkles className="w-6 h-6 text-primary" />
-                          <h2 className="font-serif text-4xl">
-                            Premium Blueprints
-                          </h2>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                          {products.map((product) => {
-                            const isOwned = ownedProducts.some(
-                              (p) => p.productId === product.id,
-                            );
-                            return (
-                              <div
-                                key={product.id}
-                                className="p-8 rounded-[2.5rem] bg-card border border-border/40 relative overflow-hidden group hover:border-primary/40 transition-all"
-                              >
-                                <div className="absolute top-0 right-0 p-8 text-primary/10 group-hover:scale-110 transition-transform">
-                                  <Boxes className="w-16 h-16" />
-                                </div>
-                                <div className="relative z-10">
-                                  <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-                                    {product.category.toUpperCase()}
-                                  </Badge>
-                                  <h3 className="font-serif text-2xl mb-2">
-                                    {product.name}
-                                  </h3>
-                                  <p className="text-xs text-muted-foreground mb-8 line-clamp-2">
-                                    {product.description}
-                                  </p>
-
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-mono text-xl font-bold">
-                                      ${product.price}
-                                    </span>
-                                    {isOwned ? (
-                                      <button className="px-6 py-3 rounded-xl bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-                                        OWNED
-                                      </button>
-                                    ) : (
-                                      <button className="px-6 py-3 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-primary/20">
-                                        ACQUIRE_ASSET
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="h-px bg-border/40" />
-
-                      <div className="relative">
-                        <div className="flex items-center gap-3 mb-8">
-                          <Terminal className="w-6 h-6 text-primary" />
-                          <h2 className="font-serif text-4xl">
-                            Operator Tooling
-                          </h2>
-                        </div>
-                        <div
-                          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${!isPro ? "pointer-events-none select-none opacity-40" : ""}`}
-                        >
-                          {arsenalTools.map((tool) => (
-                            <div
-                              key={tool.id}
-                              className="p-8 rounded-[2.5rem] bg-background border border-border/60 group relative overflow-hidden shadow-lg shadow-black/[0.02]"
-                            >
-                              <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <p className="font-mono text-4xl font-black">
-                                  {tool.logo}
-                                </p>
-                              </div>
-                              <div className="relative z-10 h-full flex flex-col">
-                                <div className="mb-8">
-                                  <Badge
-                                    variant="outline"
-                                    className="border-primary/20 text-primary text-[8px] tracking-[0.2em] mb-4"
-                                  >
-                                    {tool.category.toUpperCase()} TOOL
-                                  </Badge>
-                                  <h3 className="font-serif text-3xl mb-2">
-                                    {tool.name}
-                                  </h3>
-                                  <p className="text-xs text-muted-foreground leading-relaxed font-sans">
-                                    {tool.description}
-                                  </p>
-                                </div>
-                                <div className="mt-auto">
-                                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 mb-6">
-                                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-primary mb-1">
-                                      Founder Advantage
-                                    </p>
-                                    <p className="text-[11px] font-medium italic">
-                                      {tool.perk}
-                                    </p>
-                                  </div>
-                                  <button
-                                    onClick={() => handleDeploy(tool)}
-                                    className="w-full py-4 border border-border/60 hover:border-primary/40 rounded-2xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
-                                  >
-                                    Deploy Stack{" "}
-                                    <ExternalLink className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Coming Soon overlay for Free tier */}
-                        {!isPro && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="bg-card/90 backdrop-blur-md border border-primary/20 rounded-[3rem] p-12 text-center shadow-2xl shadow-primary/10 max-w-sm mx-auto">
-                              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                                <Boxes className="w-8 h-8 text-primary" />
-                              </div>
-                              <Badge className="bg-primary text-white border-none text-[8px] tracking-[0.3em] mb-4">
-                                PRO & MAX EXCLUSIVE
-                              </Badge>
-                              <h3 className="font-serif text-3xl mb-3">
-                                Leverage Arsenal
-                              </h3>
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                Full tool integrations and one-click deployment
-                                rails are locked. Upgrade to access.
-                              </p>
-                              <button
-                                onClick={handleUpgradeClick}
-                                className="mt-6 w-full py-4 bg-primary text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform"
-                              >
-                                Unlock Arsenal
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <ArsenalTab
+                      products={products}
+                      ownedProducts={ownedProducts}
+                      isPro={isPro}
+                      onDeploy={handleDeploy}
+                      onUpgradeClick={handleUpgradeClick}
+                    />
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -2380,478 +1714,21 @@ export default function UserPortal() {
           {/* Section below VOTW removed as it was moved above */}
 
           {/* Right Sidebar Intelligence Feed (4 columns) */}
-          <div className="lg:col-span-4 space-y-10">
-            {/* The Intelligence Feed (formerly Daily Edge) */}
-            <div className="sticky top-28 space-y-8">
-              {/* Redesigned Foundry Terminal Widget - Premium Industrial Cream */}
-              <div className="p-8 rounded-[2.5rem] bg-card/40 border border-primary/20 relative overflow-hidden group shadow-2xl shadow-primary/[0.03] backdrop-blur-xl hover:border-primary/40 transition-colors duration-500">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl animate-pulse" />
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-primary/20" />
-                        <div className="w-2 h-2 rounded-full bg-primary/40" />
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
-                      </div>
-                      <Activity className="w-3.5 h-3.5 text-primary ml-2 animate-telemetry" />
-                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/70">
-                        FOUNDRY_TELEMETRY
-                      </span>
-                    </div>
-                    <Badge className="bg-primary/5 text-primary text-[8px] border-primary/20 px-3">
-                      ACTIVE_SYNC
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-4 font-mono text-[10px] text-muted-foreground leading-relaxed min-h-[120px]">
-                    {telemetryLogs.map((log, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, x: -5 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex gap-3"
-                      >
-                        <span className="text-primary/30">
-                          [
-                          {new Date().toLocaleTimeString([], { hour12: false })}
-                          ]
-                        </span>
-                        <span>{log}</span>
-                      </motion.div>
-                    ))}
-                    <motion.div
-                      animate={{ opacity: [1, 0] }}
-                      transition={{ repeat: Infinity, duration: 0.8 }}
-                      className="w-2 h-3 bg-primary/50"
-                    />
-                  </div>
-                </div>
-                {/* Digital scanline effect */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.05] to-transparent h-10 w-full animate-scanline pointer-events-none" />
-              </div>
-
-              <div className="p-8 rounded-[2.5rem] bg-card border border-primary/20 relative overflow-hidden group shadow-2xl shadow-primary/[0.05]">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl" />
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 rounded-full bg-red-400/20" />
-                        <div className="w-2 h-2 rounded-full bg-amber-400/20" />
-                        <div className="w-2 h-2 rounded-full bg-emerald-400/20" />
-                      </div>
-                      <Terminal className="w-3.5 h-3.5 text-primary ml-2" />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">
-                        Signals_Feed
-                      </span>
-                    </div>
-                    <Badge className="bg-primary/10 text-primary text-[8px] tracking-tight border-primary/20">
-                      LIVE_24H
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-6 relative">
-                    {/* Scanline effect */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent h-2 w-full animate-scanline pointer-events-none" />
-
-                    <div>
-                      <h3 className="font-serif text-2xl mb-2 group-hover:text-primary transition-colors">
-                        {dailyEdge.title}
-                      </h3>
-                      <p className="text-[9px] uppercase font-bold tracking-widest text-primary/60 mb-6 flex items-center gap-2">
-                        {dailyEdge.category}{" "}
-                        <span className="w-1 h-1 rounded-full bg-primary/30" />{" "}
-                        {dailyEdge.value}
-                      </p>
-
-                      {/* AI Personalized Application */}
-                      {personalizedBrief && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mb-6 p-5 rounded-2xl bg-primary/10 border border-primary/20 relative overflow-hidden group/ai"
-                        >
-                          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover/ai:rotate-12 transition-transform">
-                            <Cpu className="w-6 h-6" />
-                          </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-3 h-3 text-primary animate-pulse" />
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                              Founder_Alignment
-                            </p>
-                          </div>
-                          <p className="text-[11px] font-medium leading-relaxed italic text-foreground">
-                            "{personalizedBrief}"
-                          </p>
-                        </motion.div>
-                      )}
-
-                      <div className="p-5 rounded-2xl bg-background/60 border border-primary/20 font-mono text-xs leading-relaxed text-foreground/80 mb-6 relative group overflow-hidden">
-                        <motion.span
-                          animate={{ opacity: [1, 0] }}
-                          transition={{ repeat: Infinity, duration: 0.8 }}
-                          className="absolute left-5 top-5 text-primary"
-                        >
-                          _
-                        </motion.span>
-                        <div className="pl-4">{dailyEdge.content}</div>
-                      </div>
-                      <button
-                        onClick={copyHack}
-                        className="group/btn flex items-center gap-2 text-primary font-bold text-[10px] uppercase tracking-[0.2em] hover:translate-x-1 transition-all"
-                      >
-                        {dailyEdge.actionLabel}
-                        <div className="relative overflow-hidden w-3 h-3">
-                          <Copy className="w-3 h-3 transition-transform group-hover/btn:-translate-y-full" />
-                          <Copy className="w-3 h-3 absolute top-full transition-transform group-hover/btn:-translate-y-full" />
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Momentum & Goal Rail */}
-              <div className="p-8 rounded-[2.5rem] bg-primary/[0.03] border border-border/40 backdrop-blur-sm">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Map className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest">
-                    Roadmap Status
-                  </span>
-                </div>
-                <div className="space-y-8 relative">
-                  <div className="absolute left-4 top-2 bottom-2 w-px bg-border/40" />
-                  {roadmapSteps.map((step, idx) => {
-                    const isLockedForUser = (step as any).proOnly && !isPro;
-                    return (
-                      <div
-                        key={idx}
-                        className={`relative pl-10 group cursor-pointer`}
-                        onClick={() =>
-                          !isLockedForUser && toggleStep(step.title)
-                        }
-                      >
-                        <div
-                          className={`absolute left-0 top-0 w-8 h-8 rounded-full border-2 flex items-center justify-center z-10 transition-colors ${
-                            completedSteps.includes(step.title)
-                              ? "bg-primary border-primary"
-                              : isLockedForUser
-                                ? "bg-background border-border/30"
-                                : "bg-background border-border"
-                          }`}
-                        >
-                          {completedSteps.includes(step.title) ? (
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          ) : isLockedForUser ? (
-                            <Lock className="w-3 h-3 text-muted-foreground/40" />
-                          ) : (
-                            <span className="text-[10px] font-bold">
-                              {idx + 1}
-                            </span>
-                          )}
-                        </div>
-
-                        <div
-                          className={`transition-transform group-hover:translate-x-1 ${isLockedForUser ? "select-none" : ""}`}
-                        >
-                          <h4
-                            className={`text-xs font-bold uppercase tracking-widest mb-1 ${completedSteps.includes(step.title) ? "text-primary" : isLockedForUser ? "text-muted-foreground/40" : "text-foreground"}`}
-                          >
-                            {step.title}
-                          </h4>
-                          <p
-                            className={`text-[10px] mb-2 ${isLockedForUser ? "text-muted-foreground/30" : "text-muted-foreground"}`}
-                          >
-                            {step.day}
-                          </p>
-                          {isLockedForUser ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleUpgradeClick();
-                              }}
-                              className="text-[8px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors"
-                            >
-                              Unlock with Pro →
-                            </button>
-                          ) : (
-                            completedSteps.includes(step.title) && (
-                              <Badge className="bg-primary/10 text-primary text-[8px] py-0 border-none">
-                                COMPLETE
-                              </Badge>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {!isPro && (
-                  <button
-                    onClick={handleUpgradeClick}
-                    className="mt-10 w-full py-4 rounded-2xl bg-foreground text-background text-xs font-bold uppercase tracking-widest hover:bg-primary transition-all"
-                  >
-                    Unlock Days 11–21 →
-                  </button>
-                )}
-              </div>
-
-              {/* Friday Drop Teaser — Free + Pro only */}
-              {(tier === "free" || tier === "pro") &&
-                (() => {
-                  const dropPct = getFridayDropProgress();
-                  const teaser = getFridayDropTeaser();
-                  const isFriday = new Date().getDay() === 5;
-                  return (
-                    <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-card to-card/40 border border-primary/30 relative overflow-hidden group shadow-2xl shadow-primary/[0.08]">
-                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 blur-[80px] group-hover:bg-primary/20 transition-colors" />
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-primary" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">
-                              Friday Drop
-                            </span>
-                          </div>
-                          {isFriday ? (
-                            <Badge className="bg-primary text-white text-[8px] border-none">
-                              LIVE NOW
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-primary/20 text-primary text-[8px] animate-pulse border-primary/30">
-                              IN PROGRESS
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Tease the niche only — full title on Friday */}
-                        <p className="text-[9px] uppercase font-bold tracking-widest text-primary/60 mb-2">
-                          {teaser.niche} // This Week's Signal
-                        </p>
-                        <h3
-                          className={`font-serif text-2xl mb-2 group-hover:text-primary transition-colors ${!isFriday ? "blur-[3px] select-none" : ""}`}
-                        >
-                          {isFriday
-                            ? "This Week's Blueprint — Full Access"
-                            : "Classified Until Friday 09:00 AM"}
-                        </h3>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed italic mb-6">
-                          "{teaser.hook}"
-                        </p>
-
-                        <div className="flex items-center gap-3 opacity-60 mb-6">
-                          <ShieldCheck className="w-4 h-4 text-primary" />
-                          <span className="text-[10px] font-medium">
-                            Technical Audit Status: PASS — Ready for Release
-                          </span>
-                        </div>
-
-                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden mb-2">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${dropPct}%` }}
-                            transition={{ duration: 1.5, ease: "easeOut" }}
-                            className="bg-primary h-full shadow-[0_0_10px_rgba(249,115,22,0.3)]"
-                          />
-                        </div>
-                        <p className="text-[8px] text-right font-bold text-primary/60 uppercase tracking-widest">
-                          {dropPct}% Architected
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-              {/* AI Advisor — Pro/Max only */}
-              {isPro && (
-                <div id="ai-advisor-chat">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                    AI Advisor
-                  </p>
-                  <FounderChat
-                    usedThisMonth={chatUsageThisMonth}
-                    onUsageUpdate={(next) => setChatUsageThisMonth(next)}
-                  />
-                </div>
-              )}
-
-              {/* Context Engine Widget */}
-              <div className="p-8 rounded-[2.5rem] bg-card border border-border/30 relative overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Cpu className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.25em]">
-                    Context Engine
-                  </span>
-                  {startupCtx && (
-                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse ml-auto" />
-                  )}
-                </div>
-                {startupCtx ? (
-                  <>
-                    <p className="text-sm font-serif mb-1 line-clamp-2">
-                      {startupCtx.whatBuilding}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mb-4">
-                      {startupCtx.sector} · {startupCtx.stage}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 mb-4 italic">
-                      "{startupCtx.biggestChallenge}"
-                    </p>
-                    <button
-                      onClick={() => setShowContextModal(true)}
-                      className="text-[9px] font-bold uppercase tracking-widest text-primary hover:underline"
-                    >
-                      Update Context →
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-                      Set your startup context. Every signal, metric, and
-                      blueprint becomes specific to your build.
-                    </p>
-                    <button
-                      onClick={() => setShowContextModal(true)}
-                      className="w-full py-3 rounded-xl bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-                    >
-                      Activate Context →
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* FREE: Weekly Insight + Upgrade CTA */}
-              {tier === "free" && (
-                <>
-                  <div className="p-8 rounded-2xl bg-card/80 border border-primary/20">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Zap className="w-4 h-4 text-primary" />
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-primary">
-                        Weekly Insight
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-xl mb-2">{dailyEdge.title}</h3>
-                    <p className="font-mono text-[10px] text-muted-foreground leading-relaxed line-clamp-3 mb-4">
-                      {dailyEdge.content}
-                    </p>
-                    <button
-                      onClick={copyHack}
-                      className="w-full py-3 rounded-sm bg-primary/10 border border-primary/20 text-[10px] font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-                    >
-                      Copy Insight →
-                    </button>
-                  </div>
-
-                  <div className="p-8 rounded-[2.5rem] border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent">
-                    <div className="flex items-center gap-3 mb-4 text-primary">
-                      <Zap className="w-5 h-5 fill-current" />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-                        Ready to Move Faster?
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-2xl mb-3 italic text-primary">
-                      Stop reading. Start building.
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                      Pro gives you the playbook, market intel, and competitive
-                      analysis. Max adds calls with founders who've raised and
-                      exited.
-                    </p>
-                    <button
-                      onClick={handleUpgradeClick}
-                      className="w-full py-3 bg-primary/10 rounded-xl text-center text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-                    >
-                      See What You're Missing →
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* PRO: Today's Briefing */}
-              {tier === "pro" && (
-                <div className="p-8 rounded-2xl bg-card/80 border border-primary/20">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Terminal className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-primary">
-                      Today's Briefing
-                    </span>
-                  </div>
-                  <h3 className="font-serif text-xl mb-2">{dailyEdge.title}</h3>
-                  <p className="font-mono text-[10px] text-muted-foreground leading-relaxed line-clamp-4 mb-4">
-                    {dailyEdge.content}
-                  </p>
-                  <button
-                    onClick={copyHack}
-                    className="w-full py-3 rounded-sm bg-primary/10 border border-primary/20 text-[10px] font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-                  >
-                    Copy Tactic →
-                  </button>
-                </div>
-              )}
-
-              {/* MAX: Your 100-Day Arc + AI Advisor CTA */}
-              {(tier === "max" || tier === "incubator") && (
-                <>
-                  <div className="p-8 border border-border/20 rounded-none">
-                    <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-6">
-                      Your 100-Day Arc
-                    </p>
-                    <div className="space-y-3">
-                      {roadmapSteps.map((step, idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => toggleStep(step.title)}
-                          className="flex items-center gap-3 cursor-pointer group"
-                        >
-                          <div
-                            className={`w-4 h-4 border flex-shrink-0 flex items-center justify-center transition-colors ${completedSteps.includes(step.title) ? "bg-primary border-primary" : "border-border/40 group-hover:border-primary/40"}`}
-                          >
-                            {completedSteps.includes(step.title) && (
-                              <CheckCircle className="w-3 h-3 text-white" />
-                            )}
-                          </div>
-                          <div>
-                            <p
-                              className={`text-xs ${completedSteps.includes(step.title) ? "text-primary line-through" : "text-foreground"}`}
-                            >
-                              {step.title}
-                            </p>
-                            <p className="text-[9px] text-muted-foreground/60">
-                              {step.day}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div
-                    id="ai-advisor"
-                    className="p-8 border border-primary/20 rounded-none bg-primary/5"
-                  >
-                    <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-3">
-                      Your AI Advisor
-                    </p>
-                    <p className="font-serif text-lg mb-4">
-                      You have {20 - chatUsageThisMonth} sessions this month.
-                      Use them.
-                    </p>
-                    <a
-                      href="#ai-advisor-chat"
-                      className="block w-full py-3 border border-primary/30 text-center text-[10px] uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-                    >
-                      Open Advisor →
-                    </a>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <IntelligenceFeed
+            tier={tier}
+            isPro={isPro}
+            telemetryLogs={telemetryLogs}
+            dailyEdge={dailyEdge}
+            personalizedBrief={personalizedBrief}
+            completedSteps={completedSteps}
+            startupCtx={startupCtx}
+            chatUsageThisMonth={chatUsageThisMonth}
+            onCopyHack={copyHack}
+            onToggleStep={toggleStep}
+            onUpgradeClick={handleUpgradeClick}
+            onShowContextModal={() => setShowContextModal(true)}
+            onChatUsageUpdate={(next) => setChatUsageThisMonth(next)}
+          />
         </div>
       </main>
 

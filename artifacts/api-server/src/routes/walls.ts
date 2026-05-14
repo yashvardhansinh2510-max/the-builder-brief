@@ -5,15 +5,19 @@ import { verifyUser } from "../middleware/verifyUser";
 
 const router: IRouter = Router();
 
-// GET /api/walls — Fetch all visible founder profiles
+// GET /api/walls — Fetch visible founder profiles (paginated)
 router.get("/walls", async (req, res) => {
+  const limit = Math.min(parseInt(String(req.query.limit ?? "50"), 10) || 50, 200);
+  const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10) || 0, 0);
   try {
     const profiles = await db.select()
       .from(wallsTable)
       .where(eq(wallsTable.isVisible, true))
-      .orderBy(desc(wallsTable.isFeatured), desc(wallsTable.createdAt));
+      .orderBy(desc(wallsTable.isFeatured), desc(wallsTable.createdAt))
+      .limit(limit)
+      .offset(offset);
 
-    return res.json(profiles);
+    return res.json({ data: profiles, limit, offset });
   } catch (error) {
     return res.status(500).json({ error: "Failed to fetch founder wall" });
   }

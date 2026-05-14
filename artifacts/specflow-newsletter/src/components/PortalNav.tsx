@@ -27,7 +27,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
   return (
     <>
       {/* Primary Nav */}
-      <nav className="border-b border-border/40 py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 bg-background/80 backdrop-blur-xl z-50">
+      <nav className="border-b border-border/40 py-4 px-4 sm:px-6 md:px-12 flex justify-between items-center sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative">
             <img src={logoPath} alt="The Build Brief" className="w-8 h-8 rounded-sm object-cover group-hover:scale-105 transition-transform" />
@@ -37,14 +37,18 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
         </Link>
 
         <div className="flex items-center gap-4 md:gap-6">
-          {/* Tier Badge — only for signed-in users */}
+          {/* Tier Badge — visible on all screen sizes, with full label on lg+ */}
           {isSignedIn && (
-            <div className="hidden lg:flex items-center gap-3 mr-4 border-r border-border/40 pr-6">
-              <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2 lg:mr-4 lg:border-r lg:border-border/40 lg:pr-6">
+              <Badge
+                variant="outline"
+                className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest border-primary/30 text-primary bg-primary/5"
+              >
+                <Star className="w-2.5 h-2.5 mr-1 fill-current" />
+                {tier.toUpperCase()}
+              </Badge>
+              <div className="hidden lg:flex flex-col items-end">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Tier</p>
-                <p className="text-sm font-medium text-primary flex items-center gap-1 uppercase">
-                  <Star className="w-3 h-3 fill-current" /> {tier.toUpperCase()}
-                </p>
               </div>
             </div>
           )}
@@ -52,7 +56,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
           {/* Premium badge */}
           {isSignedIn && isPremium && (
             <Badge
-              className={`px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] shadow-sm hidden sm:flex items-center gap-1.5 ${
+              className={`px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] shadow-sm hidden md:flex items-center gap-1.5 ${
                 tier === "max" || tier === "incubator"
                   ? "rounded-none bg-primary/10 text-primary border border-primary/40"
                   : "rounded-sm bg-amber-500/10 text-amber-700 border border-amber-500/20"
@@ -82,11 +86,11 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
       </nav>
 
       {/* Secondary Nav — Page Switcher */}
-      <div className="border-b border-border/20 bg-card/30 px-6 md:px-12 py-2.5 flex items-center justify-between sticky top-[57px] z-40 backdrop-blur-xl">
-        <div className="flex items-center gap-1">
+      <div className="border-b border-border/20 bg-card/30 px-4 sm:px-6 md:px-12 py-2.5 flex items-center justify-between sticky top-[57px] z-40 backdrop-blur-xl">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1 flex-1 min-w-0">
           {/* Blueprints — always visible */}
           <Link href="/blueprints">
-            <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+            <button className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
               activePage === "blueprints"
                 ? "bg-primary/10 text-primary border border-primary/20"
                 : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
@@ -97,7 +101,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
 
           {/* Ground Game — always visible, between Blueprints and Archive */}
           <Link href="/ground-game">
-            <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1 ${
+            <button className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1 ${
               activePage === "ground-game"
                 ? "bg-primary/10 text-primary border border-primary/20"
                 : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
@@ -109,7 +113,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
 
           {/* Archive — always visible */}
           <Link href="/archive">
-            <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+            <button className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
               activePage === "archive"
                 ? "bg-primary/10 text-primary border border-primary/20"
                 : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
@@ -121,7 +125,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
           {/* Dashboard — only for signed-in users */}
           {isSignedIn && (
             <Link href="/dashboard">
-              <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+              <button className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
                 activePage === "dashboard"
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
@@ -134,7 +138,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
           {/* Premium Portal — only for Pro/Max */}
           {isSignedIn && isPremium && (
             <Link href={premiumPortalPath}>
-              <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${
+              <button className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${
                 activePage === "pro" || activePage === "max"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-primary hover:bg-primary/5 border border-transparent hover:border-primary/20"
@@ -148,7 +152,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
           {/* Daily Drops — Pro/Max only */}
           {isSignedIn && isPremium && (
             <Link href="/daily-drops">
-              <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+              <button className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
                 activePage === "daily-drops"
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
@@ -161,7 +165,7 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
           {/* Build Brief — Pro/Max only */}
           {isSignedIn && isPremium && (
             <Link href="/build-brief">
-              <button className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
+              <button className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
                 activePage === "build-brief"
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-card border border-transparent"
@@ -173,9 +177,9 @@ export default function PortalNav({ activePage }: { activePage: "dashboard" | "p
         </div>
 
         {/* Right side — context label */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2 shrink-0 ml-4">
           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
             {isPremium ? `${tier.toUpperCase()} ACCESS` : "FREE ACCESS"}
           </span>
         </div>

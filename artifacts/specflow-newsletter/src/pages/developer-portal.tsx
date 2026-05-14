@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Copy, Eye, EyeOff, Trash2 } from "lucide-react";
 
 export default function DeveloperPortal() {

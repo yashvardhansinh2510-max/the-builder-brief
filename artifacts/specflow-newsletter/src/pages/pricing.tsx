@@ -1,10 +1,12 @@
-import React from 'react';
-import { Link } from 'wouter';
+import React, { useState } from 'react';
+import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Check, X, ArrowRight } from 'lucide-react';
+import { Check, X, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import PublicNav from '@/components/PublicNav';
+import { usePayments } from '@/lib/usePayments';
+import { useAuth } from '@/lib/AuthContext';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -65,6 +67,30 @@ const TIERS = [
 ];
 
 export default function PricingPage() {
+  const { initiatePayment } = usePayments();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+
+  const handleTierClick = async (tier: typeof TIERS[number]) => {
+    // Free tier just routes to sign-up
+    if (tier.name === 'Free') {
+      setLocation(tier.href);
+      return;
+    }
+    // Paid tiers — must be signed in
+    if (!user) {
+      setLocation('/sign-up?redirect=/pricing');
+      return;
+    }
+    setLoadingTier(tier.name);
+    try {
+      await initiatePayment(tier.name.toLowerCase());
+    } finally {
+      setLoadingTier(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <PublicNav activePage="pricing" />
@@ -120,17 +146,25 @@ export default function PricingPage() {
                 </p>
 
                 <Button
-                  asChild
+                  onClick={() => handleTierClick(tier)}
+                  disabled={loadingTier !== null}
                   className={`w-full mb-8 rounded-lg h-12 font-bold ${
                     tier.highlight
                       ? 'bg-primary-foreground text-primary hover:bg-primary-foreground/90'
                       : ''
                   }`}
                 >
-                  <Link href={tier.href} className="flex items-center justify-center gap-2">
-                    {tier.cta}
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+                  {loadingTier === tier.name ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      {tier.cta}
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
+                  )}
                 </Button>
 
                 <div className="border-t border-current border-opacity-20 pt-8">

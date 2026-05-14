@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql, or } from "drizzle-orm";
+import { eq, and, sql, or, inArray } from "drizzle-orm";
 import { createHmac } from "crypto";
 import { db, subscribersTable, founderLeaderboardTable, wallsTable, founderConnectionsTable, earnedBadgesTable, badgeDefinitionsTable } from "@workspace/db";
 import { resend, FROM_EMAIL, SITE_URL } from "../lib/resend";
@@ -84,75 +84,82 @@ router.get("/cron/calculate-founder-network", async (req, res): Promise<void> =>
       .select({
         subscriberId: founderLeaderboardTable.subscriberId,
         profileViews: founderLeaderboardTable.profileViews,
-        connectionsCount: founderLeaderboardTable.connectionsCount,
-        badgesCount: founderLeaderboardTable.badgesCount,
       })
       .from(founderLeaderboardTable);
 
-    let updatedCount = 0;
-
-    for (const founder of founders) {
-      // Get current connection count from founderConnectionsTable
-      const [connResult] = await db
-        .select({
-          count: sql<number>`count(*)::int`,
-        })
-        .from(founderConnectionsTable)
-        .where(
-          or(
-            eq(founderConnectionsTable.subscriberId1, founder.subscriberId),
-            eq(founderConnectionsTable.subscriberId2, founder.subscriberId)
-          )
-        );
-
-      const connectionsCount = connResult?.count || 0;
-
-      // Calculate engagement score: profileViews (1pt each) + connections (5pts each) + badges (10pts each)
-      const engagementScore =
-        (founder.profileViews || 0) * 1 +
-        connectionsCount * 5 +
-        (founder.badgesCount || 0) * 10;
-
-      // Award badges based on thresholds
-      if (connectionsCount >= 5) {
-        await awardBadgeToFounder(founder.subscriberId, "networker");
-      }
-
-      if ((founder.profileViews || 0) >= 10) {
-        await awardBadgeToFounder(founder.subscriberId, "connector");
-      }
-
-      if ((founder.profileViews || 0) >= 50) {
-        await awardBadgeToFounder(founder.subscriberId, "influencer");
-      }
-
-      // Get updated badge count
-      const [badgeCountResult] = await db
-        .select({
-          count: sql<number>`count(*)::int`,
-        })
-        .from(earnedBadgesTable)
-        .where(eq(earnedBadgesTable.subscriberId, founder.subscriberId));
-
-      const badgeCount = badgeCountResult?.count || 0;
-
-      // Update leaderboard
-      await db
-        .update(founderLeaderboardTable)
-        .set({
-          connectionsCount,
-          badgesCount: badgeCount,
-          networkEngagementScore: engagementScore,
-        })
-        .where(eq(founderLeaderboardTable.subscriberId, founder.subscriberId));
-
-      updatedCount++;
+    if (founders.length === 0) {
+      res.json({ success: true, updated: 0, message: "No founders to update" });
+      return;
     }
+
+    const founderIds = founders.map((f) => f.subscriberId);
+
+    // Batch query: connection counts per founder (both sides of the relationship)
+    const connCounts = await db
+      .select({
+        subscriberId: founderConnectionsTable.subscriberId1,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(founderConnectionsTable)
+      .where(inArray(founderConnectionsTable.subscriberId1, founderIds))
+      .groupBy(founderConnectionsTable.subscriberId1);
+
+    const connCounts2 = await db
+      .select({
+        subscriberId: founderConnectionsTable.subscriberId2,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(founderConnectionsTable)
+      .where(inArray(founderConnectionsTable.subscriberId2, founderIds))
+      .groupBy(founderConnectionsTable.subscriberId2);
+
+    const connMap = new Map<number, number>();
+    for (const r of [...connCounts, ...connCounts2]) {
+      connMap.set(r.subscriberId, (connMap.get(r.subscriberId) ?? 0) + r.count);
+    }
+
+    // Award badges in parallel
+    await Promise.all(
+      founders.flatMap((f) => {
+        const connections = connMap.get(f.subscriberId) ?? 0;
+        const views = f.profileViews ?? 0;
+        const tasks: Promise<unknown>[] = [];
+        if (connections >= 5) tasks.push(awardBadgeToFounder(f.subscriberId, "networker"));
+        if (views >= 10) tasks.push(awardBadgeToFounder(f.subscriberId, "connector"));
+        if (views >= 50) tasks.push(awardBadgeToFounder(f.subscriberId, "influencer"));
+        return tasks;
+      })
+    );
+
+    // Batch query: badge counts per founder
+    const badgeCounts = await db
+      .select({
+        subscriberId: earnedBadgesTable.subscriberId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(earnedBadgesTable)
+      .where(inArray(earnedBadgesTable.subscriberId, founderIds))
+      .groupBy(earnedBadgesTable.subscriberId);
+
+    const badgeMap = new Map(badgeCounts.map((r) => [r.subscriberId, r.count]));
+
+    // Bulk update leaderboard rows
+    await Promise.all(
+      founders.map((f) => {
+        const connections = connMap.get(f.subscriberId) ?? 0;
+        const badges = badgeMap.get(f.subscriberId) ?? 0;
+        const engagementScore = (f.profileViews ?? 0) * 1 + connections * 5 + badges * 10;
+        return db
+          .update(founderLeaderboardTable)
+          .set({ connectionsCount: connections, badgesCount: badges, networkEngagementScore: engagementScore })
+          .where(eq(founderLeaderboardTable.subscriberId, f.subscriberId));
+      })
+    );
 
     res.json({
       success: true,
-      updated: updatedCount,
-      message: `Updated engagement scores and badges for ${updatedCount} founders`,
+      updated: founders.length,
+      message: `Updated engagement scores and badges for ${founders.length} founders`,
     });
   } catch (error) {
     console.error("Founder network calculation error:", error);

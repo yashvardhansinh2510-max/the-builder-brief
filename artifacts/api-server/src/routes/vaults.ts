@@ -1,8 +1,11 @@
 import { Router } from "express";
+import { z } from "zod";
 import { db } from "@workspace/db";
 import { vaultsTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { isAdmin } from "../middleware/auth";
+
+const numericId = z.coerce.number().int().positive();
 
 const router = Router();
 
@@ -23,12 +26,13 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:id", async (req, res) => {
+  const parsed = numericId.safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid vault ID" });
   try {
-    const { id } = req.params as { id: string };
     const vault = await db
       .select()
       .from(vaultsTable)
-      .where(eq(vaultsTable.id, parseInt(id)))
+      .where(eq(vaultsTable.id, parsed.data))
       .limit(1);
 
     if (!vault.length) {
@@ -43,14 +47,15 @@ router.get("/:id", async (req, res) => {
 
 // POST /vaultsTable/:id/publish - Admin only
 router.post("/:id/publish", isAdmin, async (req, res) => {
+  const parsed = numericId.safeParse(req.params.id);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid vault ID" });
   try {
-    const { id } = req.params as { id: string };
     const now = new Date();
 
     const [updated] = await db
       .update(vaultsTable)
       .set({ isPublished: true, publishedAt: now })
-      .where(eq(vaultsTable.id, parseInt(id)))
+      .where(eq(vaultsTable.id, parsed.data))
       .returning();
 
     if (!updated) {

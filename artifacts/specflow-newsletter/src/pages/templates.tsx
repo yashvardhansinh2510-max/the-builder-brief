@@ -1,50 +1,55 @@
-import React from 'react';
-import { useAuth } from '@clerk/react';
+import React, { useState } from 'react';
+import { useAuth } from '@/lib/AuthContext';
 import { Redirect } from 'wouter';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { TierGate } from '@/components/TierGate';
 import PublicNav from '@/components/PublicNav';
+import { toast } from 'sonner';
 
 const TEMPLATES = [
-  {
-    name: 'Landing Page Framework',
-    description: 'Proven structure for high-converting SaaS landing pages',
-    icon: '📄',
-  },
-  {
-    name: 'Cold Email Sequences',
-    description: '10 templates for B2B cold outreach with 40%+ open rates',
-    icon: '📧',
-  },
-  {
-    name: 'Product Requirements Doc (PRD)',
-    description: 'Template for defining features, success metrics, and timelines',
-    icon: '📋',
-  },
-  {
-    name: 'Go-to-Market Strategy',
-    description: 'Step-by-step GTM playbook for first 100 customers',
-    icon: '🚀',
-  },
-  {
-    name: 'Pitch Deck (Investor Ready)',
-    description: '10-slide template for raising funding rounds',
-    icon: '💰',
-  },
-  {
-    name: 'Customer Development Script',
-    description: 'Interview framework to validate ideas and find product-market fit',
-    icon: '🎤',
-  },
+  { name: 'Landing Page Framework', description: 'Proven structure for high-converting SaaS landing pages', icon: '📄', id: 'landing_page' },
+  { name: 'Cold Email Sequences', description: '10 templates for B2B cold outreach with 40%+ open rates', icon: '📧', id: 'cold_email' },
+  { name: 'Product Requirements Doc (PRD)', description: 'Template for defining features, success metrics, and timelines', icon: '📋', id: 'prd' },
+  { name: 'Go-to-Market Strategy', description: 'Step-by-step GTM playbook for first 100 customers', icon: '🚀', id: 'gtm' },
+  { name: 'Pitch Deck (Investor Ready)', description: '10-slide template for raising funding rounds', icon: '💰', id: 'pitch_deck' },
+  { name: 'Customer Development Script', description: 'Interview framework to validate ideas and find product-market fit', icon: '🎤', id: 'customer_dev' },
 ];
 
 export default function TemplatesPage() {
-  const { isLoaded, userId } = useAuth();
+  const { user, loading, session } = useAuth();
+  const [downloading, setDownloading] = useState<string | null>(null);
 
-  if (!isLoaded) return null;
-  if (!userId) return <Redirect to="/sign-in" />;
+  if (loading) return null;
+  if (!loading && !user) return <Redirect to="/sign-in" />;
+
+  const handleDownload = async (id: string, name: string) => {
+    if (downloading) return;
+    setDownloading(id);
+    try {
+      const res = await fetch(`/api/templates/${id}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || 'Download failed');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${id.replace(/_/g, '-')}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${name} downloaded`);
+    } catch {
+      toast.error('Network error. Try again.');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,14 +68,22 @@ export default function TemplatesPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {TEMPLATES.map((template, idx) => (
-              <Card key={idx} className="p-8 hover:shadow-lg transition-shadow">
+            {TEMPLATES.map((template) => (
+              <Card key={template.id} className="p-8 hover:shadow-lg transition-shadow">
                 <div className="text-4xl mb-4">{template.icon}</div>
                 <h3 className="font-serif text-2xl mb-2">{template.name}</h3>
                 <p className="text-muted-foreground mb-6">{template.description}</p>
-                <Button className="w-full rounded-lg flex items-center justify-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Download Template
+                <Button
+                  className="w-full rounded-lg flex items-center justify-center gap-2"
+                  disabled={downloading === template.id}
+                  onClick={() => handleDownload(template.id, template.name)}
+                >
+                  {downloading === template.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  {downloading === template.id ? 'Downloading...' : 'Download Template'}
                 </Button>
               </Card>
             ))}

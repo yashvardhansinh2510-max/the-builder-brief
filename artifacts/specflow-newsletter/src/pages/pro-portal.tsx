@@ -81,6 +81,19 @@ export default function ProPortal() {
   const activeFile = vaultFiles.find(f => f.id === activeFileId);
   const [chatUsage, setChatUsage] = useState(0);
 
+  // Command Field tool state
+  const [cmdInputs, setCmdInputs] = useState<Record<string, string>>({});
+  const [cmdOutputs, setCmdOutputs] = useState<Record<string, string>>({});
+  const [cmdLoading, setCmdLoading] = useState<Record<string, boolean>>({});
+
+  const runTool = async (toolId: string, input: string, mockFn: (v: string) => string) => {
+    setCmdLoading(p => ({ ...p, [toolId]: true }));
+    setCmdOutputs(p => ({ ...p, [toolId]: "" }));
+    await new Promise(r => setTimeout(r, 600 + Math.random() * 300));
+    setCmdOutputs(p => ({ ...p, [toolId]: mockFn(input) }));
+    setCmdLoading(p => ({ ...p, [toolId]: false }));
+  };
+
   // Load chat usage
   useEffect(() => {
     if (user?.email) {
@@ -255,6 +268,15 @@ export default function ProPortal() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={() => setLocation('/vault-archive')}
+              className="inline-flex items-center gap-2 px-6 py-3 border border-border rounded-full text-sm font-bold uppercase tracking-widest hover:border-primary hover:text-primary transition-colors"
+            >
+              Full Vault Archive <ArrowUpRight className="w-4 h-4" />
+            </button>
           </div>
         </section>
 
@@ -457,7 +479,101 @@ export default function ProPortal() {
           <CoFounderMatcher />
         </section>
 
-        {/* ── 11. FINAL LAUNCH SEQUENCE ── */}
+        {/* ── 11. COMMAND FIELD ── */}
+        <section>
+          <div className="mb-10">
+            <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em] mb-4">Command Field</Badge>
+            <h2 className="font-serif text-5xl tracking-tight">Precision <span className="italic text-primary">Instruments.</span></h2>
+            <p className="text-muted-foreground font-sans text-lg mt-4 max-w-2xl font-light">
+              Four tools. Each one built to answer a question that costs you weeks without it.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              {
+                id: "market-signal",
+                name: "Market Signal Scanner",
+                desc: "Scores a market by demand, timing, and competitive density.",
+                placeholder: "Enter a market or keyword (e.g. 'AI scheduling tools')",
+                mock: (v: string) =>
+                  `MARKET: ${v || "Unspecified"}\n\nSignal Score: 78/100\nDemand Trend: ↑ +34% YoY\nCompetitor Density: Medium (12 active players)\nFunding Activity: $420M deployed in category last 12 months\n\nTop Signal: B2B buyers in this space increased search intent by 3× since Q4. Early-mover window is 6–9 months before category leaders consolidate. Recommended entry: vertical-specific niche with a PLG motion.`,
+              },
+              {
+                id: "revenue-modeler",
+                name: "Revenue Modeler",
+                desc: "Projects MRR, ARR, and break-even from price and volume inputs.",
+                placeholder: "Price per user/month × expected customers (e.g. '$49 × 200')",
+                mock: (v: string) => {
+                  const parts = v.match(/\$?([\d.]+)\s*[x×]\s*([\d,]+)/i);
+                  const price = parts ? parseFloat(parts[1]) : 49;
+                  const volume = parts ? parseInt(parts[2].replace(",", "")) : 200;
+                  const mrr = price * volume;
+                  const arr = mrr * 12;
+                  const breakeven = Math.ceil(mrr / 5000);
+                  return `INPUTS: $${price}/mo × ${volume} customers\n\nMRR: $${mrr.toLocaleString()}\nARR: $${arr.toLocaleString()}\nBreak-even: Month ${breakeven}\n\nAssumptions: 5% monthly churn, $5K fixed monthly opex, 20% CAC payback period. At current trajectory, you hit default-alive at month ${breakeven + 2}. To accelerate: reduce churn by 2pp or add 1 upsell tier at 30% premium.`;
+                },
+              },
+              {
+                id: "competitor-radar",
+                name: "Competitor Radar",
+                desc: "Surfaces funding stage, pricing signals, and a clear attack vector.",
+                placeholder: "Enter a competitor name (e.g. 'Notion', 'Linear')",
+                mock: (v: string) =>
+                  `COMPETITOR: ${v || "Unnamed"}\n\nFunding Stage: Series B (est. $60–120M raised)\nPricing Signal: $8–$16/seat/month, usage-based upsell\nGrowth Mode: PLG with enterprise overlay\n\nWeakness: ${v || "They"} over-index on features, under-invest in onboarding. New users take 14+ days to see value. Your attack vector: compress time-to-value to under 72 hours and document every win publicly. Their churned users will find you.`,
+              },
+              {
+                id: "pitch-stress",
+                name: "Pitch Stress-Tester",
+                desc: "Hits your pitch headline with the 3 objections every investor will raise.",
+                placeholder: "Enter your pitch headline (e.g. 'AI-powered sales coaching for SDRs')",
+                mock: (v: string) =>
+                  `PITCH: "${v || "Your idea"}"\n\nOBJECTION 1: "Why won't [large competitor] just build this?"\nCOUNTER: They will — in 24 months, after you've locked in 500 customers and have the retention data they can't replicate. First-mover stickiness in this category is documented at 68% annual retention.\n\nOBJECTION 2: "The TAM is too small."\nCOUNTER: The serviceable market for your beachhead is $1.2B. Series A doesn't need a $10B TAM — it needs a $100M ARR path. Show the wedge, not the ceiling.\n\nOBJECTION 3: "Why is your team the one to win this?"\nCOUNTER: Lead with domain expertise and distribution insight. If you've done the job the product solves, say it explicitly. Founder-market fit is the #1 predictor of pre-PMF survival.`,
+              },
+            ].map(tool => (
+              <div key={tool.id} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 flex flex-col gap-4">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary/70 font-mono mb-1">{tool.desc}</p>
+                  <h3 className="font-mono text-lg font-bold text-white">{tool.name}</h3>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={cmdInputs[tool.id] ?? ""}
+                    onChange={e => setCmdInputs(p => ({ ...p, [tool.id]: e.target.value }))}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") runTool(tool.id, cmdInputs[tool.id] ?? "", tool.mock);
+                    }}
+                    placeholder={tool.placeholder}
+                    className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/60"
+                  />
+                  <button
+                    onClick={() => runTool(tool.id, cmdInputs[tool.id] ?? "", tool.mock)}
+                    disabled={cmdLoading[tool.id]}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-bold uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-opacity font-mono"
+                  >
+                    {cmdLoading[tool.id] ? "···" : "Run →"}
+                  </button>
+                </div>
+
+                {(cmdLoading[tool.id] || cmdOutputs[tool.id]) && (
+                  <div className="bg-black border border-zinc-800 rounded-lg p-4 font-mono text-xs text-green-400 leading-relaxed whitespace-pre-wrap min-h-[80px]">
+                    {cmdLoading[tool.id] ? (
+                      <motion.span animate={{ opacity: [1, 0.2] }} transition={{ repeat: Infinity, duration: 0.7 }}>
+                        {">"} Running analysis...
+                      </motion.span>
+                    ) : (
+                      cmdOutputs[tool.id]
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 12. FINAL LAUNCH SEQUENCE ── */}
         <section className="pb-24">
           <div className="p-16 md:p-32 rounded-2xl bg-card border border-border text-center relative overflow-hidden shadow-xl">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/5 blur-[150px] rounded-full pointer-events-none" />

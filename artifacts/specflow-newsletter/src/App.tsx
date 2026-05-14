@@ -20,6 +20,7 @@ import InvestorPortal from "@/pages/investor-portal";
 import BuildBrief from "@/pages/build-brief";
 import DailyDrops from "@/pages/daily-drops";
 import PaymentSuccess from "@/pages/payment-success";
+import PaymentFailure from "@/pages/payment-failure";
 import CreatorDashboard from "@/pages/creator-dashboard";
 import CreatorTraction from "@/pages/creator-traction";
 import Marketplace from "@/pages/marketplace";
@@ -129,6 +130,7 @@ const ProtectedInvestorPortal = (props: any) => <ProtectedRoute component={Inves
 const ProtectedBuildBrief = (props: any) => <ProtectedRoute component={BuildBrief} {...props} />;
 const ProtectedDailyDrops = (props: any) => <ProtectedRoute component={DailyDrops} {...props} />;
 const ProtectedPaymentSuccess = (props: any) => <ProtectedRoute component={PaymentSuccess} {...props} />;
+const ProtectedPaymentFailure = (props: any) => <ProtectedRoute component={PaymentFailure} {...props} />;
 const ProtectedCreatorDashboard = (props: any) => <ProtectedRoute component={CreatorDashboard} {...props} />;
 const ProtectedCreatorTraction = (props: any) => <ProtectedRoute component={CreatorTraction} {...props} />;
 const ProtectedMarketplace = (props: any) => <ProtectedRoute component={Marketplace} {...props} />;
@@ -200,6 +202,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/build-brief" component={ProtectedBuildBrief} />
             <Route path="/daily-drops" component={ProtectedDailyDrops} />
             <Route path="/payment-success" component={ProtectedPaymentSuccess} />
+            <Route path="/payment-failure" component={ProtectedPaymentFailure} />
             <Route path="/creator-dashboard" component={ProtectedCreatorDashboard} />
             <Route path="/creator-traction" component={ProtectedCreatorTraction} />
             <Route path="/marketplace" component={ProtectedMarketplace} />

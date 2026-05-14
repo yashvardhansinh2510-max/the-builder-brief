@@ -8,7 +8,7 @@ import { confirmationEmailHtml } from "../lib/email-templates";
 import { verifyUser } from "../middleware/verifyUser";
 
 function makeUnsubToken(email: string): string {
-  const secret = process.env.CRON_SECRET ?? "changeme";
+  const secret = process.env.CRON_SECRET ?? "";
   return createHmac("sha256", secret).update(email).digest("hex").slice(0, 16);
 }
 

@@ -449,3 +449,12 @@
     display: none;
   }
 }
+
+/* Hide scrollbars for horizontal scroll containers (e.g. PortalNav secondary nav) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -28,7 +28,7 @@ interface CompetitorAnalysis {
 }
 
 export default function CompetitorScanner() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [activeTab, setActiveTab] = useState<'input' | 'results'>('input');
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<CompetitorAnalysis | null>(null);
@@ -64,7 +64,10 @@ export default function CompetitorScanner() {
     try {
       const response = await fetch('/api/competitive-analysis/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({
           email: user.email,
           ...formData,
