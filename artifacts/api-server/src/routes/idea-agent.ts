@@ -141,7 +141,7 @@ router.post("/analyze", verifyUser, async (req, res): Promise<void> => {
 
     res.write("data: [DONE]\n\n");
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error: "Stream error", type: "error" })}\n\n`);
   } finally {
     res.end();
   }
