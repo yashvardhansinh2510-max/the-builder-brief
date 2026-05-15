@@ -1,14 +1,9 @@
-/**
- * Vault Data Types
- * Core TypeScript interfaces for the AI-automated vault system
- */
-
 export interface VaultScore {
-  opportunity: number; // 0-100
-  problem: number; // 0-100
-  feasibility: number; // 0-100
-  whyNow: number; // 0-100
-  overall: number; // 0-100 (weighted average)
+  opportunity: number;
+  problem: number;
+  feasibility: number;
+  whyNow: number;
+  overall: number;
 }
 
 export interface SignalsSummary {
@@ -31,7 +26,7 @@ export interface VerificationStatus {
   marketSizeVerified: 'verified' | 'unconfirmed' | 'contradicted';
   tamVerified: 'verified' | 'unconfirmed' | 'contradicted';
   unitEconomicsVerified: 'verified' | 'unconfirmed' | 'contradicted';
-  confidenceScore: number; // 0-100
+  confidenceScore: number;
   issues: string[];
 }
 
@@ -45,33 +40,22 @@ export interface Vault {
   tam?: string;
   unitEconomics?: string;
   keywordsTrending?: string[];
-
-  // Scores
   scores: VaultScore;
-
-  // Signals
   signalsCount: number;
   signalsSummary: SignalsSummary;
   sourceAttribution: SourceAttribution[];
-
-  // Tracking
   daysActive: number;
-  momentum: number; // 0-100, calculated from signal growth
+  momentum: number;
   publishedAt?: Date;
   verificationData?: VerificationStatus;
-
-  // Metadata
-  tier: 'free' | 'pro' | 'max'; // which tier receives this
+  tier: 'free' | 'pro' | 'max';
   tags?: string[];
   createdAt: Date;
   updatedAt: Date;
   archivedAt?: Date;
-}
-
-export interface VaultCandidate extends Omit<Vault, 'id' | 'publishedAt'> {
-  id?: string;
-  lastSeenAt?: Date;
-  published: boolean;
+  bookmarkCount?: number;
+  isBookmarked?: boolean;
+  isLocked?: boolean;
 }
 
 export interface VaultFilter {
@@ -84,6 +68,8 @@ export interface VaultFilter {
   searchQuery?: string;
   sortBy?: 'score' | 'momentum' | 'recent' | 'signals';
   sortOrder?: 'asc' | 'desc';
+  category?: string;
+  pageSizeOverride?: number;
 }
 
 export interface VaultListResponse {
