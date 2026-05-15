@@ -30,9 +30,10 @@ export default function GroundGame() {
     return groundGameIdeas.filter((idea) => {
       const matchCountry = idea.country === activeCountry;
       const matchCategory = activeCategories.size === 0 || activeCategories.has(idea.category);
-      return matchCountry && matchCategory;
+      const matchMode = mode !== "offline" || idea.mode === "OFFLINE";
+      return matchCountry && matchCategory && matchMode;
     });
-  }, [activeCountry, activeCategories]);
+  }, [activeCountry, activeCategories, mode]);
 
   const isIdeaGated = (ideaTier: GroundGameIdea["tier"]) => {
     if (tier === "max" || tier === "incubator") return false;
@@ -54,44 +55,28 @@ export default function GroundGame() {
     <div className="min-h-screen bg-background text-foreground pb-32 overflow-x-hidden">
       <PortalNav activePage="ground-game" />
 
-      {/* HERO STRIP — max 120px, compact */}
-      <section className="border-b border-border/40 border-l-4 border-l-primary bg-card/40">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 py-5 flex items-center justify-between gap-6 min-h-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-            <div className="min-w-0">
-              <h1 className="font-serif text-xl md:text-2xl font-bold text-foreground leading-tight">
-                Physical World Intelligence
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                {groundGameIdeas.length} offline business ideas validated for 2026. India-first, globally aware.
-              </p>
-            </div>
+      {/* HEADER */}
+      <section className="max-w-7xl mx-auto px-6 md:px-12 pt-8 pb-6">
+        <div className="flex items-start justify-between gap-6 flex-wrap">
+          <div>
+            <h1 className="font-serif text-3xl md:text-4xl tracking-tight mb-2">Ground Game</h1>
+            <p className="text-muted-foreground max-w-xl">
+              The unglamorous, works-in-real-life playbook for getting your first 100 customers.
+            </p>
           </div>
 
-          {/* Mode toggle pill */}
-          <div className="inline-flex items-center p-1 bg-background border border-border rounded-full shadow-sm flex-shrink-0">
-            <button
-              onClick={() => setMode("online")}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                mode === "online"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5" /> Online
-            </button>
-            <button
-              onClick={() => setMode("offline")}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                mode === "offline"
-                  ? "bg-primary text-white shadow-sm shadow-primary/30"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5" /> Offline
-            </button>
-          </div>
+          {/* Offline mode toggle */}
+          <button
+            onClick={() => setMode(mode === "offline" ? "online" : "offline")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all ${
+              mode === "offline"
+                ? "bg-primary/10 text-primary border-primary/30"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${mode === "offline" ? "bg-primary" : "bg-muted-foreground"}`} />
+            {mode === "offline" ? "Offline only" : "All tactics"}
+          </button>
         </div>
       </section>
 
