@@ -1,20 +1,6 @@
 import { motion } from "framer-motion";
-import { Flame, Sparkles } from "lucide-react";
+import { Flame, Lock } from "lucide-react";
 import type { Reward } from "@/lib/rewards";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      delay: i * 0.06,
-      ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
-    },
-  }),
-};
 
 interface WelcomeHeroProps {
   tier: string;
@@ -24,8 +10,50 @@ interface WelcomeHeroProps {
   eligibleReward: Reward | null;
   nextReward: Reward | null;
   onClaimReward: (reward: Reward) => void;
-  loading?: boolean;
 }
+
+function getDateLine(): string {
+  const now = new Date();
+  const weekday = now.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+  const month = now.toLocaleDateString("en-US", { month: "long" }).toUpperCase();
+  const day = now.getDate();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(
+    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
+  );
+  return `${weekday}, ${month} ${day} — WEEK ${week}`;
+}
+
+function daysUntilFriday(): number {
+  const day = new Date().getDay();
+  return day <= 5 ? 5 - day : 7 - day + 5;
+}
+
+const SUBTITLES: Record<string, string> = {
+  free:      "Next drop lands Friday.",
+  pro:       "Vault is live. Signals are in.",
+  max:       "Your advisor is standing by.",
+  incubator: "Your advisor is standing by.",
+};
+
+const ACTION_LINKS: Record<string, { label: string; href: string }[]> = {
+  free: [
+    { label: "Open the Vault →",  href: "/dashboard?tab=vault" },
+    { label: "See Blueprints →",  href: "/blueprints" },
+  ],
+  pro: [
+    { label: "Open Briefing →",   href: "/dashboard?tab=intel" },
+    { label: "Full Vault →",      href: "/dashboard?tab=vault" },
+  ],
+  max: [
+    { label: "Book AI Session →", href: "#ai-advisor-chat" },
+    { label: "Inner Circle →",    href: "/dashboard?tab=alliance" },
+  ],
+  incubator: [
+    { label: "Book AI Session →", href: "#ai-advisor-chat" },
+    { label: "Inner Circle →",    href: "/dashboard?tab=alliance" },
+  ],
+};
 
 export default function WelcomeHero({
   tier,
@@ -35,200 +63,124 @@ export default function WelcomeHero({
   eligibleReward,
   nextReward,
   onClaimReward,
-  loading,
 }: WelcomeHeroProps) {
-  if (loading) {
-    return (
-      <div className="p-10 rounded-[3rem] border border-primary/5 space-y-6">
-        <Skeleton className="w-40 h-3 rounded-full" />
-        <div className="space-y-3">
-          <Skeleton className="w-2/3 h-14 rounded-xl" />
-          <Skeleton className="w-1/2 h-14 rounded-xl" />
-        </div>
-        <div className="flex gap-4 mt-4">
-          <Skeleton className="w-32 h-16 rounded-2xl" />
-          <Skeleton className="w-40 h-6 rounded-full self-center" />
-        </div>
-        <Skeleton className="w-full h-5 rounded" />
-        <Skeleton className="w-4/5 h-5 rounded" />
-      </div>
-    );
-  }
+  const subtitle = SUBTITLES[tier] ?? SUBTITLES.free;
+  const links = ACTION_LINKS[tier] ?? ACTION_LINKS.free;
+  const isMax = tier === "max" || tier === "incubator";
+  const isPro = tier === "pro" || isMax;
+  const vaultStatus = isPro ? "LIVE" : "LOCKED";
+  const dropDays = daysUntilFriday();
 
   return (
-    <>
-      {/* FREE TIER HERO */}
-      {tier === "free" && (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="relative p-10 rounded-[3rem] bg-card/30 border border-primary/5 overflow-hidden group"
-        >
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-colors duration-700" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <p className="text-[10px] uppercase font-bold tracking-[0.4em] text-primary/60">
-                System Operational • {new Date().toLocaleDateString()}
-              </p>
-            </div>
-            <h1 className="font-serif text-5xl md:text-7xl leading-[1.1]">
-              Good to have
-              <br />
-              you back,{" "}
-              <span className="italic text-primary/90">{firstName}.</span>
-            </h1>
-            {/* Streak HERO */}
-            <div className="flex items-center gap-6 mt-8 mb-2">
-              <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-primary/10 border border-primary/20">
-                <Flame className="w-6 h-6 text-primary" />
-                <div>
-                  <p className="text-3xl font-black text-primary leading-none">
-                    {streak}
-                  </p>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary/60 mt-0.5">
-                    Day Streak
-                  </p>
-                </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start"
+    >
+      {/* LEFT — 60% */}
+      <div className="flex-1 min-w-0">
+        <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground/60 mb-5">
+          {getDateLine()}
+        </p>
+        <h1 className="font-serif text-5xl md:text-7xl leading-[1.05] tracking-tight mb-4">
+          Good to have you back,{" "}
+          <span className="italic text-primary">{firstName}.</span>
+        </h1>
+        <p className="text-muted-foreground text-lg leading-relaxed mb-6 max-w-lg">
+          {subtitle}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {links.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-70 transition-opacity border-b border-primary/30 hover:border-primary pb-0.5"
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* RIGHT — 40% */}
+      <div className="w-full lg:w-[40%] shrink-0 relative">
+        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 text-white relative overflow-hidden">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Streak */}
+            <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+              <p className="text-[9px] uppercase tracking-[0.3em] text-zinc-500 mb-2">Streak</p>
+              <div className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-primary" />
+                <span className="font-serif text-3xl text-primary">{streak}</span>
               </div>
-              {nextReward && (
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-bold text-foreground">
-                    {nextReward.day - streak} days
-                  </span>{" "}
-                  until {nextReward.title}
-                </div>
-              )}
             </div>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mt-6">
-              <p className="text-muted-foreground text-lg max-w-xl leading-relaxed">
-                The next drop lands Friday. Your blueprints are waiting.
-                The only question is — what are you building this week?
-              </p>
-              {eligibleReward && (
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-primary/95 backdrop-blur-xl p-8 rounded-[2.5rem] text-primary-foreground shadow-[0_0_50px_rgba(249,115,22,0.3)] relative overflow-hidden group/reward min-w-[300px] border border-white/20"
+
+            {/* Vault */}
+            <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+              <p className="text-[9px] uppercase tracking-[0.3em] text-zinc-500 mb-2">Vault</p>
+              <div className="flex items-center gap-1.5">
+                {!isPro && <Lock className="w-3.5 h-3.5 text-zinc-600" />}
+                <span
+                  className={`font-mono text-lg font-bold ${
+                    isPro ? "text-emerald-400" : "text-zinc-600"
+                  }`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-                  <Sparkles className="absolute top-6 right-6 w-6 h-6 text-white/40 group-hover/reward:rotate-90 transition-transform duration-500" />
-                  <div className="relative z-10">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 opacity-70">
-                      MILESTONE UNLOCKED: DAY {eligibleReward.day}
-                    </p>
-                    <h4 className="font-serif text-2xl mb-6 leading-tight">
-                      {eligibleReward.title}
-                    </h4>
-                    <button
-                      onClick={() => onClaimReward(eligibleReward)}
-                      className="w-full bg-primary-foreground text-primary text-[10px] font-black py-4 rounded-2xl uppercase tracking-widest hover:bg-primary-foreground/90 transition-all hover:translate-y-[-2px] active:translate-y-[0px] shadow-lg shadow-black/5"
-                    >
-                      {eligibleReward.actionLabel}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+                  {vaultStatus}
+                </span>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
 
-      {/* PRO TIER HERO */}
-      {tier === "pro" && (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="relative p-10 rounded-2xl bg-card/80 border border-primary/10 overflow-hidden group"
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.04] to-transparent h-10 w-full animate-scanline pointer-events-none" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-              <p className="text-[10px] uppercase font-black tracking-[0.4em] text-primary/70 font-mono">
-                Operator Mode • {new Date().toLocaleDateString()}
+            {/* Next Drop */}
+            <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+              <p className="text-[9px] uppercase tracking-[0.3em] text-zinc-500 mb-2">Next Drop</p>
+              <p className="font-mono text-lg font-bold text-white">
+                {dropDays === 0 ? "TODAY" : `${dropDays}d`}
               </p>
             </div>
-            <h1 className="font-serif text-5xl md:text-7xl leading-[1.1]">
-              Back at it,
-              <br />
-              <span className="italic text-primary">{firstName}.</span>
-            </h1>
-            <p className="text-muted-foreground text-base mt-4 max-w-xl leading-relaxed">
-              Daily briefing is live. Vault is open. You've got signals to
-              run through — let's go.
-            </p>
-            <div className="flex gap-6 p-6 mt-6 rounded-2xl bg-background/40 border border-primary/20 font-mono w-fit">
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-                  Streak
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  {streak}d
-                </p>
-              </div>
-              <div className="w-px bg-border/40" />
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-                  Vault
-                </p>
-                <p className="text-2xl font-bold">OPEN</p>
-              </div>
-              <div className="w-px bg-border/40" />
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-                  Briefings
-                </p>
-                <p className="text-2xl font-bold">DAILY</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
-      {/* MAX / INCUBATOR TIER HERO */}
-      {(tier === "max" || tier === "incubator") && (
-        <motion.div
-          initial={{ opacity: 0, filter: "blur(8px)" }}
-          animate={{ opacity: 1, filter: "blur(0px)" }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          className="py-16 px-2"
-        >
-          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground/60 mb-4">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-          <h1 className="font-serif text-6xl md:text-8xl leading-[1.0] mb-8">
-            Good morning,
-            <br />
-            <span className="italic text-primary">{firstName}.</span>
-          </h1>
-          <div className="flex gap-8 pt-8 border-t border-border/20">
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-1">
-                AI Advisor
-              </p>
-              <p className="font-serif text-lg">
-                Active — {20 - chatUsageThisMonth} sessions remaining
-              </p>
-            </div>
-            <div className="w-px bg-border/20" />
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-1">
-                Next Call
-              </p>
-              <p className="font-serif text-lg italic">
-                Book via Inner Circle
-              </p>
-            </div>
+            {/* AI Advisor (max only) or Next Reward */}
+            {isMax ? (
+              <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+                <p className="text-[9px] uppercase tracking-[0.3em] text-zinc-500 mb-2">AI Advisor</p>
+                <p className="font-mono text-lg font-bold text-white">
+                  {Math.max(0, 20 - chatUsageThisMonth)}
+                  <span className="text-xs text-zinc-500 ml-1">sess</span>
+                </p>
+              </div>
+            ) : nextReward ? (
+              <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+                <p className="text-[9px] uppercase tracking-[0.3em] text-zinc-500 mb-2">Next Reward</p>
+                <p className="font-mono text-xs text-zinc-400">Day {nextReward.day}</p>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800" />
+            )}
           </div>
-        </motion.div>
-      )}
-    </>
+        </div>
+
+        {/* Reward overlay */}
+        {eligibleReward && (
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="absolute inset-0 bg-primary/95 backdrop-blur-xl rounded-2xl p-6 text-primary-foreground shadow-[0_0_50px_rgba(249,115,22,0.3)] border border-white/20 flex flex-col justify-between"
+          >
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-70 mb-2">
+                MILESTONE UNLOCKED: DAY {eligibleReward.day}
+              </p>
+              <h4 className="font-serif text-2xl leading-tight">{eligibleReward.title}</h4>
+            </div>
+            <button
+              onClick={() => onClaimReward(eligibleReward)}
+              className="w-full bg-primary-foreground text-primary text-[10px] font-black py-4 rounded-2xl uppercase tracking-widest hover:bg-primary-foreground/90 transition-all"
+            >
+              {eligibleReward.actionLabel}
+            </button>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
   );
 }

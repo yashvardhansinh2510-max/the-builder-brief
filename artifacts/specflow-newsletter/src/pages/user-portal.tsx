@@ -567,7 +567,6 @@ export default function UserPortal() {
               eligibleReward={eligibleReward}
               nextReward={nextReward}
               onClaimReward={claimReward}
-              loading={tierLoading}
             />
 
             {/* Venture Hall of Fame - High Visibility Spotlight */}
