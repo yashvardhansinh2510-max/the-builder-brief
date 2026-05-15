@@ -1,90 +1,78 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { db, vaultsTable, vaultBookmarksTable, subscribersTable } from "@workspace/db";
-import { eq, desc, asc, ilike, and, or, sql, gte, count } from "drizzle-orm";
+import { eq, desc, asc, ilike, and, or, sql, gte, count, inArray } from "drizzle-orm";
 import { isAdmin } from "../middleware/auth";
 import { getAuth, createClerkClient } from "@clerk/express";
 
 const numericId = z.coerce.number().int().positive();
-const router = Router();
+
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
-const TIER_RANK: Record<string, number> = { free: 0, pro: 1, max: 2, incubator: 3 };
+const router = Router();
 
-function canAccessTier(userTier: string, vaultTier: string): boolean {
-  return (TIER_RANK[userTier] ?? 0) >= (TIER_RANK[vaultTier ?? "free"] ?? 0);
-}
-
-function toVaultShape(row: any, bookmarkCount = 0, isBookmarked = false) {
-  return {
-    id: String(row.id),
-    title: row.title,
-    tagline: row.tagline ?? "",
-    problemStatement: row.problemStatement ?? row.problem_statement ?? "",
-    description: row.description ?? undefined,
-    marketSize: row.marketSize ?? row.market_size ?? undefined,
-    tam: row.tam ?? undefined,
-    unitEconomics: row.unitEconomics ?? row.unit_economics ?? undefined,
-    keywordsTrending: row.keywordsTrending ?? row.keywords_trending ?? [],
-    tags: row.tags ?? [],
-    scores: (row.scoresJson ?? row.scores_json) ?? { opportunity: 0, problem: 0, feasibility: 0, whyNow: 0, overall: 0 },
-    signalsCount: row.signalsCount ?? row.signals_count ?? 0,
-    signalsSummary: ((row.signalsJson ?? row.signals_json) as any)?.summary ?? { reddit: [], youtube: [], hn: [], ph: [], linkedin: [], twitter: [] },
-    sourceAttribution: ((row.signalsJson ?? row.signals_json) as any)?.sourceAttribution ?? [],
-    daysActive: row.daysActive ?? row.days_active ?? 0,
-    momentum: row.momentum ?? 0,
-    publishedAt: row.publishedAt ?? row.published_at ?? undefined,
-    verificationData: (row.verificationJson ?? row.verification_json) ?? undefined,
-    tier: (row.tier ?? "free") as "free" | "pro" | "max",
-    createdAt: row.createdAt ?? row.created_at,
-    updatedAt: row.updatedAt ?? row.updated_at,
-    bookmarkCount,
-    isBookmarked,
-  };
-}
-
-function toPreviewStub(row: any) {
-  return {
-    id: String(row.id),
-    title: row.title,
-    tagline: row.tagline ?? "",
-    tier: row.tier ?? "free",
-    isLocked: true,
-    scores: null,
-    signalsCount: 0,
-    signalsSummary: null,
-    momentum: 0,
-    daysActive: 0,
-    publishedAt: row.publishedAt ?? row.published_at ?? undefined,
-  };
-}
-
-async function resolveUser(req: Request): Promise<{ id: string; email: string; tier: string } | null> {
+async function optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
   const { userId } = getAuth(req);
-  if (!userId) return null;
+  if (!userId) return next();
   try {
     const clerkUser = await clerk.users.getUser(userId);
-    const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
-    const [sub] = await db
-      .select({ tier: subscribersTable.tier })
-      .from(subscribersTable)
-      .where(eq(subscribersTable.email, email))
-      .limit(1);
-    return { id: userId, email, tier: sub?.tier ?? "free" };
+    req.user = {
+      id: userId,
+      email: clerkUser.emailAddresses[0]?.emailAddress || "",
+    };
   } catch {
-    return null;
+    // ignore auth errors for optional middleware
   }
+  next();
 }
 
 async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const user = await resolveUser(req);
-  if (!user) {
+  const { userId } = getAuth(req);
+  if (!userId) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
-  req.user = { id: user.id, email: user.email };
-  (req as any).userTier = user.tier;
-  next();
+  try {
+    const clerkUser = await clerk.users.getUser(userId);
+    req.user = {
+      id: userId,
+      email: clerkUser.emailAddresses[0]?.emailAddress || "",
+    };
+    next();
+  } catch {
+    res.status(401).json({ error: "Authentication required" });
+  }
+}
+
+function toVaultDTO(v: typeof vaultsTable.$inferSelect) {
+  const scores = (v.scores as any) ?? (v.scoresJson as any) ?? { opportunity: 0, problem: 0, feasibility: 0, whyNow: 0, overall: 0 };
+  return {
+    ...v,
+    id: String(v.id),
+    daysActive: v.daysActive ?? (v.publishedAt
+      ? Math.floor((Date.now() - new Date(v.publishedAt).getTime()) / 86_400_000)
+      : 0),
+    scores,
+    sourceAttribution: (v.sourceAttribution as any[]) ?? [],
+    signalsSummary: (v.signalsJson as any) ?? { reddit: [], youtube: [], hn: [], ph: [], linkedin: [], twitter: [] },
+    signalsCount: v.signalsCount ?? 0,
+    momentum: v.momentum ?? 0,
+    tags: v.tags ?? [],
+    tagline: v.tagline ?? "",
+    tier: v.tier ?? "free",
+    problemStatement: v.problemStatement ?? v.description ?? "",
+    marketSize: v.marketSize ?? "",
+    tam: v.tam ?? "",
+  };
+}
+
+async function getUserTier(email: string): Promise<string> {
+  const [subscriber] = await db
+    .select({ tier: subscribersTable.tier })
+    .from(subscribersTable)
+    .where(eq(subscribersTable.email, email))
+    .limit(1);
+  return subscriber?.tier ?? "free";
 }
 
 // GET /vaults/tags — unique tag values across all published vaults
@@ -108,26 +96,53 @@ router.get("/bookmarks", requireAuth, async (req, res) => {
       .from(vaultBookmarksTable)
       .innerJoin(vaultsTable, eq(vaultBookmarksTable.vaultId, vaultsTable.id))
       .where(eq(vaultBookmarksTable.userId, userId));
-    return res.json({ vaults: rows.map((r) => toVaultShape(r.vault)) });
+    return res.json({ vaults: rows.map((r) => toVaultDTO(r.vault)) });
   } catch {
     return res.status(500).json({ error: "Failed to fetch bookmarks" });
   }
 });
 
-// GET /vaults — paginated list with filters
-router.get("/", async (req, res) => {
+// GET /vaults/compare — MUST be before /:id
+router.get("/compare", optionalAuth, async (req, res) => {
   try {
-    const user = await resolveUser(req);
-    const userTier = user?.tier ?? "free";
+    const rawIds = ((req.query.ids as string) || "").split(",").filter(Boolean).slice(0, 3);
+    const ids = rawIds.map((id) => parseInt(id, 10)).filter((n) => !isNaN(n) && n > 0);
+    if (ids.length === 0) return res.status(400).json({ error: "ids query param required (comma-separated integers)" });
 
+    let userTier = "free";
+    if (req.user?.email) userTier = await getUserTier(req.user.email);
+
+    const vaults = await db
+      .select()
+      .from(vaultsTable)
+      .where(and(eq(vaultsTable.isPublished, true), inArray(vaultsTable.id, ids)));
+
+    const result = vaults.map((v) => {
+      const isLocked = (v.tier === "pro" || v.tier === "max") && userTier === "free";
+      if (isLocked) {
+        return { id: String(v.id), title: v.title, tier: v.tier, locked: true };
+      }
+      return { ...toVaultDTO(v), locked: false };
+    });
+
+    return res.json({ vaults: result, userTier });
+  } catch (error) {
+    console.error("DB Error in /api/vaults/compare:", error);
+    return res.status(500).json({ error: "Failed to compare vaults" });
+  }
+});
+
+// GET /vaults — paginated list with filters
+router.get("/", optionalAuth, async (req, res) => {
+  try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize as string) || 12));
     const q = req.query.q as string | undefined;
     const tierFilter = req.query.tier as string | undefined;
     const minScore = req.query.minScore ? parseInt(req.query.minScore as string) : undefined;
     const dateFrom = req.query.dateFrom as string | undefined;
-    const sortParam = (req.query.sort as string) || "recent";
     const order = (req.query.order as string) === "asc" ? "asc" : "desc";
+    const sortBy = req.query.sort as string | undefined;
     const categoryFilter = req.query.category as string | undefined;
 
     const conditions: any[] = [eq(vaultsTable.isPublished, true)];
@@ -136,9 +151,8 @@ router.get("/", async (req, res) => {
       conditions.push(
         or(
           ilike(vaultsTable.title, `%${q}%`),
-          ilike(vaultsTable.tagline as any, `%${q}%`),
-          ilike(vaultsTable.problemStatement as any, `%${q}%`),
-        ) as any,
+          ilike(vaultsTable.description as any, `%${q}%`)
+        ) as any
       );
     }
 
@@ -147,7 +161,7 @@ router.get("/", async (req, res) => {
     }
 
     if (minScore !== undefined && !isNaN(minScore)) {
-      conditions.push(sql`(${vaultsTable.scoresJson}->>'overall')::int >= ${minScore}`);
+      conditions.push(sql`(${vaultsTable.scores}->>'overall')::int >= ${minScore}`);
     }
 
     if (dateFrom) {
@@ -158,35 +172,33 @@ router.get("/", async (req, res) => {
       conditions.push(sql`${categoryFilter} = ANY(${vaultsTable.tags})`);
     }
 
-    const sortMap: Record<string, any> = {
-      score: sql`(${vaultsTable.scoresJson}->>'overall')::int`,
-      momentum: vaultsTable.momentum,
-      recent: vaultsTable.publishedAt,
-      signals: vaultsTable.signalsCount,
-    };
-    const sortCol = sortMap[sortParam] ?? vaultsTable.publishedAt;
-    const orderFn = order === "asc" ? asc : desc;
-    const offset = (page - 1) * pageSize;
     const where = and(...conditions);
+    const offset = (page - 1) * pageSize;
+
+    let orderExpr: any;
+    if (sortBy === "score") {
+      orderExpr = order === "asc"
+        ? asc(sql`(${vaultsTable.scores}->>'overall')::int`)
+        : desc(sql`(${vaultsTable.scores}->>'overall')::int`);
+    } else if (sortBy === "momentum") {
+      orderExpr = order === "asc" ? asc(vaultsTable.momentum) : desc(vaultsTable.momentum);
+    } else if (sortBy === "signals") {
+      orderExpr = order === "asc" ? asc(vaultsTable.signalsCount) : desc(vaultsTable.signalsCount);
+    } else {
+      orderExpr = order === "asc" ? asc(vaultsTable.publishedAt) : desc(vaultsTable.publishedAt);
+    }
 
     const [allVaults, countRows] = await Promise.all([
-      db.select().from(vaultsTable).where(where).orderBy(orderFn(sortCol)).limit(pageSize).offset(offset),
+      db.select().from(vaultsTable).where(where).orderBy(orderExpr).limit(pageSize).offset(offset),
       db.select({ total: sql<number>`count(*)::int` }).from(vaultsTable).where(where),
     ]);
 
     const total = countRows[0]?.total ?? 0;
     const hasMore = offset + allVaults.length < total;
 
-    const vaults = allVaults.map((row) => {
-      if (canAccessTier(userTier, row.tier ?? "free")) {
-        return toVaultShape(row);
-      }
-      return toPreviewStub(row);
-    });
-
-    return res.json({ vaults, total, page, pageSize, hasMore });
+    return res.json({ vaults: allVaults.map(toVaultDTO), total, page, pageSize, hasMore });
   } catch (error) {
-    console.error("DB Error in GET /api/vaults:", error);
+    console.error("DB Error in /api/vaults:", error);
     return res.status(500).json({ error: "Failed to fetch vaults" });
   }
 });
@@ -196,23 +208,20 @@ router.get("/:id", async (req, res) => {
   const parsed = numericId.safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: "Invalid vault ID" });
 
-  const user = await resolveUser(req);
+  const { userId } = getAuth(req);
 
   try {
-    const [row] = await db
-      .select()
-      .from(vaultsTable)
-      .where(eq(vaultsTable.id, parsed.data))
-      .limit(1);
-
-    if (!row) return res.status(404).json({ error: "Vault not found" });
+    const [vault] = await db.select().from(vaultsTable).where(eq(vaultsTable.id, parsed.data)).limit(1);
+    if (!vault) return res.status(404).json({ error: "Vault not found" });
 
     let isBookmarked = false;
-    if (user) {
+    let bookmarkCountVal = 0;
+
+    if (userId) {
       const [bm] = await db
         .select()
         .from(vaultBookmarksTable)
-        .where(and(eq(vaultBookmarksTable.userId, user.id), eq(vaultBookmarksTable.vaultId, parsed.data)))
+        .where(and(eq(vaultBookmarksTable.userId, userId), eq(vaultBookmarksTable.vaultId, parsed.data)))
         .limit(1);
       isBookmarked = !!bm;
     }
@@ -221,6 +230,7 @@ router.get("/:id", async (req, res) => {
       .select({ c: count() })
       .from(vaultBookmarksTable)
       .where(eq(vaultBookmarksTable.vaultId, parsed.data));
+    bookmarkCountVal = bookmarkCountRow?.c ?? 0;
 
     const related = await db
       .select()
@@ -230,9 +240,9 @@ router.get("/:id", async (req, res) => {
       .limit(3);
 
     return res.json({
-      vault: toVaultShape(row, bookmarkCountRow?.c ?? 0, isBookmarked),
-      relatedVaults: related.map((r) => toVaultShape(r)),
-      userFeedback: user ? { liked: false, shared: false, saved: isBookmarked } : undefined,
+      vault: { ...toVaultDTO(vault), bookmarkCount: bookmarkCountVal, isBookmarked },
+      relatedVaults: related.map(toVaultDTO),
+      userFeedback: userId ? { liked: false, shared: false, saved: isBookmarked } : undefined,
     });
   } catch (error) {
     return res.status(500).json({ error: "Failed to fetch vault" });
@@ -267,18 +277,16 @@ router.post("/:id/bookmark", requireAuth, async (req, res) => {
   }
 });
 
-// POST /vaults/:id/feedback — record like/save/share (unchanged)
+// POST /vaults/:id/feedback — record like/save/share
 router.post("/:id/feedback", async (req, res) => {
   const parsed = numericId.safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: "Invalid vault ID" });
   const { action, value } = req.body as { action: string; value: boolean };
-  if (!["like", "save", "share"].includes(action)) {
-    return res.status(400).json({ error: "Invalid action" });
-  }
+  if (!["like", "save", "share"].includes(action)) return res.status(400).json({ error: "Invalid action" });
   return res.json({ ok: true, action, value });
 });
 
-// POST /vaults/:id/publish — admin only (unchanged)
+// POST /vaults/:id/publish — admin only
 router.post("/:id/publish", isAdmin, async (req, res) => {
   const parsed = numericId.safeParse(req.params.id);
   if (!parsed.success) return res.status(400).json({ error: "Invalid vault ID" });
@@ -289,8 +297,8 @@ router.post("/:id/publish", isAdmin, async (req, res) => {
       .where(eq(vaultsTable.id, parsed.data))
       .returning();
     if (!updated) return res.status(404).json({ error: "Vault not found" });
-    return res.json(updated);
-  } catch {
+    return res.json(toVaultDTO(updated));
+  } catch (error) {
     return res.status(500).json({ error: "Failed to publish vault" });
   }
 });
