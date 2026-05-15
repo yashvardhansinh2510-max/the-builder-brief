@@ -1,217 +1,118 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Badge } from '@/components/ui/badge';
-import { ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
+import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 
-interface QuizAnswers {
-  sector: string;
-  stage: string;
-  goal: string;
-  teamSize: number;
-  companyName: string;
-  targetCustomer?: string;
-  ideaDescription?: string;
-}
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-const SECTORS = ['B2B SaaS', 'DTC E-commerce', 'AI Tooling', 'Developer Infrastructure'];
-const STAGES = ['Ideation', 'Building', 'Validating', 'Revenue', 'Scaling'];
-const GOALS = ['Ship in 90 days', 'Reach $10K MRR', 'Raise Series A', 'Exit'];
+const QUESTIONS = [
+  {
+    id: 'stage',
+    text: "What stage are you at?",
+    options: ['Idea', 'Building', 'Launched', 'Scaling'],
+  },
+  {
+    id: 'goal',
+    text: "What's your primary goal with The Builder Brief?",
+    options: ['Find an idea', 'Validate my idea', 'Grow my startup', 'Get investors'],
+  },
+  {
+    id: 'constraint',
+    text: "What's your biggest constraint right now?",
+    options: ['Time', 'Money', 'Technical skills', 'Finding customers'],
+  },
+] as const;
+
+type QuestionId = typeof QUESTIONS[number]['id'];
+type Answers = Partial<Record<QuestionId, string>>;
 
 export default function OnboardingQuiz({ onComplete }: { onComplete?: () => void }) {
-  const { user, session } = useAuth();
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<QuizAnswers>({
-    sector: '',
-    stage: '',
-    goal: '',
-    teamSize: 1,
-    companyName: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { session } = useAuth();
+  const [, setLocation] = useLocation();
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Answers>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const questions = [
-    {
-      id: 'sector',
-      question: 'What sector are you building in?',
-      type: 'select',
-      options: SECTORS,
-    },
-    {
-      id: 'stage',
-      question: 'What stage is your company at?',
-      type: 'select',
-      options: STAGES,
-    },
-    {
-      id: 'goal',
-      question: 'What is your primary goal in the next 12 months?',
-      type: 'select',
-      options: GOALS,
-    },
-    {
-      id: 'teamSize',
-      question: 'How many people are on your team?',
-      type: 'number',
-    },
-    {
-      id: 'companyName',
-      question: 'What is your company name?',
-      type: 'text',
-    },
-  ];
+  const question = QUESTIONS[step];
+  const isLast = step === QUESTIONS.length - 1;
 
-  const handleSelectAnswer = (value: string) => {
-    const questionId = questions[currentQuestion].id as keyof QuizAnswers;
-    setAnswers(prev => ({ ...prev, [questionId]: value }));
-    moveToNext();
-  };
+  const handleSelect = async (value: string) => {
+    const next = { ...answers, [question.id]: value };
+    setAnswers(next);
 
-  const handleTextAnswer = (value: string) => {
-    const questionId = questions[currentQuestion].id as keyof QuizAnswers;
-    setAnswers(prev => ({ ...prev, [questionId]: value }));
-  };
-
-  const handleNumberAnswer = (value: number) => {
-    setAnswers(prev => ({ ...prev, teamSize: value }));
-  };
-
-  const moveToNext = () => {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!user?.email) {
-      toast.error('Not authenticated');
+    if (!isLast) {
+      setStep(s => s + 1);
       return;
     }
 
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
-      const response = await fetch('/api/onboarding/submit', {
-        method: 'POST',
+      const token = await session?.getToken();
+      const res = await fetch(`${API_BASE}/subscribers/me`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          email: user.email,
-          ...answers,
+          stage: next.stage,
+          goal: next.goal,
+          constraint: next.constraint,
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save onboarding');
-      }
-
-      toast.success('Profile created! Personalizing your experience...');
+      if (!res.ok) throw new Error('Failed to save');
+      toast.success('Profile saved!');
       onComplete?.();
-    } catch (error) {
-      console.error('Submission error:', error);
-      toast.error('Failed to save profile');
+      setLocation('/dashboard');
+    } catch {
+      toast.error('Failed to save profile. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  const question = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
-
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-      <div className="max-w-2xl w-full">
-        {/* Progress bar */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <Badge className="bg-primary/10 text-primary border-none text-[10px] tracking-[0.3em]">
-              QUESTION {currentQuestion + 1} OF {questions.length}
-            </Badge>
-            <span className="text-xs text-muted-foreground font-mono">{Math.round(progress)}%</span>
-          </div>
-          <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-        </div>
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-6">
+      {/* Progress dots */}
+      <div className="flex gap-2 mb-16">
+        {QUESTIONS.map((_, i) => (
+          <div
+            key={i}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              i <= step ? 'bg-primary' : 'bg-muted'
+            }`}
+          />
+        ))}
+      </div>
 
-        {/* Question */}
-        <motion.div
-          key={currentQuestion}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <h2 className="font-serif text-4xl md:text-5xl tracking-tight mb-8">{question.question}</h2>
+      <div className="w-full max-w-lg">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <h2 className="font-serif text-3xl md:text-5xl tracking-tight mb-10">
+              {question.text}
+            </h2>
 
-          {question.type === 'select' && (
             <div className="space-y-3">
-              {question.options?.map(option => (
+              {question.options.map(option => (
                 <button
                   key={option}
-                  onClick={() => handleSelectAnswer(option)}
-                  className="w-full p-4 text-left border border-border rounded-xl hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                  onClick={() => handleSelect(option)}
+                  disabled={submitting}
+                  className="w-full p-4 text-left border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all text-lg font-sans disabled:opacity-50"
                 >
-                  <span className="font-sans text-lg">{option}</span>
+                  {option}
                 </button>
               ))}
             </div>
-          )}
-
-          {question.type === 'number' && (
-            <div className="space-y-6">
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={answers.teamSize}
-                onChange={e => handleNumberAnswer(parseInt(e.target.value))}
-                className="w-full p-4 border border-border rounded-xl bg-background text-foreground focus:outline-none focus:border-primary"
-              />
-              <button
-                onClick={moveToNext}
-                className="w-full p-4 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-              >
-                Next <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {question.type === 'text' && (
-            <div className="space-y-6">
-              <input
-                type="text"
-                placeholder="Enter company name"
-                value={answers.companyName}
-                onChange={e => handleTextAnswer(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (currentQuestion === questions.length - 1 ? handleSubmit() : moveToNext())}
-                className="w-full p-4 border border-border rounded-xl bg-background text-foreground focus:outline-none focus:border-primary"
-              />
-              {currentQuestion === questions.length - 1 ? (
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full p-4 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
-                >
-                  {isSubmitting ? 'Creating profile...' : 'Create My Profile'}
-                </button>
-              ) : (
-                <button
-                  onClick={moveToNext}
-                  className="w-full p-4 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                >
-                  Next <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          )}
-        </motion.div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
