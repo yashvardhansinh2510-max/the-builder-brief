@@ -22,6 +22,9 @@ export const vaultsTable = pgTable("vaults", {
   scoresJson: jsonb("scores_json"),
   signalsJson: jsonb("signals_json"),
   verificationJson: jsonb("verification_json"),
+  // Rich vault fields (P27–P30)
+  scores: jsonb("scores"),
+  sourceAttribution: jsonb("source_attribution"),
   sourceArticleIds: integer("source_article_ids").array(),
   isPublished: boolean("is_published").notNull().default(false),
   publishedAt: timestamp("published_at", { withTimezone: true }),
@@ -36,3 +39,5 @@ export const insertVaultSchema = createInsertSchema(vaultsTable).omit({
 });
 export type InsertVault = z.infer<typeof insertVaultSchema>;
 export type VaultRow = typeof vaultsTable.$inferSelect;
+// Alias for P27–P30 feature code
+export type Vault = VaultRow;
