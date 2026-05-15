@@ -594,4 +594,22 @@ router.get("/pulse", verifyUser, async (req: Request, res: Response): Promise<vo
   }
 });
 
+router.get("/signals", async (_req: Request, res: Response): Promise<void> => {
+  const now = Date.now();
+  const h = (n: number) => new Date(now - n * 60 * 60 * 1000).toISOString();
+  const signals = [
+    { id: "s1", platform: "reddit", headline: "Founders ditching SaaS tiers for usage-based pricing — thread explodes with 400 comments", url: "https://reddit.com/r/startups", publishedAt: h(1), topic: "pricing", relevanceScore: 0.88 },
+    { id: "s2", platform: "hn", headline: "Ask HN: Has anyone successfully built a bootstrapped B2B product in 2025?", url: "https://news.ycombinator.com", publishedAt: h(2), topic: "bootstrapping", relevanceScore: 0.75 },
+    { id: "s3", platform: "youtube", headline: "How I hit $10K MRR in 90 days with cold email — full breakdown", url: "https://youtube.com", publishedAt: h(3), topic: "cold-email", relevanceScore: 0.91 },
+    { id: "s4", platform: "ph", headline: "LaunchKit — Ship your SaaS in 48 hours (featured on Product Hunt)", url: "https://producthunt.com", publishedAt: h(5), topic: "tools", relevanceScore: 0.62 },
+    { id: "s5", platform: "linkedin", headline: "Why I turned down a $2M seed round and stayed default-alive", url: "https://linkedin.com", publishedAt: h(6), topic: "fundraising", relevanceScore: 0.79 },
+    { id: "s6", platform: "reddit", headline: "What's the best tech stack for a solo founder in 2025? r/SaaS weekly thread", url: "https://reddit.com/r/SaaS", publishedAt: h(8), topic: "tech-stack", relevanceScore: 0.54 },
+    { id: "s7", platform: "hn", headline: "Show HN: I automated my entire customer onboarding with n8n", url: "https://news.ycombinator.com", publishedAt: h(10), topic: "automation", relevanceScore: 0.68 },
+    { id: "s8", platform: "reddit", headline: "Cold email open rates are down 40% — what's actually working now", url: "https://reddit.com/r/Entrepreneur", publishedAt: h(12), topic: "cold-email", relevanceScore: 0.87 },
+    { id: "s9", platform: "youtube", headline: "The 'Wedge Strategy' — how to beat big competitors by going small first", url: "https://youtube.com", publishedAt: h(14), topic: "gtm", relevanceScore: 0.73 },
+    { id: "s10", platform: "ph", headline: "Notion-killer or niche tool? Founders debate the category-creation playbook", url: "https://producthunt.com", publishedAt: h(20), topic: "positioning", relevanceScore: 0.58 },
+  ];
+  res.json({ signals });
+});
+
 export default router;
