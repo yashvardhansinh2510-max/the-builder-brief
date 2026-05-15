@@ -10,6 +10,9 @@ interface VaultCardProps {
   layout?: 'compact' | 'expanded';
   displayIndex?: number;
   isBookmarked?: boolean;
+  compareMode?: boolean;
+  isCompareSelected?: boolean;
+  onCompareToggle?: (vaultId: string, checked: boolean) => void;
 }
 
 const tierStyles: Record<string, string> = {
@@ -82,6 +85,9 @@ export const VaultCard: React.FC<VaultCardProps> = ({
   layout = 'compact',
   displayIndex = 0,
   isBookmarked,
+  compareMode = false,
+  isCompareSelected = false,
+  onCompareToggle,
 }) => {
   const overall = vault.scores?.overall ?? 0;
   const hasMomentum = (vault.momentum ?? 0) > 70;
@@ -91,13 +97,23 @@ export const VaultCard: React.FC<VaultCardProps> = ({
 
   const cardContent = (
     <motion.div
-      className="group relative rounded-2xl bg-gradient-to-br from-border/60 via-border/20 to-border/60 p-[1px] transition-all duration-300 hover:from-primary/40 hover:via-primary/10 hover:to-primary/30 hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+      className={`group relative rounded-2xl bg-gradient-to-br from-border/60 via-border/20 to-border/60 p-[1px] transition-all duration-300 hover:from-primary/40 hover:via-primary/10 hover:to-primary/30 hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)] ${compareMode && isCompareSelected ? 'ring-2 ring-primary' : ''}`}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: displayIndex * 0.05 }}
       whileHover={{ y: -3 }}
       onClick={() => onSelect?.(vault.id)}
     >
+      {compareMode && (
+        <div className="absolute top-3 right-3 z-20" onClick={e => e.preventDefault()}>
+          <input
+            type="checkbox"
+            checked={isCompareSelected}
+            onChange={e => onCompareToggle?.(vault.id, e.target.checked)}
+            className="w-4 h-4 accent-primary cursor-pointer"
+          />
+        </div>
+      )}
       <div className={`bg-card rounded-[calc(1rem-1px)] ${layout === 'expanded' ? 'p-5' : 'p-4'} h-full flex flex-col gap-3`}>
 
         {/* Top row */}

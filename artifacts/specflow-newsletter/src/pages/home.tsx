@@ -21,6 +21,7 @@ import { PainPointsSection } from "@/components/PainPointsSection";
 import { DashboardPreviewSection } from "@/components/DashboardPreviewSection";
 import { EngineShowcaseSection } from "@/components/EngineShowcaseSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
+import { LiveVaultFeed } from "@/components/LiveVaultFeed";
 import { TiersShowcaseSection } from "@/components/TiersShowcaseSection";
 import { PricingSection } from "@/components/PricingSection";
 import { IncubatorSection } from "@/components/IncubatorSection";
@@ -624,6 +625,7 @@ export default function Home() {
         <DashboardPreviewSection />
         <EngineShowcaseSection />
         <BentoSection />
+        <LiveVaultFeed />
         <FeaturesSection />
         <RuixenSection />
         <CombinedFeaturedSection />

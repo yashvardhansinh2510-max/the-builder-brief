@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { Search, Lock, LayoutGrid, List, Columns3 } from 'lucide-react';
-import { Link } from 'wouter';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { Search, Lock, LayoutGrid, List, Columns3, GitCompare, X } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 import { useMode } from "@/lib/ModeContext";
 import { useAuth } from "@/lib/AuthContext";
 import PortalNav from '@/components/PortalNav';
@@ -42,6 +43,9 @@ export default function VaultArchive() {
   const [sortOrder] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<'grid' | 'list' | 'compact'>('grid');
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -60,6 +64,22 @@ export default function VaultArchive() {
       v.tags?.some(t => t.toLowerCase() === "offline" || t.toLowerCase() === "hybrid")
     );
   }, [rawVaults, mode]);
+
+  const handleCompareToggle = useCallback((vaultId: string, checked: boolean, vaultTier: string) => {
+    if (checked) {
+      if (vaultTier !== 'free' && (TIER_RANK[userTier] ?? 0) === 0) {
+        toast({ title: 'Upgrade required', description: 'Upgrade to Pro to compare this idea.' });
+        return;
+      }
+      if (compareIds.length >= 3) {
+        toast({ title: 'Maximum 3 ideas', description: 'Remove one idea before adding another.' });
+        return;
+      }
+      setCompareIds(prev => [...prev, vaultId]);
+    } else {
+      setCompareIds(prev => prev.filter(id => id !== vaultId));
+    }
+  }, [compareIds, userTier, toast]);
 
   const handleFilterChange = useCallback(async () => {
     const filter: VaultFilter = {
@@ -110,6 +130,7 @@ export default function VaultArchive() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PortalNav activePage="archive" />
+      <div aria-hidden="true" className="h-[104px]" />
 
       {/* Hero Header */}
       <motion.header
@@ -140,7 +161,7 @@ export default function VaultArchive() {
       </motion.header>
 
       {/* Filter Bar */}
-      <div className="sticky top-16 z-20 bg-background/95 backdrop-blur-md border-b border-border">
+      <div className="sticky top-[104px] z-20 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-3 space-y-3">
           {/* Row 1: search + layout */}
           <div className="flex items-center gap-3">
@@ -292,6 +313,9 @@ export default function VaultArchive() {
                           vault={vault}
                           layout={layout === 'list' ? 'compact' : layout === 'compact' ? 'compact' : 'expanded'}
                           displayIndex={idx}
+                          compareMode={true}
+                          isCompareSelected={compareIds.includes(vault.id)}
+                          onCompareToggle={(id, checked) => handleCompareToggle(id, checked, vault.tier)}
                         />
                       </motion.div>
                     );
@@ -370,6 +394,37 @@ export default function VaultArchive() {
       </main>
 
       <Footer variant="public" />
+
+      {/* Sticky compare bar */}
+      <AnimatePresence>
+        {compareIds.length > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-4 bg-foreground text-background rounded-2xl shadow-2xl"
+          >
+            <GitCompare className="w-5 h-5 shrink-0" />
+            <span className="font-semibold text-sm">
+              Comparing {compareIds.length} idea{compareIds.length > 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={() => setLocation(`/vault-compare?ids=${compareIds.join(',')}`)}
+              className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              Compare →
+            </button>
+            <button
+              onClick={() => setCompareIds([])}
+              className="p-1 hover:opacity-70 transition-opacity"
+              aria-label="Clear selection"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
