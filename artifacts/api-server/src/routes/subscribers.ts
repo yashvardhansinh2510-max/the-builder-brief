@@ -216,4 +216,68 @@ router.post("/subscribers/me/sync", verifyUser, async (req, res): Promise<void> 
   res.json({ success: true });
 });
 
+// POST /api/subscribers/me/context — save startup context (frontend field names)
+router.post("/subscribers/me/context", verifyUser, async (req, res): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { name, whatBuilding, stage, sector, targetCustomer, biggestChallenge, teamSize } = req.body;
+
+  const [existing] = await db.select().from(subscribersTable).where(eq(subscribersTable.email, email)).limit(1);
+
+  if (existing) {
+    await db.update(subscribersTable).set({
+      whatBuilding: whatBuilding ?? name,
+      startupSector: sector,
+      startupStage: stage,
+      targetCustomer,
+      biggestChallenge,
+      contextUpdatedAt: new Date(),
+    }).where(eq(subscribersTable.email, email));
+  }
+
+  res.json({ success: true });
+});
+
+router.patch("/subscribers/me", verifyUser, async (req, res): Promise<void> => {
+  const email = req.user?.email;
+  if (!email) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { stage, goal, constraint } = req.body as {
+    stage?: string;
+    goal?: string;
+    constraint?: string;
+  };
+
+  const [subscriber] = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.email, email))
+    .limit(1);
+
+  if (!subscriber) {
+    res.status(404).json({ error: "Subscriber not found" });
+    return;
+  }
+
+  const currentPortalState = (subscriber.portalState as Record<string, unknown>) ?? {};
+
+  await db
+    .update(subscribersTable)
+    .set({
+      ...(stage !== undefined && { startupStage: stage }),
+      ...(constraint !== undefined && { biggestChallenge: constraint }),
+      ...(goal !== undefined && {
+        portalState: { ...currentPortalState, goal },
+      }),
+      contextUpdatedAt: new Date(),
+    })
+    .where(eq(subscribersTable.email, email));
+
+  res.json({ ok: true });
+});
+
 export default router;
