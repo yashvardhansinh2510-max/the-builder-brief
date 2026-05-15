@@ -26,7 +26,7 @@ export function GroundGameDrawer({ idea, onClose, userTier, isPremium, isGated }
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    const textToCopy = idea.gtmSteps.join("\n");
+    const textToCopy = idea.gtmSteps[0] ?? "";
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -161,11 +161,11 @@ export function GroundGameDrawer({ idea, onClose, userTier, isPremium, isGated }
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4" /> Copied to clipboard!
+                  <Check className="w-4 h-4" /> Copied!
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" /> Copy GTM steps
+                  <Copy className="w-4 h-4" /> Try this tactic
                 </>
               )}
             </button>
