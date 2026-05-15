@@ -33,6 +33,7 @@ import CombinedFeaturedSection from "@/components/ui/combined-featured-section";
 import PersonalizedBuildBriefFeatures from "@/components/ui/personalized-features";
 import CustomersTableCard from "@/components/ui/customers-table-card";
 import Footer from "@/components/Footer";
+import { VaultTeaserCard } from "@/components/VaultTeaserCard";
 
 const contents = [
   { title: "The Idea", desc: "A specific named startup concept — not a category, a company.", icon: Lightbulb },
@@ -92,85 +93,59 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
     if (status !== "loading") setEmail("");
   };
 
-  const wordVariants = {
-    hidden: { opacity: 0, y: 40, filter: "blur(8px)" },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      filter: "blur(0px)",
-      transition: { duration: 0.7, delay: 0.1 + i * 0.12, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
-    }),
-  };
-
   return (
-    <section className="pt-28 md:pt-40 pb-32 px-6 max-w-5xl mx-auto text-center relative overflow-hidden">
-      {/* Static ambient glow — no scroll animation */}
+    <section className="pt-28 md:pt-40 pb-32 px-6 max-w-4xl mx-auto text-center relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="relative z-10"
       >
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.05 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8"
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="font-serif text-[40px] md:text-[72px] leading-[1.05] tracking-tight mb-8"
         >
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          Issue #009 drops this Friday
-        </motion.div>
+          Every week, one startup idea.{" "}
+          <span className="italic text-primary">Researched. Scored. Ready to build.</span>
+        </motion.h1>
 
-        <h1 className="font-serif text-5xl md:text-7xl lg:text-[5.5rem] leading-[1.04] tracking-tight mb-8">
-          {["Ship", "a", "real", "startup"].map((word, i) => (
-            <motion.span
-              key={word + i}
-              custom={i}
-              initial="hidden"
-              animate="visible"
-              variants={wordVariants}
-              className="inline-block mr-[0.25em]"
-            >
-              {word}
-            </motion.span>
-          ))}
-          <br />
-          <motion.span
-            custom={4}
-            initial="hidden"
-            animate="visible"
-            variants={wordVariants}
-            className="italic text-primary inline-block"
-          >
-            by Monday.
-          </motion.span>
-        </h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.65 }}
-          className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12"
-        >
-          Every Friday, one complete startup idea — researched by founders who've exited,
-          AI-refined for execution, and blueprinted with real code.
-          Open it on Friday. Ship something by Monday.
-        </motion.p>
-
+        {/* Live Preview Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex justify-center mb-8"
         >
-          <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-5">
+          <div className="w-full max-w-md">
+            <VaultTeaserCard blurScore={false} />
+            <a
+              href="#subscribe-form"
+              className="block mt-3 text-sm text-primary font-medium hover:underline"
+            >
+              Subscribe to unlock this →
+            </a>
+          </div>
+        </motion.div>
+
+        {/* Subscribe Form */}
+        <motion.div
+          id="subscribe-form"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <Input
                 type="email"
-                placeholder="name@example.com"
+                placeholder="Your founder email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="rounded-full h-14 px-6 text-base border-border/50 bg-card/60 focus-visible:ring-primary"
@@ -181,12 +156,19 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
                 disabled={status === "loading"}
                 className="rounded-full h-14 px-8 text-base font-semibold bg-foreground hover:bg-foreground/90 text-background transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                {status === "pending-confirmation" ? <><Check className="w-4 h-4 mr-2" />Check your inbox!</> :
-                  status === "exists" ? <>Already subscribed ✓</> :
-                    status === "loading" ? "Subscribing…" : "Get the brief"}
+                {status === "pending-confirmation" ? (
+                  <><Check className="w-4 h-4 mr-2" />Check your inbox!</>
+                ) : status === "exists" ? (
+                  <>Already subscribed ✓</>
+                ) : status === "loading" ? (
+                  "Subscribing…"
+                ) : (
+                  "Get Friday's Idea"
+                )}
               </Button>
             </div>
           </form>
+
           {status === "pending-confirmation" && (
             <p className="text-sm text-green-600 flex items-center justify-center gap-1.5 mb-3">
               <Check className="w-3.5 h-3.5" /> Check your inbox to confirm!
@@ -202,7 +184,11 @@ function HeroSection({ onSuccess }: { onSuccess: () => void }) {
               <AlertCircle className="w-3.5 h-3.5" /> Something went wrong. Try again.
             </p>
           )}
-          <p className="text-sm text-muted-foreground">Join 15,000+ founders. Shipped 500+ companies. Free forever. (Pro tier: founders helping founders directly.)</p>
+
+          {/* Social Proof Bar */}
+          <p className="text-sm text-muted-foreground">
+            Join 15,000+ founders • 500+ companies shipped • Free forever
+          </p>
         </motion.div>
       </motion.div>
     </section>
