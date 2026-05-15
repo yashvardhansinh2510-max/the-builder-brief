@@ -86,7 +86,9 @@ import IntelligenceFeed from "@/components/portal/IntelligenceFeed";
 import PathTab from "@/components/portal/PathTab";
 import AllianceTab from "@/components/portal/AllianceTab";
 import ArsenalTab from "@/components/portal/ArsenalTab";
-import ReferralTab from "@/components/portal/ReferralTab";
+import {
+  type PortalTab,
+} from "@/lib/portal-config";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -274,42 +276,17 @@ export default function UserPortal() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [showLoginBonus, setShowLoginBonus] = useState(false);
   const [isBonusUnlocked, setIsBonusUnlocked] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    | "playbook"
-    | "path"
-    | "vault"
-    | "alliance"
-    | "arsenal"
-    | "performance"
-    | "terminal"
-    | "growth"
-    | "engine"
-    | "strategy"
-    | "referral"
-  >(tier === "free" ? "performance" : "playbook");
+  const [activeTab, setActiveTab] = useState<PortalTab>("intel");
   const [terminalHistory, setTerminalHistory] = useState<
     { type: "cmd" | "out"; text: string }[]
   >([]);
 
   useEffect(() => {
+    const VALID_TABS: PortalTab[] = ["intel", "vault", "playbook", "arsenal", "path", "alliance"];
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (
-      tab &&
-      [
-        "playbook",
-        "path",
-        "vault",
-        "alliance",
-        "arsenal",
-        "performance",
-        "terminal",
-        "engine",
-        "growth",
-        "strategy",
-      ].includes(tab)
-    ) {
-      setActiveTab(tab as any);
+    if (tab && VALID_TABS.includes(tab as PortalTab)) {
+      setActiveTab(tab as PortalTab);
     }
   }, []);
 
@@ -431,6 +408,16 @@ export default function UserPortal() {
     setShowUpgradeModal(true);
   };
 
+  const selectPortalTab = (tab: PortalTab) => {
+    setActiveTab(tab);
+    setLocation(`/dashboard?tab=${tab}`);
+    track("tab_changed", { tab, tier });
+  };
+
+  const handleNavTabChange = (tab: PortalTab) => {
+    selectPortalTab(tab);
+  };
+
   const toggleStep = (title: string) => {
     const newSteps = completedSteps.includes(title)
       ? completedSteps.filter((s) => s !== title)
@@ -522,8 +509,13 @@ export default function UserPortal() {
   if (isPremium && contextChecked && !startupCtx && !showContextModal) {
     return (
       <div className="min-h-screen bg-background text-foreground font-sans flex flex-col">
-        <PortalNav activePage="dashboard" />
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-20">
+        <PortalNav
+          activeTab="intel"
+          onTabChange={handleNavTabChange}
+          streak={streak}
+          activePage="dashboard"
+        />
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pt-36 pb-20">
           <div className="max-w-lg w-full text-center mb-12">
             <p className="text-[9px] font-bold tracking-[0.6em] text-primary uppercase mb-6">
               Before we start
@@ -552,12 +544,14 @@ export default function UserPortal() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
-      <PortalNav activePage="dashboard" />
+      <PortalNav
+        activeTab={activeTab}
+        onTabChange={handleNavTabChange}
+        streak={streak}
+        activePage="dashboard"
+      />
 
-      <main className="max-w-[1400px] mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Main Content Area (8 columns) */}
-          <div className="lg:col-span-8 space-y-12">
+      <main className="max-w-[1400px] mx-auto px-6 pt-36 pb-12 space-y-12">
             {/* Welcome Hero — conditional by tier */}
             <WelcomeHero
               tier={tier}
@@ -907,63 +901,27 @@ export default function UserPortal() {
               )}
             </div>
 
-            {/* Content Discovery Tabs */}
-            <div className="space-y-8">
-              {/* Tab container — style varies by tier */}
-              <div
-                className={
-                  tier === "free"
-                    ? "flex items-center gap-2 p-1.5 bg-card/50 border border-border/40 rounded-2xl w-full overflow-x-auto no-scrollbar snap-x snap-mandatory"
-                    : "flex items-center gap-0 w-full overflow-x-auto no-scrollbar snap-x snap-mandatory"
-                }
+            {/* Tab Panels */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {[
-                  { id: "playbook", label: "Playbook", icon: BookOpen },
-                  { id: "path", label: "Foundry Path", icon: Layers },
-                  { id: "vault", label: "Vault Archive", icon: Map },
-                  { id: "alliance", label: "The Alliance", icon: UsersIcon },
-                  { id: "arsenal", label: "Leverage Arsenal", icon: Boxes },
-                  { id: "performance", label: "Scorecard", icon: TrendingUp },
-                  { id: "terminal", label: "Terminal", icon: Terminal },
-                  { id: "engine", label: "Engine", icon: Cpu },
-                  { id: "strategy", label: "Strategy", icon: Target },
-                  { id: "growth", label: "Viral Growth", icon: Flame },
-                  { id: "referral", label: "Refer & Earn", icon: Share2 },
-                ]
-                  .filter(
-                    (tab) => tier !== "free" || tab.id === "performance"
-                  )
-                  .map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => { setActiveTab(tab.id as any); track('tab_changed', { tab: tab.id, tier }); }}
-                    className={
-                      tier === "pro"
-                        ? `snap-start shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`
-                        : tier === "max" || tier === "incubator"
-                          ? `snap-start shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs uppercase tracking-widest transition-all ${activeTab === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"}`
-                          : `snap-start shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === tab.id ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-background/40"}`
-                    }
-                  >
-                    <tab.icon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    {tab.id === "engine" && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] font-bold animate-pulse">
-                        NEW
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
+                  {activeTab === "intel" && (
+                    <IntelligenceFeed
+                      tier={tier}
+                      isPro={isPro}
+                      startupCtx={startupCtx}
+                      chatUsageThisMonth={chatUsageThisMonth}
+                      onUpgradeClick={handleUpgradeClick}
+                      onShowContextModal={() => setShowContextModal(true)}
+                      onChatUsageUpdate={(next) => setChatUsageThisMonth(next)}
+                    />
+                  )}
 
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                >
                   {activeTab === "playbook" && (
                     <PlaybookTab
                       activePlaybook={activePlaybook}
@@ -973,36 +931,6 @@ export default function UserPortal() {
                   )}
 
                   {activeTab === "path" && <PathTab />}
-                  {activeTab === "engine" && (
-                    <div className="space-y-6">
-                      <ContextManager />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-8 rounded-[2.5rem] bg-card/20 border border-border/40">
-                          <h4 className="font-serif text-xl mb-4 flex items-center gap-2">
-                            <Cpu className="w-5 h-5 text-primary" /> Proprietary
-                            Intelligence
-                          </h4>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            Your Engine is currently connected to the **YC
-                            Signal Vault** and **Elite VC Persona Cluster**. All
-                            advice generated is calibrated against these
-                            proprietary datasets.
-                          </p>
-                        </div>
-                        <div className="p-8 rounded-[2.5rem] bg-card/20 border border-border/40">
-                          <h4 className="font-serif text-xl mb-4 flex items-center gap-2">
-                            <Shield className="w-5 h-5 text-primary" />{" "}
-                            Knowledge Integrity
-                          </h4>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            Data uploaded to your private vault is encrypted and
-                            used only to fine-tune your specific Advisor
-                            sessions. It is never shared with other users.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   {activeTab === "vault" && (
                     <VaultTab
                       isPro={isPro}
@@ -1025,576 +953,6 @@ export default function UserPortal() {
                     />
                   )}
 
-                  {activeTab === "performance" && (
-                    <div className="max-w-5xl mx-auto py-12">
-                      {!scorecard ? (
-                        <div className="text-center py-24 bg-card/40 border border-border/40 rounded-[3rem] backdrop-blur-md">
-                          <TrendingUp className="w-16 h-16 mx-auto mb-8 text-primary opacity-20" />
-                          <h2 className="font-serif text-4xl mb-4">
-                            Initialize Your Scorecard.
-                          </h2>
-                          <p className="text-muted-foreground mb-12 max-w-lg mx-auto">
-                            Get an AI-powered diagnostic of your startup's
-                            current health and a 7-day tactical execution
-                            roadmap.
-                          </p>
-                          <button
-                            disabled={engineBusy}
-                            onClick={async () => {
-                              setEngineBusy(true);
-                              const tid = toast.loading(
-                                "Analyzing startup context...",
-                              );
-                              try {
-                                const res = await fetch(
-                                  "/api/scorecard/generate",
-                                  {
-                                    method: "POST",
-                                    headers: {
-                                      Authorization: `Bearer ${session?.access_token}`,
-                                    },
-                                  },
-                                );
-                                if (res.ok) {
-                                  const data = await res.json();
-                                  setScorecard(data);
-                                  toast.success("Scorecard Generated", {
-                                    id: tid,
-                                  });
-                                } else {
-                                  toast.error("Analysis failed", { id: tid });
-                                }
-                              } finally {
-                                setEngineBusy(false);
-                              }
-                            }}
-                            className="px-12 py-5 rounded-[2rem] bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-                          >
-                            {engineBusy ? "Analyzing…" : "Generate Diagnostic"}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                          {/* Main Score */}
-                          <div className="lg:col-span-1 space-y-8">
-                            <div className="p-10 rounded-[3rem] bg-primary text-white relative overflow-hidden shadow-2xl shadow-primary/20">
-                              <div className="absolute top-0 right-0 p-8 opacity-10">
-                                <Zap className="w-24 h-24" />
-                              </div>
-                              <p className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-60">
-                                FOUNDRY_SCORE
-                              </p>
-                              <h3 className="font-serif text-8xl mb-4">
-                                {scorecard.score}
-                              </h3>
-                              <p className="text-sm font-medium leading-relaxed opacity-90 italic">
-                                "{scorecard.verdict}"
-                              </p>
-                            </div>
-
-                            <div className="p-8 rounded-[3rem] bg-card border border-border/40 space-y-6">
-                              {Object.entries(scorecard.breakdown).map(
-                                ([key, val]: [string, any]) => (
-                                  <div key={key}>
-                                    <div className="flex justify-between mb-2">
-                                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        {key}
-                                      </span>
-                                      <span className="text-[10px] font-black text-primary">
-                                        {val}%
-                                      </span>
-                                    </div>
-                                    <div className="w-full h-1.5 bg-background rounded-full overflow-hidden">
-                                      <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${val}%` }}
-                                        className="h-full bg-primary"
-                                      />
-                                    </div>
-                                  </div>
-                                ),
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Roadmap */}
-                          <div className="lg:col-span-2">
-                            <h3 className="font-serif text-3xl mb-8 flex items-center gap-3">
-                              <Activity className="w-6 h-6 text-primary" />
-                              7-Day Execution Roadmap
-                            </h3>
-                            <div className="space-y-4">
-                              {scorecard.roadmap.map((step: any, i: number) => (
-                                <div
-                                  key={i}
-                                  className="p-6 rounded-3xl bg-card border border-border/40 hover:border-primary/20 transition-all group"
-                                >
-                                  <div className="flex gap-6">
-                                    <div className="w-12 h-12 rounded-2xl bg-background flex-shrink-0 flex items-center justify-center font-mono font-bold text-primary border border-border/40">
-                                      D{step.day}
-                                    </div>
-                                    <div>
-                                      <h4 className="font-bold mb-1 text-lg group-hover:text-primary transition-colors">
-                                        {step.task}
-                                      </h4>
-                                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-black text-[9px] mb-1">
-                                        GOAL: {step.goal}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Reading History */}
-                      {activityHistory.length > 0 && (
-                        <div className="mt-12 p-8 rounded-[2.5rem] bg-card/40 border border-border/40 backdrop-blur-md">
-                          <div className="flex items-center gap-3 mb-6">
-                            <Activity className="w-5 h-5 text-primary" />
-                            <h3 className="font-serif text-2xl font-semibold text-foreground">Your Reading History</h3>
-                          </div>
-                          <div className="space-y-2">
-                            {activityHistory.slice(0, 20).map((item) => (
-                              <div key={item.id} className="flex items-center justify-between py-3 border-b border-border/20 last:border-0">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-primary/40" />
-                                  <span className="text-sm text-foreground capitalize">
-                                    {item.event.replace(/_/g, " ")}
-                                    {(item.properties as any)?.vaultId && (
-                                      <span className="text-muted-foreground ml-2 text-xs">— vault {(item.properties as any).vaultId}</span>
-                                    )}
-                                  </span>
-                                </div>
-                                <span className="text-xs text-muted-foreground shrink-0 ml-4">
-                                  {new Date(item.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {activeTab === "terminal" && (
-                    <div className="max-w-4xl mx-auto py-12">
-                      <div className="p-8 rounded-[3rem] bg-[#050505] border border-primary/20 shadow-2xl shadow-primary/[0.05] relative overflow-hidden font-mono min-h-[600px] flex flex-col">
-                        {/* Terminal Header */}
-                        <div className="flex items-center justify-between mb-8 pb-4 border-b border-primary/10">
-                          <div className="flex items-center gap-4">
-                            <div className="flex gap-1.5">
-                              <div className="w-2.5 h-2.5 rounded-full bg-red-500/20" />
-                              <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20" />
-                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/20" />
-                            </div>
-                            <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">
-                              Foundry_OS // v0.9.1-Alpha
-                            </span>
-                          </div>
-                          <Badge className="bg-primary/10 text-primary border-primary/20">
-                            {tier.toUpperCase()}_SESSION
-                          </Badge>
-                        </div>
-
-                        {/* Terminal Output */}
-                        <div className="flex-1 overflow-y-auto space-y-4 mb-8 text-sm custom-scrollbar pr-4">
-                          <p className="text-primary/40 leading-relaxed">
-                            Welcome to the Foundry Terminal. Accessing
-                            intelligence nodes... <br />
-                            Type /market-scan, /roast, or /sprint to begin.
-                          </p>
-
-                          {terminalHistory.map((item, i) => (
-                            <div
-                              key={i}
-                              className={`flex gap-3 ${item.type === "cmd" ? "text-primary/80" : "text-primary/60 border-l border-primary/20 pl-4 py-2 bg-primary/5 rounded-r-xl"}`}
-                            >
-                              {item.type === "cmd" && (
-                                <span className="text-primary opacity-40 font-bold shrink-0">
-                                  {">"}
-                                </span>
-                              )}
-                              <div className="whitespace-pre-wrap break-words">
-                                {item.text}
-                              </div>
-                            </div>
-                          ))}
-
-                          {terminalHistory.length === 0 && (
-                            <div className="text-primary/60 border-l border-primary/20 pl-4 py-2 bg-primary/5 rounded-r-xl">
-                              SYSTEM: Intelligence energy at 100%. Ready for
-                              commands.
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Terminal Input */}
-                        <div className="relative mt-auto">
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 text-primary font-bold">
-                            {">"}
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Enter Command..."
-                            onKeyDown={async (e) => {
-                              if (e.key === "Enter") {
-                                const input = (e.target as HTMLInputElement)
-                                  .value;
-                                (e.target as HTMLInputElement).value = "";
-
-                                setTerminalHistory((prev) => [
-                                  ...prev,
-                                  { type: "cmd", text: input },
-                                ]);
-                                const tid = toast.loading(
-                                  `Executing ${input}...`,
-                                );
-
-                                try {
-                                  const res = await fetch(
-                                    "/api/terminal/command",
-                                    {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                        Authorization: `Bearer ${session?.access_token}`,
-                                      },
-                                      body: JSON.stringify({
-                                        command: input,
-                                        context: startupCtx,
-                                      }),
-                                    },
-                                  );
-
-                                  if (res.ok) {
-                                    const data = await res.json();
-                                    setTerminalHistory((prev) => [
-                                      ...prev,
-                                      { type: "out", text: data.output },
-                                    ]);
-                                    toast.success("Done.", { id: tid });
-                                  } else {
-                                    toast.error("Execution failed", {
-                                      id: tid,
-                                    });
-                                  }
-                                } catch {
-                                  toast.error("Network error", { id: tid });
-                                }
-                              }
-                            }}
-                            className="w-full bg-transparent border-none focus:ring-0 text-primary pl-6 font-mono placeholder:text-primary/20"
-                            autoFocus
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "growth" && (
-                    <div className="max-w-4xl mx-auto py-12">
-                      <div className="text-center mb-16">
-                        <motion.div
-                          initial={{ scale: 0.9, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary mx-auto mb-8 border border-primary/20"
-                        >
-                          <Flame className="w-10 h-10" />
-                        </motion.div>
-                        <h2 className="font-serif text-5xl mb-6">
-                          Multiply Your Edge.
-                        </h2>
-                        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                          Invite 3 founders to the Builder Brief. Get 1 month of
-                          Pro access free. Reach 10 founders to unlock permanent
-                          Max access.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="p-10 rounded-[3rem] bg-card border border-border/40 relative overflow-hidden">
-                          <div className="absolute top-0 right-0 p-8 text-primary/10">
-                            <Trophy className="w-20 h-20" />
-                          </div>
-                          <div className="relative z-10">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">
-                              YOUR_PROGRESS
-                            </p>
-                            <h3 className="font-serif text-3xl mb-8">
-                              {referralData?.referralCount || 0} Referred
-                            </h3>
-
-                            <div className="w-full h-3 bg-background rounded-full overflow-hidden mb-6 border border-border/40">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{
-                                  width: `${Math.min(((referralData?.referralCount || 0) / 3) * 100, 100)}%`,
-                                }}
-                                className="h-full bg-primary shadow-[0_0_20px_rgba(249,115,22,0.4)]"
-                              />
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-8">
-                              {3 - (referralData?.referralCount || 0) > 0
-                                ? `Just ${3 - (referralData?.referralCount || 0)} more to unlock Pro Tier.`
-                                : "Milestone Reached! Claim your reward below."}
-                            </p>
-
-                            {(referralData?.referralCount || 0) >= 3 && (
-                              <button
-                                disabled={milestoneBusy}
-                                onClick={async () => {
-                                  setMilestoneBusy(true);
-                                  const tid = toast.loading(
-                                    "Verifying milestones...",
-                                  );
-                                  try {
-                                    const res = await fetch(
-                                      "/api/referrals/verify-milestone",
-                                      {
-                                        method: "POST",
-                                        headers: {
-                                          Authorization: `Bearer ${session?.access_token}`,
-                                        },
-                                      },
-                                    );
-                                    if (res.ok) {
-                                      const data = await res.json();
-                                      if (data.upgraded) {
-                                        toast.success(
-                                          `Milestone Verified! Tier upgraded to ${data.currentTier.toUpperCase()}.`,
-                                          { id: tid },
-                                        );
-                                        setTimeout(
-                                          () => window.location.reload(),
-                                          2000,
-                                        );
-                                      } else {
-                                        toast.info(
-                                          "No new milestones to claim yet.",
-                                          { id: tid },
-                                        );
-                                      }
-                                    } else {
-                                      toast.error("Verification failed", {
-                                        id: tid,
-                                      });
-                                    }
-                                  } finally {
-                                    setMilestoneBusy(false);
-                                  }
-                                }}
-                                className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-                              >
-                                {milestoneBusy ? "Verifying…" : "Claim Tier Upgrade"}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="p-10 rounded-[3rem] bg-primary/5 border border-primary/20 relative overflow-hidden">
-                          <div className="relative z-10">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">
-                              SHARE_CODE
-                            </p>
-                            <h3 className="font-serif text-3xl mb-8">
-                              Viral Link
-                            </h3>
-
-                            <div className="flex items-center gap-2 p-4 bg-background border border-border/40 rounded-2xl mb-6 font-mono text-lg font-bold text-center justify-center tracking-widest">
-                              {referralData?.referralCode || "LOADING..."}
-                            </div>
-
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  referralData?.shareUrl || "",
-                                );
-                                track('referral_link_copied', { referralCode: referralData?.referralCode });
-                                toast.success("Link Copied", {
-                                  description: "Time to build the network.",
-                                });
-                              }}
-                              className="w-full py-5 rounded-2xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-all shadow-xl shadow-primary/20"
-                            >
-                              Copy Referral Link
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {activeTab === "strategy" && (
-                    <div className="max-w-6xl mx-auto py-12 space-y-12">
-                      <div className="text-center mb-16">
-                        <motion.div
-                          initial={{ scale: 0.9, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary mx-auto mb-8 border border-primary/20"
-                        >
-                          <Target className="w-10 h-10" />
-                        </motion.div>
-                        <h2 className="font-serif text-5xl mb-6">
-                          Strategic Intelligence.
-                        </h2>
-                        <p className="text-muted-foreground text-lg max-w-2xl mx-auto italic">
-                          Personalized blueprints sourced from our proprietary
-                          vault of YC logic and VC personas.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Roadmap & Matches Column */}
-                        <div className="lg:col-span-2 space-y-8">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Roadmap Card */}
-                            <div className="p-10 rounded-[3rem] bg-card border border-border/40 relative overflow-hidden group h-full flex flex-col justify-between">
-                              <div className="absolute top-0 right-0 p-8 text-primary/10 group-hover:rotate-12 transition-transform">
-                                <Map className="w-20 h-20" />
-                              </div>
-                              <div className="relative z-10">
-                                <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 tracking-widest uppercase text-[9px]">
-                                  The_100B_Blueprint
-                                </Badge>
-                                <h3 className="font-serif text-3xl mb-4">
-                                  Hyper-Growth Roadmap
-                                </h3>
-                                <p className="text-xs text-muted-foreground mb-8 leading-relaxed">
-                                  A 4-phase tactical execution plan generated
-                                  from your startup context and our growth
-                                  blueprints.
-                                </p>
-
-                                <button
-                                  disabled={engineBusy}
-                                  onClick={async () => {
-                                    setEngineBusy(true);
-                                    const tid = toast.loading(
-                                      "Synthesizing roadmap...",
-                                    );
-                                    try {
-                                      const res = await fetch(
-                                        "/api/engine/roadmap",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            Authorization: `Bearer ${session?.access_token}`,
-                                          },
-                                        },
-                                      );
-                                      if (res.ok) {
-                                        const data = await res.json();
-                                        setPersonalizedBrief(data.roadmap);
-                                        toast.success("Roadmap Generated", {
-                                          id: tid,
-                                        });
-                                      } else {
-                                        toast.error("Synthesis failed", {
-                                          id: tid,
-                                        });
-                                      }
-                                    } finally {
-                                      setEngineBusy(false);
-                                    }
-                                  }}
-                                  className="px-8 py-4 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                >
-                                  {engineBusy ? "Synthesizing…" : "Generate Roadmap"}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Investor Matchmaker Card */}
-                            <div className="p-10 rounded-[3rem] bg-primary/5 border border-primary/20 relative overflow-hidden group h-full flex flex-col justify-between">
-                              <div className="absolute top-0 right-0 p-8 text-primary/10 group-hover:rotate-12 transition-transform">
-                                <ShieldCheck className="w-20 h-20" />
-                              </div>
-                              <div className="relative z-10">
-                                <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 tracking-widest uppercase text-[9px]">
-                                  Venture_Matching
-                                </Badge>
-                                <h3 className="font-serif text-4xl mb-4">
-                                  Investor Matchmaker
-                                </h3>
-                                <p className="text-xs text-muted-foreground mb-8 leading-relaxed">
-                                  Match your venture against the investment
-                                  criteria of Tier-1 VC archetypes.
-                                </p>
-
-                                <button
-                                  disabled={engineBusy}
-                                  onClick={async () => {
-                                    setEngineBusy(true);
-                                    const tid = toast.loading(
-                                      "Analyzing investor fit...",
-                                    );
-                                    try {
-                                      const res = await fetch(
-                                        "/api/engine/investor-matches",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            Authorization: `Bearer ${session?.access_token}`,
-                                          },
-                                        },
-                                      );
-                                      if (res.ok) {
-                                        const data = await res.json();
-                                        setPersonalizedBrief(data.matches);
-                                        toast.success("Matches Found", {
-                                          id: tid,
-                                        });
-                                      } else {
-                                        toast.error("Analysis failed", {
-                                          id: tid,
-                                        });
-                                      }
-                                    } finally {
-                                      setEngineBusy(false);
-                                    }
-                                  }}
-                                  className="px-8 py-4 rounded-2xl bg-background border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                >
-                                  {engineBusy ? "Analyzing…" : "Find Matches"}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Results Display */}
-                          {personalizedBrief && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="p-12 rounded-[3.5rem] bg-card border border-border/40 font-serif leading-relaxed text-lg whitespace-pre-wrap relative overflow-hidden shadow-2xl"
-                            >
-                              <div className="absolute top-0 right-0 p-12 opacity-5">
-                                <Sparkles className="w-32 h-32 text-primary" />
-                              </div>
-                              <div className="relative z-10 max-w-4xl mx-auto prose prose-invert prose-orange">
-                                {personalizedBrief}
-                              </div>
-                            </motion.div>
-                          )}
-                        </div>
-
-                        {/* Alpha Feed Column */}
-                        <div className="lg:col-span-1 space-y-6">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-serif text-2xl">Alpha Feed</h3>
-                            <div className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                                LIVE
-                              </span>
-                            </div>
-                          </div>
-                          <MarketPulseFeed />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   {activeTab === "arsenal" && (
                     <ArsenalTab
                       products={products}
@@ -1605,10 +963,9 @@ export default function UserPortal() {
                     />
                   )}
 
-                  {activeTab === "referral" && <ReferralTab />}
                 </motion.div>
               </AnimatePresence>
-            </div>
+
             {/* Issue Content Modal */}
             <AnimatePresence>
               {selectedIssue && (
@@ -1752,21 +1109,6 @@ export default function UserPortal() {
                 </div>
               )}
             </AnimatePresence>
-          </div>
-
-          {/* Section below VOTW removed as it was moved above */}
-
-          {/* Right Sidebar Intelligence Feed (4 columns) */}
-          <IntelligenceFeed
-            tier={tier}
-            isPro={isPro}
-            startupCtx={startupCtx}
-            chatUsageThisMonth={chatUsageThisMonth}
-            onUpgradeClick={handleUpgradeClick}
-            onShowContextModal={() => setShowContextModal(true)}
-            onChatUsageUpdate={(next) => setChatUsageThisMonth(next)}
-          />
-        </div>
       </main>
 
       {/* Lesson Content Modal */}
