@@ -1,381 +1,372 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { Search, Lock, LayoutGrid, List, Columns3 } from 'lucide-react';
+import { Link } from 'wouter';
 import { useMode } from "@/lib/ModeContext";
+import { useAuth } from "@/lib/AuthContext";
 import PortalNav from '@/components/PortalNav';
 import Footer from '@/components/Footer';
 import VaultCard from '@/components/VaultCard';
-import { useVaultList } from '@/hooks/useVaults';
+import { useVaults } from '@/hooks/useVaults';
 import { VaultFilter } from '@/lib/vault-types';
-import { usePageTracking, useTrack } from '@/hooks/useAnalytics';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { usePageTracking } from '@/hooks/useAnalytics';
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.06 } }),
-};
+const TIER_RANK: Record<string, number> = { free: 0, pro: 1, max: 2, incubator: 3 };
+
+function EmptyState() {
+  return (
+    <div className="text-center py-24 bg-card rounded-2xl border border-dashed border-border">
+      <svg width="64" height="64" viewBox="0 0 64 64" className="mx-auto mb-4 text-muted-foreground/40" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <circle cx="28" cy="28" r="18" />
+        <line x1="41" y1="41" x2="56" y2="56" strokeLinecap="round" />
+        <line x1="22" y1="28" x2="34" y2="28" />
+        <line x1="28" y1="22" x2="28" y2="34" />
+      </svg>
+      <p className="font-serif text-2xl text-foreground mb-2">No ideas match your filters.</p>
+      <p className="text-sm text-muted-foreground">Try widening the search.</p>
+    </div>
+  );
+}
 
 export default function VaultArchive() {
   usePageTracking('/vault-archive');
-  const { track } = useTrack();
   const { mode } = useMode();
+  const { tier: userTier } = useAuth();
+  const { vaults: rawVaults, loading, error, total, page, hasMore, fetchVaults, setPage } = useVaults();
 
-  // Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedTier, setSelectedTier] = useState<'free' | 'pro' | 'max' | 'all'>('all');
+  const [selectedTier, setSelectedTier] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [minScore, setMinScore] = useState(0);
   const [sortBy, setSortBy] = useState<'score' | 'momentum' | 'recent' | 'signals'>('score');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [layout, setLayout] = useState<'compact' | 'expanded'>('expanded');
-  const [page, setPage] = useState(1);
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [sortOrder] = useState<'asc' | 'desc'>('desc');
+  const [layout, setLayout] = useState<'grid' | 'list' | 'compact'>('grid');
+  const [allTags, setAllTags] = useState<string[]>([]);
 
-  const activeFilterCount = [
-    selectedTier !== 'all',
-    minScore > 0,
-    sortBy !== 'score',
-    sortOrder !== 'desc',
-  ].filter(Boolean).length;
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-  // Debounce search input
+  // Fetch all unique tags once
   useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setPage(1);
-      if (searchQuery) track('search_performed', { query: searchQuery });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
+    fetch(`${API_BASE}/vaults/tags`)
+      .then(r => r.ok ? r.json() : [])
+      .then((tags: string[]) => setAllTags(tags))
+      .catch(() => {});
+  }, [API_BASE]);
 
-  // Reset page when filters change + track
-  useEffect(() => {
-    setPage(1);
-    track('filter_changed', { tier: selectedTier, minScore, sortBy, sortOrder });
-  }, [selectedTier, minScore, sortBy, sortOrder]);
-
-  const filters: VaultFilter = useMemo(() => ({
-    searchQuery: debouncedSearch || undefined,
-    tier: selectedTier === 'all' ? undefined : selectedTier,
-    minScore: minScore > 0 ? minScore : undefined,
-    sortBy,
-    sortOrder,
-  }), [debouncedSearch, selectedTier, minScore, sortBy, sortOrder]);
-
-  const { data, isLoading: loading, isError, error: queryError } = useVaultList(filters, page);
-  const rawVaults = data?.vaults ?? [];
-  const total = data?.total ?? 0;
-  const hasMore = data?.hasMore ?? false;
-  const error = isError ? (queryError as Error) : null;
-
+  // Mode filter
   const vaults = useMemo(() => {
-    if (mode === "offline") {
-      return rawVaults.filter(v =>
-        v.tags?.some(tag => tag.toLowerCase() === "offline" || tag.toLowerCase() === "hybrid")
-      );
-    }
-    return rawVaults;
+    if (mode !== "offline") return rawVaults;
+    return rawVaults.filter(v =>
+      v.tags?.some(t => t.toLowerCase() === "offline" || t.toLowerCase() === "hybrid")
+    );
   }, [rawVaults, mode]);
 
-  const tiers = [
-    { value: 'all', label: 'All Tiers', count: total },
-    { value: 'free', label: 'Free Tier', count: vaults.filter(v => v.tier === 'free').length },
-    { value: 'pro', label: 'Pro Tier', count: vaults.filter(v => v.tier === 'pro').length },
-    { value: 'max', label: 'Max Tier', count: vaults.filter(v => v.tier === 'max').length },
-  ];
+  const handleFilterChange = useCallback(async () => {
+    const filter: VaultFilter = {
+      searchQuery: searchQuery || undefined,
+      tier: (selectedTier !== 'all' ? selectedTier : undefined) as VaultFilter['tier'],
+      minScore: minScore > 0 ? minScore : undefined,
+      sortBy,
+      sortOrder,
+      category: selectedCategory !== 'All' ? selectedCategory : undefined,
+    };
+    await fetchVaults(filter, 1);
+  }, [searchQuery, selectedTier, minScore, sortBy, sortOrder, selectedCategory, fetchVaults]);
 
-  const sortOptions = [
-    { value: 'score', label: 'Confidence Score' },
-    { value: 'momentum', label: 'Momentum' },
-    { value: 'recent', label: 'Recently Added' },
-    { value: 'signals', label: 'Signal Count' },
-  ];
+  useEffect(() => {
+    const t = setTimeout(handleFilterChange, 500);
+    return () => clearTimeout(t);
+  }, [handleFilterChange]);
+
+  // Scroll-collapsing header
+  const { scrollY } = useScroll();
+  const headerPaddingY = useTransform(scrollY, [0, 120], [48, 16]);
+  const subtitleOpacity = useTransform(scrollY, [60, 110], [1, 0]);
+
+  // Stats
+  const avgScore = vaults.length
+    ? Math.round(vaults.reduce((s, v) => s + (v.scores?.overall ?? 0), 0) / vaults.length)
+    : 0;
+  const topVault = [...vaults].sort((a, b) => (b.momentum ?? 0) - (a.momentum ?? 0))[0];
+  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const recentCount = vaults.filter(v => v.publishedAt && new Date(v.publishedAt) >= sevenDaysAgo).length;
+
+  // Trending tag counts for sidebar
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    vaults.forEach(v => v.tags?.forEach(t => { counts[t] = (counts[t] ?? 0) + 1; }));
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [vaults]);
+  const maxTagCount = tagCounts[0]?.[1] ?? 1;
+
+  const tiers = ['all', 'free', 'pro', 'max'];
+
+  const gridCols = {
+    grid: 'grid-cols-1 md:grid-cols-2',
+    compact: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+    list: 'grid-cols-1',
+  }[layout];
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+    <div className="min-h-screen bg-background text-foreground">
       <PortalNav activePage="archive" />
 
-      <main className="max-w-7xl mx-auto px-6 pt-16 pb-28">
-        {/* Header */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} className="mb-12">
-          <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-3">Vault Archive</p>
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-foreground">All Ideas.</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl">
-            Explore every startup idea discovered by our AI system. Each backed by real community signals, scored across 4 dimensions, verified for viability.
-          </p>
-        </motion.div>
-
-        {/* Controls Section */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          custom={1}
-          variants={fadeUp}
-          className="mb-8 space-y-4 bg-card p-4 sm:p-6 rounded-2xl border border-border"
-        >
-          {/* Search + mobile filter trigger row */}
-          <div className="flex gap-3 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-foreground mb-2">Search ideas</label>
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search by title, problem, market..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                />
-              </div>
+      {/* Hero Header */}
+      <motion.header
+        className="border-b border-border bg-background/95 backdrop-blur-sm"
+        style={{ paddingTop: headerPaddingY, paddingBottom: headerPaddingY }}
+      >
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <h1 className="font-serif text-4xl md:text-5xl font-bold text-foreground">The Idea Vault</h1>
+              <motion.p style={{ opacity: subtitleOpacity }} className="text-muted-foreground mt-1 max-w-xl">
+                Every startup idea our AI has surfaced. Scored. Verified. Yours to build.
+              </motion.p>
             </div>
-
-            {/* Mobile-only filters button */}
-            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-              <SheetTrigger asChild>
-                <button className="md:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium text-foreground hover:border-primary/50 transition-colors relative">
-                  <SlidersHorizontal className="w-4 h-4" />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-                <SheetHeader className="mb-6">
-                  <SheetTitle className="flex items-center justify-between">
-                    <span>Filters</span>
-                    {activeFilterCount > 0 && (
-                      <button
-                        onClick={() => { setSelectedTier('all'); setMinScore(0); setSortBy('score'); setSortOrder('desc'); }}
-                        className="text-xs text-primary font-semibold flex items-center gap-1"
-                      >
-                        <X className="w-3 h-3" /> Clear all
-                      </button>
-                    )}
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="space-y-6 pb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Subscription Tier</label>
-                    <select value={selectedTier} onChange={(e) => setSelectedTier(e.target.value as any)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground outline-none">
-                      {tiers.map(t => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Minimum Score: {minScore}</label>
-                    <input type="range" min="0" max="100" step="5" value={minScore} onChange={(e) => setMinScore(parseInt(e.target.value))} className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer" />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>0</span><span>100</span></div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Sort By</label>
-                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground outline-none">
-                      {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Order</label>
-                    <div className="flex gap-2">
-                      <button onClick={() => setSortOrder('desc')} className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${sortOrder === 'desc' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>Highest</button>
-                      <button onClick={() => setSortOrder('asc')} className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${sortOrder === 'asc' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>Lowest</button>
-                    </div>
-                  </div>
-                  <button onClick={() => setFilterSheetOpen(false)} className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold">Apply Filters</button>
-                </div>
-              </SheetContent>
-            </Sheet>
+            <div className="hidden md:flex items-center gap-3 shrink-0">
+              <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+                {total} ideas
+              </span>
+              <span className="text-xs bg-muted text-muted-foreground px-3 py-1.5 rounded-full">
+                Avg score: {avgScore}
+              </span>
+              <span className="text-xs bg-muted text-muted-foreground px-3 py-1.5 rounded-full">
+                +{recentCount} this week
+              </span>
+            </div>
           </div>
+        </div>
+      </motion.header>
 
-          {/* Desktop Filters Grid — hidden on mobile */}
-          <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Tier Filter */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Subscription Tier</label>
-              <select
-                value={selectedTier}
-                onChange={(e) => setSelectedTier(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-              >
-                {tiers.map(tier => (
-                  <option key={tier.value} value={tier.value}>
-                    {tier.label} ({tier.count})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Score Filter */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Minimum Score: {minScore}
-              </label>
+      {/* Filter Bar */}
+      <div className="sticky top-16 z-20 bg-background/95 backdrop-blur-md border-b border-border">
+        <div className="max-w-7xl mx-auto px-6 py-3 space-y-3">
+          {/* Row 1: search + layout */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={minScore}
-                onChange={(e) => setMinScore(parseInt(e.target.value))}
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                type="text"
+                placeholder="Search ideas..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
               />
-              <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>0</span>
-                <span>100</span>
-              </div>
             </div>
-
-            {/* Sort By */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Sort By</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-              >
-                {sortOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort Order */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Order</label>
-              <div className="flex gap-2">
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as 'score' | 'momentum' | 'recent' | 'signals')}
+              className="text-xs px-3 py-1.5 rounded-lg border border-border bg-background text-foreground outline-none"
+            >
+              <option value="score">Confidence Score</option>
+              <option value="momentum">Momentum</option>
+              <option value="recent">Recently Added</option>
+              <option value="signals">Most Signals</option>
+            </select>
+            <div className="flex items-center gap-1 ml-auto">
+              {([['grid', LayoutGrid], ['compact', Columns3], ['list', List]] as const).map(([k, Icon]) => (
                 <button
-                  onClick={() => setSortOrder('desc')}
-                  className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${
-                    sortOrder === 'desc'
+                  key={k}
+                  onClick={() => setLayout(k)}
+                  className={`p-1.5 rounded ${layout === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Icon className="w-4 h-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Row 2: category pills + tier tabs + score slider */}
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Category pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-1">
+              {['All', ...allTags].map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => setSelectedCategory(tag)}
+                  className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                    selectedCategory === tag
                       ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-muted-foreground hover:border-border/60 hover:text-foreground'
+                      : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
                   }`}
                 >
-                  Highest
+                  {tag}
                 </button>
-                <button
-                  onClick={() => setSortOrder('asc')}
-                  className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${
-                    sortOrder === 'asc'
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-muted-foreground hover:border-border/60 hover:text-foreground'
-                  }`}
-                >
-                  Lowest
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Layout Toggle */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <span className="text-sm font-medium text-muted-foreground">
-              {total} ideas found
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setLayout('compact')}
-                className={`px-3 py-1.5 text-sm rounded border transition-colors ${
-                  layout === 'compact'
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
-                }`}
-              >
-                List
-              </button>
-              <button
-                onClick={() => setLayout('expanded')}
-                className={`px-3 py-1.5 text-sm rounded border transition-colors ${
-                  layout === 'expanded'
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
-                }`}
-              >
-                Grid
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-80 bg-muted rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive">
-            <p className="font-semibold mb-1">Error loading vaults</p>
-            <p className="text-sm">{error.message}</p>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && vaults.length === 0 && !error && (
-          <div className="text-center py-24 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
-            <p className="font-serif text-3xl mb-2 text-foreground">No ideas found.</p>
-            <p className="text-sm">Try adjusting your filters or search terms.</p>
-          </div>
-        )}
-
-        {/* Vaults Grid */}
-        {!loading && vaults.length > 0 && (
-          <>
-            <div className={layout === 'expanded' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-              {vaults.map((vault, idx) => (
-                <motion.div
-                  key={vault.id}
-                  custom={idx}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, margin: '-60px' }}
-                  variants={fadeUp}
-                >
-                  <VaultCard vault={vault} layout={layout} displayIndex={idx + 1} />
-                </motion.div>
               ))}
             </div>
 
-            {/* Pagination */}
-            {hasMore && (
-              <motion.div
-                custom={vaults.length}
-                initial="hidden"
-                whileInView="visible"
-                variants={fadeUp}
-                className="mt-12 text-center"
-              >
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors"
-                >
-                  Load More Ideas
-                </button>
-              </motion.div>
-            )}
-          </>
-        )}
+            {/* Tier tabs */}
+            <div className="flex items-center gap-1 shrink-0">
+              {tiers.map(t => {
+                const isLocked = t !== 'all' && t !== 'free' && (TIER_RANK[userTier] ?? 0) < (TIER_RANK[t] ?? 0);
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setSelectedTier(t)}
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                      selectedTier === t
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {isLocked && <Lock className="w-2.5 h-2.5" />}
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* CTA Section */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeUp}
-          className="mt-20 bg-card border border-border rounded-2xl p-12 text-center"
-        >
-          <h2 className="font-serif text-3xl font-bold mb-3 text-foreground">New idea every Friday</h2>
-          <p className="mb-6 max-w-md mx-auto text-muted-foreground">
-            Get early access to validated startup ideas before they become trends.
-          </p>
-          <button className="px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors">
-            Subscribe to updates
-          </button>
-        </motion.div>
+            {/* Score slider */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-muted-foreground">Min score:</span>
+              <input
+                type="range" min="0" max="100" step="5"
+                value={minScore}
+                onChange={e => setMinScore(parseInt(e.target.value))}
+                className="w-20 h-1.5 accent-primary"
+              />
+              <span className="text-xs font-semibold text-foreground w-6">{minScore}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto px-6 pt-8 pb-28">
+        <div className="flex gap-8">
+
+          {/* Results area */}
+          <div className="flex-1 min-w-0">
+            {loading && (
+              <div className={`grid ${gridCols} gap-5`}>
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-64 bg-muted rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            )}
+
+            {error && (
+              <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive">
+                <p className="font-semibold mb-1">Error loading vaults</p>
+                <p className="text-sm">{error.message}</p>
+              </div>
+            )}
+
+            {!loading && vaults.length === 0 && <EmptyState />}
+
+            {!loading && vaults.length > 0 && (
+              <>
+                <div className={`grid ${gridCols} gap-5`}>
+                  {vaults.map((vault, idx) => {
+                    const isLocked = vault.isLocked || !!(
+                      vault.tier &&
+                      (TIER_RANK[userTier] ?? 0) < (TIER_RANK[vault.tier] ?? 0)
+                    );
+
+                    if (isLocked) {
+                      return (
+                        <div key={vault.id} className="relative">
+                          <div className="pointer-events-none select-none blur-sm opacity-60">
+                            <VaultCard vault={vault} layout={layout === 'list' ? 'compact' : layout === 'compact' ? 'compact' : 'expanded'} displayIndex={idx} />
+                          </div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/60 rounded-2xl cursor-pointer">
+                            <Lock className="w-5 h-5 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground capitalize">
+                              {vault.tier} tier required
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <motion.div
+                        key={vault.id}
+                        initial={{ opacity: 0, y: 12 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: '-40px' }}
+                        transition={{ delay: (idx % 6) * 0.05 }}
+                      >
+                        <VaultCard
+                          vault={vault}
+                          layout={layout === 'list' ? 'compact' : layout === 'compact' ? 'compact' : 'expanded'}
+                          displayIndex={idx}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {hasMore && (
+                  <div className="mt-10 text-center">
+                    <button
+                      onClick={() => setPage(page + 1)}
+                      className="px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                    >
+                      Load More Ideas
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Sidebar — desktop only */}
+          <aside className="hidden lg:flex flex-col gap-6 w-72 shrink-0">
+            {/* Top pick */}
+            {topVault && !topVault.isLocked && (
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">This Week's Top Pick</p>
+                <h4 className="font-serif font-bold text-foreground mb-1 leading-snug">{topVault.title}</h4>
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{topVault.tagline}</p>
+                <div className="flex items-center justify-between text-xs mb-4">
+                  <span className="font-semibold text-foreground">Score: {topVault.scores?.overall ?? 0}</span>
+                  <span className="text-muted-foreground">{topVault.momentum ?? 0} momentum</span>
+                </div>
+                <Link href={`/vault/${topVault.id}`} className="block text-xs font-semibold text-primary hover:underline">
+                  View Idea →
+                </Link>
+              </div>
+            )}
+
+            {/* Trending categories */}
+            {tagCounts.length > 0 && (
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Trending Categories</p>
+                <div className="space-y-2">
+                  {tagCounts.map(([tag, ct]) => (
+                    <div key={tag}>
+                      <div className="flex justify-between text-xs mb-0.5">
+                        <span className="text-foreground">{tag}</span>
+                        <span className="text-muted-foreground">{ct}</span>
+                      </div>
+                      <div className="h-1 bg-muted/40 rounded-full">
+                        <div
+                          className="h-full bg-primary/60 rounded-full transition-all"
+                          style={{ width: `${(ct / maxTagCount) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upgrade CTA */}
+            {(TIER_RANK[userTier] ?? 0) < TIER_RANK.max && (
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-2">Unlock Max Tier</p>
+                <p className="text-sm text-amber-900 dark:text-amber-200 mb-3">
+                  Get every idea, including pro & max vaults, execution playbooks, and first 10 customers strategy.
+                </p>
+                <Link href="/pricing" className="block text-center text-xs font-bold px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors">
+                  Upgrade Now
+                </Link>
+              </div>
+            )}
+          </aside>
+        </div>
       </main>
 
       <Footer variant="public" />
