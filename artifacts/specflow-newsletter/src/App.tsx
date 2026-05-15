@@ -12,8 +12,6 @@ import Archive from "@/pages/archive";
 import IssuePage from "@/pages/issue";
 import About from "@/pages/about";
 import UserPortal from "@/pages/user-portal";
-import ProPortal from "@/pages/pro-portal";
-import MaxPortal from "@/pages/max-portal";
 import IdeaAgent from "@/pages/idea-agent";
 import TemplatesPage from "@/pages/templates";
 import AdminPortal from "@/pages/admin-portal";
@@ -29,6 +27,9 @@ import Marketplace from "@/pages/marketplace";
 import DeveloperPortal from "@/pages/developer-portal";
 import VaultArchive from "@/pages/vault-archive";
 import VaultDetail from "@/pages/vault-detail";
+import VaultCompare from "@/pages/vault-compare";
+import VaultTrends from "@/pages/vault-trends";
+import ArchiveDetail from "@/pages/archive-detail";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
 import OnboardingPage from "@/pages/onboarding";
@@ -157,8 +158,6 @@ const ProtectedUserPortal = (props: any) => (
   </ErrorBoundary>
 );
 const ProtectedOnboarding = (props: any) => <ProtectedRoute component={OnboardingPage} {...props} />;
-const ProtectedProPortal = (props: any) => <TierProtectedRoute component={ProPortal} allowedTiers={['pro', 'max', 'incubator']} {...props} />;
-const ProtectedMaxPortal = (props: any) => <TierProtectedRoute component={MaxPortal} allowedTiers={['max', 'incubator']} {...props} />;
 const ProtectedAdminPortal = (props: any) => <ProtectedRoute component={AdminPortal} {...props} />;
 const ProtectedIncubatorDashboard = (props: any) => <ProtectedRoute component={IncubatorDashboard} {...props} />;
 const ProtectedInvestorPortal = (props: any) => <ProtectedRoute component={InvestorPortal} {...props} />;
@@ -178,6 +177,16 @@ const ProtectedVaultArchive = (props: any) => (
 const ProtectedVaultDetail = (props: any) => (
   <ErrorBoundary>
     <ProtectedRoute component={VaultDetail} {...props} />
+  </ErrorBoundary>
+);
+const ProtectedVaultCompare = (props: any) => (
+  <ErrorBoundary>
+    <ProtectedRoute component={VaultCompare} {...props} />
+  </ErrorBoundary>
+);
+const ProtectedVaultTrends = (props: any) => (
+  <ErrorBoundary>
+    <TierProtectedRoute component={VaultTrends} allowedTiers={['pro', 'max', 'incubator']} {...props} />
   </ErrorBoundary>
 );
 const ProtectedIdeaAgent = (props: any) => (
@@ -260,8 +269,8 @@ function ClerkProviderWithRoutes() {
             <Route path="/onboarding" component={ProtectedOnboarding} />
             <Route path="/user-portal" component={ProtectedUserPortal} />
             <Route path="/dashboard" component={ProtectedUserPortal} />
-            <Route path="/pro-portal" component={ProtectedProPortal} />
-            <Route path="/max-portal" component={ProtectedMaxPortal} />
+            <Route path="/pro-portal"><Redirect to="/dashboard" /></Route>
+            <Route path="/max-portal"><Redirect to="/dashboard" /></Route>
             <Route path="/admin-portal" component={ProtectedAdminPortal} />
             <Route path="/incubator-dashboard" component={ProtectedIncubatorDashboard} />
             <Route path="/investor-portal" component={ProtectedInvestorPortal} />
@@ -275,7 +284,10 @@ function ClerkProviderWithRoutes() {
             <Route path="/developer-portal" component={ProtectedDeveloperPortal} />
             <Route path="/blueprints" component={Blueprints} />
             <Route path="/archive" component={Archive} />
+            <Route path="/archive/:slug" component={ArchiveDetail} />
             <Route path="/vault-archive" component={ProtectedVaultArchive} />
+            <Route path="/vault-compare" component={ProtectedVaultCompare} />
+            <Route path="/vault-trends" component={ProtectedVaultTrends} />
             <Route path="/vault/:id" component={ProtectedVaultDetail} />
             <Route path="/ground-game" component={GroundGame} />
             <Route path="/issue/:slug" component={IssuePage} />
