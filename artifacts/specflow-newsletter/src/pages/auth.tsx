@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { SignIn, SignUp } from "@clerk/react";
 import { ArrowLeft } from "lucide-react";
