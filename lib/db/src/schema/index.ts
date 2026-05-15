@@ -1,4 +1,5 @@
 export * from "./subscribers";
+export * from "./analytics_events";
 export * from "./pageviews";
 export * from "./articles";
 export * from "./chat_messages";
@@ -9,6 +10,7 @@ export * from "./marketplace";
 export * from "./personalization";
 export * from "./referrals";
 export * from "./vaults";
+export * from "./vault-bookmarks";
 export * from "./walls";
 export * from "./monetization";
 export * from "./tiers";
