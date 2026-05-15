@@ -8,8 +8,9 @@ import VaultScorecard from '@/components/VaultScorecard';
 import VaultSignals from '@/components/VaultSignals';
 import VaultMarketChart from '@/components/VaultMarketChart';
 import VaultCard from '@/components/VaultCard';
-import { useVaults } from '@/hooks/useVaults';
-import { usePageTracking } from '@/hooks/useAnalytics';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useVaultDetail } from '@/hooks/useVaults';
+import { usePageTracking, useTrack } from '@/hooks/useAnalytics';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -20,17 +21,72 @@ export default function VaultDetail() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const [, setLocation] = useLocation();
-  const { vault, loading, error, fetchVaultDetail } = useVaults();
+  const { data, isLoading: loading, isError, error: queryError } = useVaultDetail(id);
+  const vault = data?.vault;
+  const relatedVaults = data?.relatedVaults ?? [];
+  const userFeedback = data?.userFeedback;
+  const error = isError ? (queryError as Error) : null;
   const [liked, setLiked] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [shareToast, setShareToast] = React.useState(false);
 
   usePageTracking(`/vault-detail/${id}`);
+  const { track } = useTrack();
 
   useEffect(() => {
-    if (id) {
-      fetchVaultDetail(id);
+    if (vault) {
+      track('vault_viewed', { vaultId: id, tier: vault.tier });
     }
-  }, [id, fetchVaultDetail]);
+  }, [vault?.id]);
+
+  useEffect(() => {
+    if (userFeedback) {
+      setLiked(userFeedback.liked);
+      setSaved(userFeedback.saved);
+    }
+  }, [userFeedback]);
+
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+  const postFeedback = (action: string, value: boolean) => {
+    if (!id) return;
+    fetch(`${API_BASE}/vaults/${id}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, value }),
+    }).catch(() => {});
+  };
+
+  const handleLike = () => {
+    const next = !liked;
+    setLiked(next);
+    postFeedback('like', next);
+    track('vault_liked', { vaultId: id, liked: next });
+  };
+
+  const handleSave = () => {
+    const next = !saved;
+    setSaved(next);
+    postFeedback('save', next);
+    track('vault_bookmarked', { vaultId: id, saved: next });
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: vault?.title, url });
+        postFeedback('share', true);
+        return;
+      } catch {
+        // user cancelled or share failed — fall through to clipboard
+      }
+    }
+    await navigator.clipboard.writeText(url).catch(() => {});
+    postFeedback('share', true);
+    setShareToast(true);
+    setTimeout(() => setShareToast(false), 2500);
+  };
 
   if (!id) {
     return (
@@ -50,11 +106,30 @@ export default function VaultDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-border border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading vault details...</p>
-        </div>
+      <div className="min-h-screen bg-background">
+        <PortalNav activePage="archive" />
+        <main className="max-w-6xl mx-auto px-6 pt-16 pb-28">
+          <Skeleton className="w-24 h-4 mb-8" />
+          <div className="mb-12">
+            <Skeleton className="w-20 h-5 rounded-full mb-4" />
+            <Skeleton className="w-3/4 h-14 mb-3" />
+            <Skeleton className="w-1/2 h-6 mb-3" />
+            <Skeleton className="w-full h-4 mb-1" />
+            <Skeleton className="w-5/6 h-4 mb-6" />
+            <div className="flex gap-3">
+              <Skeleton className="w-24 h-9 rounded-lg" />
+              <Skeleton className="w-24 h-9 rounded-lg" />
+              <Skeleton className="w-24 h-9 rounded-lg" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Skeleton className="h-64 rounded-2xl" />
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="h-48 rounded-2xl" />
+              <Skeleton className="h-32 rounded-2xl" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -117,9 +192,9 @@ export default function VaultDetail() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative">
             <button
-              onClick={() => setLiked(!liked)}
+              onClick={handleLike}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
                 liked
                   ? 'bg-red-50 border-red-200 text-red-600'
@@ -130,7 +205,7 @@ export default function VaultDetail() {
               {liked ? 'Liked' : 'Like'}
             </button>
             <button
-              onClick={() => setSaved(!saved)}
+              onClick={handleSave}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
                 saved
                   ? 'bg-amber-50 border-amber-200 text-amber-600'
@@ -140,10 +215,18 @@ export default function VaultDetail() {
               <Bookmark className="w-4 h-4" />
               {saved ? 'Saved' : 'Save'}
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-muted-foreground hover:border-border/60 hover:text-foreground transition-colors">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-muted-foreground hover:border-border/60 hover:text-foreground transition-colors"
+            >
               <Share2 className="w-4 h-4" />
               Share
             </button>
+            {shareToast && (
+              <span className="absolute -bottom-8 left-0 text-xs text-muted-foreground bg-card border border-border px-3 py-1 rounded-lg shadow-sm whitespace-nowrap">
+                Link copied!
+              </span>
+            )}
           </div>
         </motion.div>
 
@@ -189,6 +272,17 @@ export default function VaultDetail() {
               <div className="bg-card p-6 rounded-2xl border border-border">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Overview</h3>
                 <p className="text-muted-foreground leading-relaxed">{vault.description}</p>
+              </div>
+            )}
+
+            {/* Signals — shown here on mobile (before unit economics); hidden below the grid on desktop */}
+            {vault.signalsCount > 0 && (
+              <div className="lg:hidden bg-card p-6 rounded-2xl border border-border">
+                <VaultSignals
+                  signals={vault.signalsSummary}
+                  totalCount={vault.signalsCount}
+                  layout="horizontal"
+                />
               </div>
             )}
 
@@ -267,7 +361,7 @@ export default function VaultDetail() {
           </motion.div>
         </div>
 
-        {/* Signals Section */}
+        {/* Signals Section — hidden on mobile (shown inside the col above for correct ordering) */}
         {vault.signalsCount > 0 && (
           <motion.div
             custom={3}
@@ -275,7 +369,7 @@ export default function VaultDetail() {
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeUp}
-            className="mb-12 bg-card p-6 rounded-2xl border border-border"
+            className="hidden lg:block mb-12 bg-card p-6 rounded-2xl border border-border"
           >
             <VaultSignals
               signals={vault.signalsSummary}
@@ -336,29 +430,24 @@ export default function VaultDetail() {
           </motion.div>
         )}
 
-        {/* Related Vaults - Placeholder */}
-        <motion.div
-          custom={5}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeUp}
-          className="mb-12"
-        >
-          <h3 className="font-serif text-2xl font-bold text-foreground mb-6">Similar Ideas</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, idx) => (
-              <div
-                key={idx}
-                className="bg-card p-4 rounded-2xl border border-border animate-pulse"
-              >
-                <div className="h-6 bg-muted rounded mb-3" />
-                <div className="h-4 bg-muted rounded mb-3 w-3/4" />
-                <div className="h-4 bg-muted rounded" />
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        {/* Related Vaults */}
+        {relatedVaults.length > 0 && (
+          <motion.div
+            custom={5}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="mb-12"
+          >
+            <h3 className="font-serif text-2xl font-bold text-foreground mb-6">Similar Ideas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedVaults.map((rv, idx) => (
+                <VaultCard key={rv.id} vault={rv} displayIndex={idx + 1} layout="compact" />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* CTA Section */}
         <motion.div
@@ -373,7 +462,10 @@ export default function VaultDetail() {
           <p className="mb-6 max-w-md mx-auto text-muted-foreground">
             Join thousands of founders who've turned validated ideas into profitable businesses.
           </p>
-          <button className="px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors">
+          <button
+            onClick={() => track('upgrade_clicked', { from: 'vault_detail', tier: vault.tier })}
+            className="px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+          >
             Start Building
           </button>
         </motion.div>

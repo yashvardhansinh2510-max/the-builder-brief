@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import logoPath from "@assets/logo.jpg";
 import { useAuth } from "@/lib/AuthContext";
+import { useTrack } from "@/hooks/useAnalytics";
 import { useClerk } from "@clerk/react";
 import { useSubscriberCount } from "@/hooks/useSubscriberCount";
 import FounderChat from "@/components/FounderChat";
@@ -34,6 +35,7 @@ import {
   Database,
   Boxes,
   Target,
+  Share2,
 } from "lucide-react";
 import { typedIssues as issues, Issue } from "@/lib/data";
 import { projections, type IntelligenceProjection } from "@/lib/data/projections";
@@ -84,6 +86,7 @@ import IntelligenceFeed from "@/components/portal/IntelligenceFeed";
 import PathTab from "@/components/portal/PathTab";
 import AllianceTab from "@/components/portal/AllianceTab";
 import ArsenalTab from "@/components/portal/ArsenalTab";
+import ReferralTab from "@/components/portal/ReferralTab";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -100,7 +103,8 @@ const fadeUp = {
 
 export default function UserPortal() {
   // ── GLOBAL AUTH & TIER (resolved once in AuthContext) ──
-  const { session, tier, isPremium } = useAuth();
+  const { session, tier, isPremium, tierLoading } = useAuth();
+  const { track } = useTrack();
   const { signOut } = useClerk();
   const [, setLocation] = useLocation();
   const user = session?.user;
@@ -122,6 +126,7 @@ export default function UserPortal() {
   const [products, setProducts] = useState<MarketplaceProduct[]>([]);
   const [ownedProducts, setOwnedProducts] = useState<OwnedProduct[]>([]);
   const [scorecard, setScorecard] = useState<Scorecard | null>(null);
+  const [activityHistory, setActivityHistory] = useState<Array<{ id: number; event: string; properties: Record<string, unknown>; createdAt: string }>>([]);
 
   // Local state
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
@@ -210,6 +215,13 @@ export default function UserPortal() {
           fetch("/api/marketplace/products")
             .then((res) => (res.ok ? res.json() : []))
             .then(setProducts);
+
+          fetch("/api/analytics/my-activity", {
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => data?.events && setActivityHistory(data.events))
+            .catch(() => {});
           fetch("/api/marketplace/my-purchases", {
             headers: { Authorization: `Bearer ${session?.access_token}` },
           })
@@ -273,6 +285,7 @@ export default function UserPortal() {
     | "growth"
     | "engine"
     | "strategy"
+    | "referral"
   >(tier === "free" ? "performance" : "playbook");
   const [terminalHistory, setTerminalHistory] = useState<
     { type: "cmd" | "out"; text: string }[]
@@ -554,6 +567,7 @@ export default function UserPortal() {
               eligibleReward={eligibleReward}
               nextReward={nextReward}
               onClaimReward={claimReward}
+              loading={tierLoading}
             />
 
             {/* Venture Hall of Fame - High Visibility Spotlight */}
@@ -900,8 +914,8 @@ export default function UserPortal() {
               <div
                 className={
                   tier === "free"
-                    ? "flex items-center gap-2 p-1.5 bg-card/50 border border-border/40 rounded-2xl w-fit max-w-full overflow-x-auto no-scrollbar"
-                    : "flex items-center gap-0 w-fit max-w-full overflow-x-auto no-scrollbar"
+                    ? "flex items-center gap-2 p-1.5 bg-card/50 border border-border/40 rounded-2xl w-full overflow-x-auto no-scrollbar snap-x snap-mandatory"
+                    : "flex items-center gap-0 w-full overflow-x-auto no-scrollbar snap-x snap-mandatory"
                 }
               >
                 {[
@@ -915,6 +929,7 @@ export default function UserPortal() {
                   { id: "engine", label: "Engine", icon: Cpu },
                   { id: "strategy", label: "Strategy", icon: Target },
                   { id: "growth", label: "Viral Growth", icon: Flame },
+                  { id: "referral", label: "Refer & Earn", icon: Share2 },
                 ]
                   .filter(
                     (tab) => tier !== "free" || tab.id === "performance"
@@ -922,19 +937,19 @@ export default function UserPortal() {
                   .map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => { setActiveTab(tab.id as any); track('tab_changed', { tab: tab.id, tier }); }}
                     className={
                       tier === "pro"
-                        ? `px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`
+                        ? `snap-start shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`
                         : tier === "max" || tier === "incubator"
-                          ? `px-4 py-2 text-xs uppercase tracking-widest transition-all ${activeTab === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"}`
-                          : `flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === tab.id ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-background/40"}`
+                          ? `snap-start shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs uppercase tracking-widest transition-all ${activeTab === tab.id ? "text-primary" : "text-muted-foreground hover:text-foreground"}`
+                          : `snap-start shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === tab.id ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-background/40"}`
                     }
                   >
-                    {tier === "free" && <tab.icon className="w-3.5 h-3.5" />}{" "}
-                    {tab.label}
+                    <tab.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">{tab.label}</span>
                     {tab.id === "engine" && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] font-bold animate-pulse">
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] font-bold animate-pulse">
                         NEW
                       </span>
                     )}
@@ -991,9 +1006,7 @@ export default function UserPortal() {
                   )}
                   {activeTab === "vault" && (
                     <VaultTab
-                      currentPastIssues={currentPastIssues}
                       isPro={isPro}
-                      onIssueOpen={handleIssueOpen}
                       onUpgradeClick={handleUpgradeClick}
                     />
                   )}
@@ -1133,6 +1146,34 @@ export default function UserPortal() {
                                 </div>
                               ))}
                             </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reading History */}
+                      {activityHistory.length > 0 && (
+                        <div className="mt-12 p-8 rounded-[2.5rem] bg-card/40 border border-border/40 backdrop-blur-md">
+                          <div className="flex items-center gap-3 mb-6">
+                            <Activity className="w-5 h-5 text-primary" />
+                            <h3 className="font-serif text-2xl font-semibold text-foreground">Your Reading History</h3>
+                          </div>
+                          <div className="space-y-2">
+                            {activityHistory.slice(0, 20).map((item) => (
+                              <div key={item.id} className="flex items-center justify-between py-3 border-b border-border/20 last:border-0">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2 h-2 rounded-full bg-primary/40" />
+                                  <span className="text-sm text-foreground capitalize">
+                                    {item.event.replace(/_/g, " ")}
+                                    {(item.properties as any)?.vaultId && (
+                                      <span className="text-muted-foreground ml-2 text-xs">— vault {(item.properties as any).vaultId}</span>
+                                    )}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-muted-foreground shrink-0 ml-4">
+                                  {new Date(item.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -1371,6 +1412,7 @@ export default function UserPortal() {
                                 navigator.clipboard.writeText(
                                   referralData?.shareUrl || "",
                                 );
+                                track('referral_link_copied', { referralCode: referralData?.referralCode });
                                 toast.success("Link Copied", {
                                   description: "Time to build the network.",
                                 });
@@ -1563,6 +1605,8 @@ export default function UserPortal() {
                       onUpgradeClick={handleUpgradeClick}
                     />
                   )}
+
+                  {activeTab === "referral" && <ReferralTab />}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -1717,14 +1761,8 @@ export default function UserPortal() {
           <IntelligenceFeed
             tier={tier}
             isPro={isPro}
-            telemetryLogs={telemetryLogs}
-            dailyEdge={dailyEdge}
-            personalizedBrief={personalizedBrief}
-            completedSteps={completedSteps}
             startupCtx={startupCtx}
             chatUsageThisMonth={chatUsageThisMonth}
-            onCopyHack={copyHack}
-            onToggleStep={toggleStep}
             onUpgradeClick={handleUpgradeClick}
             onShowContextModal={() => setShowContextModal(true)}
             onChatUsageUpdate={(next) => setChatUsageThisMonth(next)}

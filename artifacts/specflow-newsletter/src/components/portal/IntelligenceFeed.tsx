@@ -1,534 +1,283 @@
-import { motion } from "framer-motion";
-import {
-  Activity,
-  CheckCircle,
-  Copy,
-  Cpu,
-  Lock,
-  Map,
-  ShieldCheck,
-  Sparkles,
-  Terminal,
-  Zap,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { Flame, RefreshCw, AlertTriangle } from "lucide-react";
 import FounderChat from "@/components/FounderChat";
-import { roadmapSteps } from "@/lib/roadmap";
-import { getFridayDropProgress, getFridayDropTeaser } from "@/lib/daily";
+import DailyBriefUI from "@/components/DailyBriefUI";
+import PersonalizationUI from "@/components/PersonalizationUI";
 import type { StartupContext } from "@/lib/startup-context";
 
-interface DailyEdge {
-  title: string;
-  category: string;
-  value: string;
-  content: string;
-  actionLabel: string;
+type Platform = "reddit" | "youtube" | "hn" | "ph" | "linkedin";
+type FilterKey = "all" | Platform;
+
+interface Signal {
+  id: string;
+  platform: Platform;
+  headline: string;
+  url: string;
+  publishedAt: string;
+  topic?: string;
+  relevanceScore?: number;
 }
 
 interface IntelligenceFeedProps {
   tier: string;
   isPro: boolean;
-  telemetryLogs: string[];
-  dailyEdge: DailyEdge;
-  personalizedBrief: string | null;
-  roadmapSteps?: typeof roadmapSteps;
-  completedSteps: string[];
   startupCtx: StartupContext | null;
   chatUsageThisMonth: number;
-  onCopyHack: () => void;
-  onToggleStep: (title: string) => void;
-  onUpgradeClick: () => void;
-  onShowContextModal: () => void;
   onChatUsageUpdate: (next: number) => void;
+  onShowContextModal: () => void;
+  onUpgradeClick: () => void;
+}
+
+const MOCK_SIGNALS: Signal[] = [
+  { id: "s1", platform: "reddit", headline: "Founders ditching SaaS tiers for usage-based pricing — thread explodes with 400 comments", url: "https://reddit.com/r/startups", publishedAt: new Date(Date.now() - 1 * 3600000).toISOString(), topic: "pricing", relevanceScore: 0.88 },
+  { id: "s2", platform: "hn", headline: "Ask HN: Has anyone successfully built a bootstrapped B2B product in 2025?", url: "https://news.ycombinator.com", publishedAt: new Date(Date.now() - 2 * 3600000).toISOString(), topic: "bootstrapping", relevanceScore: 0.75 },
+  { id: "s3", platform: "youtube", headline: "How I hit $10K MRR in 90 days with cold email — full breakdown", url: "https://youtube.com", publishedAt: new Date(Date.now() - 3 * 3600000).toISOString(), topic: "cold-email", relevanceScore: 0.91 },
+  { id: "s4", platform: "ph", headline: "LaunchKit — Ship your SaaS in 48 hours (featured on Product Hunt)", url: "https://producthunt.com", publishedAt: new Date(Date.now() - 5 * 3600000).toISOString(), topic: "tools", relevanceScore: 0.62 },
+  { id: "s5", platform: "linkedin", headline: "Why I turned down a $2M seed round and stayed default-alive", url: "https://linkedin.com", publishedAt: new Date(Date.now() - 6 * 3600000).toISOString(), topic: "fundraising", relevanceScore: 0.79 },
+  { id: "s6", platform: "reddit", headline: "What's the best tech stack for a solo founder in 2025? r/SaaS weekly thread", url: "https://reddit.com/r/SaaS", publishedAt: new Date(Date.now() - 8 * 3600000).toISOString(), topic: "tech-stack", relevanceScore: 0.54 },
+  { id: "s7", platform: "hn", headline: "Show HN: I automated my entire customer onboarding with n8n", url: "https://news.ycombinator.com", publishedAt: new Date(Date.now() - 10 * 3600000).toISOString(), topic: "automation", relevanceScore: 0.68 },
+  { id: "s8", platform: "reddit", headline: "Cold email open rates are down 40% — what's actually working now", url: "https://reddit.com/r/Entrepreneur", publishedAt: new Date(Date.now() - 12 * 3600000).toISOString(), topic: "cold-email", relevanceScore: 0.87 },
+  { id: "s9", platform: "youtube", headline: "The 'Wedge Strategy' — how to beat big competitors by going small first", url: "https://youtube.com", publishedAt: new Date(Date.now() - 14 * 3600000).toISOString(), topic: "gtm", relevanceScore: 0.73 },
+  { id: "s10", platform: "ph", headline: "Notion-killer or niche tool? Founders debate the category-creation playbook", url: "https://producthunt.com", publishedAt: new Date(Date.now() - 20 * 3600000).toISOString(), topic: "positioning", relevanceScore: 0.58 },
+];
+
+const PLATFORM_META: Record<Platform, { label: string; color: string; bg: string }> = {
+  reddit:  { label: "Reddit",        color: "text-orange-600",  bg: "bg-orange-500/10 border-orange-500/20" },
+  youtube: { label: "YouTube",       color: "text-red-500",     bg: "bg-red-500/10 border-red-500/20" },
+  hn:      { label: "HN",            color: "text-amber-600",   bg: "bg-amber-500/10 border-amber-500/20" },
+  ph:      { label: "Product Hunt",  color: "text-orange-500",  bg: "bg-orange-400/10 border-orange-400/20" },
+  linkedin:{ label: "LinkedIn",      color: "text-blue-500",    bg: "bg-blue-500/10 border-blue-500/20" },
+};
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "all",      label: "All" },
+  { key: "reddit",   label: "Reddit" },
+  { key: "youtube",  label: "YouTube" },
+  { key: "hn",       label: "HN" },
+  { key: "ph",       label: "Product Hunt" },
+  { key: "linkedin", label: "LinkedIn" },
+];
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function detectTrends(signals: Signal[]): string[] {
+  const cutoff = Date.now() - 24 * 3600000;
+  const recent = signals.filter((s) => new Date(s.publishedAt).getTime() > cutoff);
+  const counts: Record<string, number> = {};
+  for (const s of recent) {
+    if (s.topic) counts[s.topic] = (counts[s.topic] ?? 0) + 1;
+  }
+  return Object.entries(counts)
+    .filter(([, n]) => n >= 3)
+    .map(([topic]) => topic)
+    .slice(0, 2);
 }
 
 export default function IntelligenceFeed({
   tier,
   isPro,
-  telemetryLogs,
-  dailyEdge,
-  personalizedBrief,
-  completedSteps,
   startupCtx,
   chatUsageThisMonth,
-  onCopyHack,
-  onToggleStep,
-  onUpgradeClick,
-  onShowContextModal,
   onChatUsageUpdate,
+  onShowContextModal: _onShowContextModal,
+  onUpgradeClick,
 }: IntelligenceFeedProps) {
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchSignals = useCallback(async () => {
+    try {
+      const res = await fetch("/api/engine/signals");
+      if (!res.ok) throw new Error("not ok");
+      const data = await res.json();
+      setSignals(data.signals ?? MOCK_SIGNALS);
+    } catch {
+      setSignals(MOCK_SIGNALS);
+    } finally {
+      setLoading(false);
+      setLastUpdated(new Date());
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSignals();
+    const id = setInterval(fetchSignals, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [fetchSignals]);
+
+  const filtered = filter === "all" ? signals : signals.filter((s) => s.platform === filter);
+  const trendTopics = detectTrends(signals);
+
   return (
-    <div className="lg:col-span-4 space-y-10">
-      {/* The Intelligence Feed (formerly Daily Edge) */}
-      <div className="sticky top-28 space-y-8">
-        {/* Redesigned Foundry Terminal Widget - Premium Industrial Cream */}
-        <div className="p-8 rounded-[2.5rem] bg-card/40 border border-primary/20 relative overflow-hidden group shadow-2xl shadow-primary/[0.03] backdrop-blur-xl hover:border-primary/40 transition-colors duration-500">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl animate-pulse" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2.5">
-                <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-primary/20" />
-                  <div className="w-2 h-2 rounded-full bg-primary/40" />
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
-                </div>
-                <Activity className="w-3.5 h-3.5 text-primary ml-2 animate-telemetry" />
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/70">
-                  FOUNDRY_TELEMETRY
-                </span>
-              </div>
-              <Badge className="bg-primary/5 text-primary text-[8px] border-primary/20 px-3">
-                ACTIVE_SYNC
-              </Badge>
-            </div>
-
-            <div className="space-y-4 font-mono text-[10px] text-muted-foreground leading-relaxed min-h-[120px]">
-              {telemetryLogs.map((log, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -5 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex gap-3"
-                >
-                  <span className="text-primary/30">
-                    [
-                    {new Date().toLocaleTimeString([], { hour12: false })}
-                    ]
-                  </span>
-                  <span>{log}</span>
-                </motion.div>
-              ))}
-              <motion.div
-                animate={{ opacity: [1, 0] }}
-                transition={{ repeat: Infinity, duration: 0.8 }}
-                className="w-2 h-3 bg-primary/50"
-              />
-            </div>
-          </div>
-          {/* Digital scanline effect */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.05] to-transparent h-10 w-full animate-scanline pointer-events-none" />
-        </div>
-
-        <div className="p-8 rounded-[2.5rem] bg-card border border-primary/20 relative overflow-hidden group shadow-2xl shadow-primary/[0.05]">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2.5">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-red-400/20" />
-                  <div className="w-2 h-2 rounded-full bg-amber-400/20" />
-                  <div className="w-2 h-2 rounded-full bg-emerald-400/20" />
-                </div>
-                <Terminal className="w-3.5 h-3.5 text-primary ml-2" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">
-                  Signals_Feed
-                </span>
-              </div>
-              <Badge className="bg-primary/10 text-primary text-[8px] tracking-tight border-primary/20">
-                LIVE_24H
-              </Badge>
-            </div>
-
-            <div className="space-y-6 relative">
-              {/* Scanline effect */}
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent h-2 w-full animate-scanline pointer-events-none" />
-
-              <div>
-                <h3 className="font-serif text-2xl mb-2 group-hover:text-primary transition-colors">
-                  {dailyEdge.title}
-                </h3>
-                <p className="text-[9px] uppercase font-bold tracking-widest text-primary/60 mb-6 flex items-center gap-2">
-                  {dailyEdge.category}{" "}
-                  <span className="w-1 h-1 rounded-full bg-primary/30" />{" "}
-                  {dailyEdge.value}
-                </p>
-
-                {/* AI Personalized Application */}
-                {personalizedBrief && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-6 p-5 rounded-2xl bg-primary/10 border border-primary/20 relative overflow-hidden group/ai"
-                  >
-                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover/ai:rotate-12 transition-transform">
-                      <Cpu className="w-6 h-6" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="w-3 h-3 text-primary animate-pulse" />
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                        Founder_Alignment
-                      </p>
-                    </div>
-                    <p className="text-[11px] font-medium leading-relaxed italic text-foreground">
-                      "{personalizedBrief}"
-                    </p>
-                  </motion.div>
-                )}
-
-                <div className="p-5 rounded-2xl bg-background/60 border border-primary/20 font-mono text-xs leading-relaxed text-foreground/80 mb-6 relative group overflow-hidden">
-                  <motion.span
-                    animate={{ opacity: [1, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.8 }}
-                    className="absolute left-5 top-5 text-primary"
-                  >
-                    _
-                  </motion.span>
-                  <div className="pl-4">{dailyEdge.content}</div>
-                </div>
-                <button
-                  onClick={onCopyHack}
-                  className="group/btn flex items-center gap-2 text-primary font-bold text-[10px] uppercase tracking-[0.2em] hover:translate-x-1 transition-all"
-                >
-                  {dailyEdge.actionLabel}
-                  <div className="relative overflow-hidden w-3 h-3">
-                    <Copy className="w-3 h-3 transition-transform group-hover/btn:-translate-y-full" />
-                    <Copy className="w-3 h-3 absolute top-full transition-transform group-hover/btn:-translate-y-full" />
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Momentum & Goal Rail */}
-        <div className="p-8 rounded-[2.5rem] bg-primary/[0.03] border border-border/40 backdrop-blur-sm">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Map className="w-4 h-4 text-primary" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest">
-              Roadmap Status
-            </span>
-          </div>
-          <div className="space-y-8 relative">
-            <div className="absolute left-4 top-2 bottom-2 w-px bg-border/40" />
-            {roadmapSteps.map((step, idx) => {
-              const isLockedForUser = (step as any).proOnly && !isPro;
-              return (
-                <div
-                  key={idx}
-                  className={`relative pl-10 group cursor-pointer`}
-                  onClick={() =>
-                    !isLockedForUser && onToggleStep(step.title)
-                  }
-                >
-                  <div
-                    className={`absolute left-0 top-0 w-8 h-8 rounded-full border-2 flex items-center justify-center z-10 transition-colors ${
-                      completedSteps.includes(step.title)
-                        ? "bg-primary border-primary"
-                        : isLockedForUser
-                          ? "bg-background border-border/30"
-                          : "bg-background border-border"
-                    }`}
-                  >
-                    {completedSteps.includes(step.title) ? (
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    ) : isLockedForUser ? (
-                      <Lock className="w-3 h-3 text-muted-foreground/40" />
-                    ) : (
-                      <span className="text-[10px] font-bold">
-                        {idx + 1}
-                      </span>
-                    )}
-                  </div>
-
-                  <div
-                    className={`transition-transform group-hover:translate-x-1 ${isLockedForUser ? "select-none" : ""}`}
-                  >
-                    <h4
-                      className={`text-xs font-bold uppercase tracking-widest mb-1 ${completedSteps.includes(step.title) ? "text-primary" : isLockedForUser ? "text-muted-foreground/40" : "text-foreground"}`}
-                    >
-                      {step.title}
-                    </h4>
-                    <p
-                      className={`text-[10px] mb-2 ${isLockedForUser ? "text-muted-foreground/30" : "text-muted-foreground"}`}
-                    >
-                      {step.day}
-                    </p>
-                    {isLockedForUser ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onUpgradeClick();
-                        }}
-                        className="text-[8px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors"
-                      >
-                        Unlock with Pro →
-                      </button>
-                    ) : (
-                      completedSteps.includes(step.title) && (
-                        <Badge className="bg-primary/10 text-primary text-[8px] py-0 border-none">
-                          COMPLETE
-                        </Badge>
-                      )
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {!isPro && (
-            <button
-              onClick={onUpgradeClick}
-              className="mt-10 w-full py-4 rounded-2xl bg-foreground text-background text-xs font-bold uppercase tracking-widest hover:bg-primary transition-all"
-            >
-              Unlock Days 11–21 →
-            </button>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-3xl tracking-tight">Market Intelligence</h2>
+          {lastUpdated && (
+            <p className="text-[10px] font-mono text-muted-foreground/60 mt-1 uppercase tracking-widest">
+              Updated {relativeTime(lastUpdated.toISOString())}
+            </p>
           )}
         </div>
-
-        {/* Friday Drop Teaser — Free + Pro only */}
-        {(tier === "free" || tier === "pro") &&
-          (() => {
-            const dropPct = getFridayDropProgress();
-            const teaser = getFridayDropTeaser();
-            const isFriday = new Date().getDay() === 5;
-            return (
-              <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-card to-card/40 border border-primary/30 relative overflow-hidden group shadow-2xl shadow-primary/[0.08]">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 blur-[80px] group-hover:bg-primary/20 transition-colors" />
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">
-                        Friday Drop
-                      </span>
-                    </div>
-                    {isFriday ? (
-                      <Badge className="bg-primary text-white text-[8px] border-none">
-                        LIVE NOW
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-primary/20 text-primary text-[8px] animate-pulse border-primary/30">
-                        IN PROGRESS
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Tease the niche only — full title on Friday */}
-                  <p className="text-[9px] uppercase font-bold tracking-widest text-primary/60 mb-2">
-                    {teaser.niche} // This Week's Signal
-                  </p>
-                  <h3
-                    className={`font-serif text-2xl mb-2 group-hover:text-primary transition-colors ${!isFriday ? "blur-[3px] select-none" : ""}`}
-                  >
-                    {isFriday
-                      ? "This Week's Blueprint — Full Access"
-                      : "Classified Until Friday 09:00 AM"}
-                  </h3>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed italic mb-6">
-                    "{teaser.hook}"
-                  </p>
-
-                  <div className="flex items-center gap-3 opacity-60 mb-6">
-                    <ShieldCheck className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-medium">
-                      Technical Audit Status: PASS — Ready for Release
-                    </span>
-                  </div>
-
-                  <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden mb-2">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${dropPct}%` }}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
-                      className="bg-primary h-full shadow-[0_0_10px_rgba(249,115,22,0.3)]"
-                    />
-                  </div>
-                  <p className="text-[8px] text-right font-bold text-primary/60 uppercase tracking-widest">
-                    {dropPct}% Architected
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
-
-        {/* AI Advisor — Pro/Max only */}
-        {isPro && (
-          <div id="ai-advisor-chat">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
-              AI Advisor
-            </p>
-            <FounderChat
-              usedThisMonth={chatUsageThisMonth}
-              onUsageUpdate={onChatUsageUpdate}
-            />
-          </div>
-        )}
-
-        {/* Context Engine Widget */}
-        <div className="p-8 rounded-[2.5rem] bg-card border border-border/30 relative overflow-hidden">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Cpu className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em]">
-              Context Engine
-            </span>
-            {startupCtx && (
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse ml-auto" />
-            )}
-          </div>
-          {startupCtx ? (
-            <>
-              <p className="text-sm font-serif mb-1 line-clamp-2">
-                {startupCtx.whatBuilding}
-              </p>
-              <p className="text-[10px] text-muted-foreground mb-4">
-                {startupCtx.sector} · {startupCtx.stage}
-              </p>
-              <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 mb-4 italic">
-                "{startupCtx.biggestChallenge}"
-              </p>
-              <button
-                onClick={onShowContextModal}
-                className="text-[9px] font-bold uppercase tracking-widest text-primary hover:underline"
-              >
-                Update Context →
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-                Set your startup context. Every signal, metric, and
-                blueprint becomes specific to your build.
-              </p>
-              <button
-                onClick={onShowContextModal}
-                className="w-full py-3 rounded-xl bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-              >
-                Activate Context →
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* FREE: Weekly Insight + Upgrade CTA */}
-        {tier === "free" && (
-          <>
-            <div className="p-8 rounded-2xl bg-card/80 border border-primary/20">
-              <div className="flex items-center gap-2 mb-4">
-                <Zap className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-primary">
-                  Weekly Insight
-                </span>
-              </div>
-              <h3 className="font-serif text-xl mb-2">{dailyEdge.title}</h3>
-              <p className="font-mono text-[10px] text-muted-foreground leading-relaxed line-clamp-3 mb-4">
-                {dailyEdge.content}
-              </p>
-              <button
-                onClick={onCopyHack}
-                className="w-full py-3 rounded-sm bg-primary/10 border border-primary/20 text-[10px] font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-              >
-                Copy Insight →
-              </button>
-            </div>
-
-            <div className="p-8 rounded-[2.5rem] border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent">
-              <div className="flex items-center gap-3 mb-4 text-primary">
-                <Zap className="w-5 h-5 fill-current" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-                  Ready to Move Faster?
-                </span>
-              </div>
-              <h3 className="font-serif text-2xl mb-3 italic text-primary">
-                Stop reading. Start building.
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                Pro gives you the playbook, market intel, and competitive
-                analysis. Max adds calls with founders who've raised and
-                exited.
-              </p>
-              <button
-                onClick={onUpgradeClick}
-                className="w-full py-3 bg-primary/10 rounded-xl text-center text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-              >
-                See What You're Missing →
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* PRO: Today's Briefing */}
-        {tier === "pro" && (
-          <div className="p-8 rounded-2xl bg-card/80 border border-primary/20">
-            <div className="flex items-center gap-2 mb-4">
-              <Terminal className="w-4 h-4 text-primary" />
-              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-primary">
-                Today's Briefing
-              </span>
-            </div>
-            <h3 className="font-serif text-xl mb-2">{dailyEdge.title}</h3>
-            <p className="font-mono text-[10px] text-muted-foreground leading-relaxed line-clamp-4 mb-4">
-              {dailyEdge.content}
-            </p>
-            <button
-              onClick={onCopyHack}
-              className="w-full py-3 rounded-sm bg-primary/10 border border-primary/20 text-[10px] font-mono font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-            >
-              Copy Tactic →
-            </button>
-          </div>
-        )}
-
-        {/* MAX: Your 100-Day Arc + AI Advisor CTA */}
-        {(tier === "max" || tier === "incubator") && (
-          <>
-            <div className="p-8 border border-border/20 rounded-none">
-              <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-6">
-                Your 100-Day Arc
-              </p>
-              <div className="space-y-3">
-                {roadmapSteps.map((step, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => onToggleStep(step.title)}
-                    className="flex items-center gap-3 cursor-pointer group"
-                  >
-                    <div
-                      className={`w-4 h-4 border flex-shrink-0 flex items-center justify-center transition-colors ${completedSteps.includes(step.title) ? "bg-primary border-primary" : "border-border/40 group-hover:border-primary/40"}`}
-                    >
-                      {completedSteps.includes(step.title) && (
-                        <CheckCircle className="w-3 h-3 text-white" />
-                      )}
-                    </div>
-                    <div>
-                      <p
-                        className={`text-xs ${completedSteps.includes(step.title) ? "text-primary line-through" : "text-foreground"}`}
-                      >
-                        {step.title}
-                      </p>
-                      <p className="text-[9px] text-muted-foreground/60">
-                        {step.day}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div
-              id="ai-advisor"
-              className="p-8 border border-primary/20 rounded-none bg-primary/5"
-            >
-              <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-3">
-                Your AI Advisor
-              </p>
-              <p className="font-serif text-lg mb-4">
-                You have {20 - chatUsageThisMonth} sessions this month.
-                Use them.
-              </p>
-              <a
-                href="#ai-advisor-chat"
-                className="block w-full py-3 border border-primary/30 text-center text-[10px] uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-              >
-                Open Advisor →
-              </a>
-            </div>
-          </>
-        )}
+        <button
+          onClick={fetchSignals}
+          className="flex items-center gap-2 px-4 py-2 rounded-full border border-border/40 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all w-fit"
+        >
+          <RefreshCw className="w-3 h-3" /> Refresh
+        </button>
       </div>
+
+      {/* Source filter pills */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+              filter === f.key
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Trend spike alerts */}
+      <AnimatePresence>
+        {trendTopics.map((topic) => (
+          <motion.div
+            key={topic}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-start gap-3 p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30"
+          >
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-600 mb-0.5">
+                TREND DETECTED
+              </p>
+              <p className="text-sm text-foreground capitalize">
+                3+ signals on <span className="font-bold">{topic.replace("-", " ")}</span> in the last 24h. This category is heating up.
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Loading skeletons */}
+      {loading && (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-20 rounded-2xl bg-card/40 animate-pulse border border-border/20" />
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && filtered.length === 0 && (
+        <div className="py-20 text-center rounded-3xl border border-border/20 bg-card/20">
+          <p className="font-serif text-2xl mb-3 text-muted-foreground">No signals yet.</p>
+          <p className="text-sm text-muted-foreground/60 max-w-sm mx-auto leading-relaxed">
+            The AI is scanning Reddit, HN, YouTube, and Product Hunt. Check back in a few hours.
+          </p>
+        </div>
+      )}
+
+      {/* Feed items */}
+      {!loading && filtered.length > 0 && (
+        <div className="space-y-3">
+          {filtered.map((signal, i) => {
+            const meta = PLATFORM_META[signal.platform];
+            const isRelevant = (signal.relevanceScore ?? 0) >= 0.7 && startupCtx !== null;
+            return (
+              <motion.a
+                key={signal.id}
+                href={signal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="flex items-start gap-4 p-5 rounded-2xl bg-card/40 border border-border/20 hover:border-primary/20 hover:bg-card/60 transition-all group block"
+              >
+                <div className={`shrink-0 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest ${meta.bg} ${meta.color}`}>
+                  {meta.label}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-serif text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                    {signal.headline}
+                  </p>
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    <span className="text-[10px] text-muted-foreground/60 font-mono">
+                      {relativeTime(signal.publishedAt)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/40 font-mono truncate max-w-[180px]">
+                      {new URL(signal.url).hostname}
+                    </span>
+                    {isRelevant && (
+                      <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
+                        <Flame className="w-2.5 h-2.5" /> Relevant
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </motion.a>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pro-gated: DailyBriefUI + PersonalizationUI */}
+      {isPro && (
+        <div className="pt-4 border-t border-border/20 grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 mb-4">Today's Brief</p>
+            <DailyBriefUI />
+          </div>
+          <div className="lg:col-span-4">
+            <PersonalizationUI />
+          </div>
+        </div>
+      )}
+
+      {/* Free tier upgrade nudge */}
+      {tier === "free" && (
+        <div className="p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20">
+          <p className="font-serif text-2xl mb-3 italic text-primary">Stop reading. Start building.</p>
+          <p className="text-xs text-muted-foreground leading-relaxed mb-6">
+            Pro gives you the full signal feed, personalized briefings, and competitive analysis.
+          </p>
+          <button
+            onClick={onUpgradeClick}
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-full text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity"
+          >
+            See What You're Missing →
+          </button>
+        </div>
+      )}
+
+      {/* AI Advisor chat — Pro/Max only */}
+      {isPro && (
+        <div id="ai-advisor-chat">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">AI Advisor</p>
+          <FounderChat usedThisMonth={chatUsageThisMonth} onUsageUpdate={onChatUsageUpdate} />
+        </div>
+      )}
     </div>
   );
 }

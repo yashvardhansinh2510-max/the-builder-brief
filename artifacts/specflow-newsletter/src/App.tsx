@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
+import { useEffect, useRef, Suspense, useState } from "react";
+import { ClerkProvider, SignIn, SignUp, useAuth as useClerkAuth, useClerk } from "@clerk/react";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { useAuth } from "@/lib/AuthContext";
 import { Switch, Route, useLocation, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,11 +31,20 @@ import VaultArchive from "@/pages/vault-archive";
 import VaultDetail from "@/pages/vault-detail";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
+import OnboardingPage from "@/pages/onboarding";
 import GroundGame from "@/pages/ground-game";
 import { ModeProvider } from "@/lib/ModeContext";
 import PricingPage from "@/pages/pricing";
+import SearchPalette from "@/components/SearchPalette";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 // Ensure basePath never has a trailing slash but also never produces double-slashes
@@ -108,22 +119,46 @@ const CustomSignIn = () => <AuthPage mode="sign-in" />;
 const CustomSignUp = () => <AuthPage mode="sign-up" />;
 
 function HomeRedirect() {
-  const { isLoaded, userId } = useAuth();
+  const { isLoaded, userId } = useClerkAuth();
+  const { tierLoading, onboardingComplete, onboardingChecked } = useAuth();
   if (!isLoaded) return null;
-  if (userId) return <Redirect to="/dashboard" />;
-  return <Home />;
+  if (!userId) return <Home />;
+  if (tierLoading || !onboardingChecked) return null;
+  if (!onboardingComplete) return <Redirect to="/onboarding" />;
+  return <Redirect to="/dashboard" />;
 }
 
+const PageSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 function ProtectedRoute({ component: Component, ...rest }: any) {
-  const { isLoaded, userId } = useAuth();
-  if (!isLoaded) return null;
+  const { isLoaded, userId } = useClerkAuth();
+  if (!isLoaded) return <PageSpinner />;
   if (!userId) return <Redirect to="/sign-in" />;
   return <Component {...rest} />;
 }
 
-const ProtectedUserPortal = (props: any) => <ProtectedRoute component={UserPortal} {...props} />;
-const ProtectedProPortal = (props: any) => <ProtectedRoute component={ProPortal} {...props} />;
-const ProtectedMaxPortal = (props: any) => <ProtectedRoute component={MaxPortal} {...props} />;
+function TierProtectedRoute({ component: Component, allowedTiers, ...rest }: any) {
+  const { isLoaded, userId } = useClerkAuth();
+  const { tier, tierLoading } = useAuth();
+  if (!isLoaded) return null;
+  if (!userId) return <Redirect to="/sign-in" />;
+  if (tierLoading) return <div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (!allowedTiers.includes(tier)) return <Redirect to="/dashboard" />;
+  return <Component {...rest} />;
+}
+
+const ProtectedUserPortal = (props: any) => (
+  <ErrorBoundary>
+    <ProtectedRoute component={UserPortal} {...props} />
+  </ErrorBoundary>
+);
+const ProtectedOnboarding = (props: any) => <ProtectedRoute component={OnboardingPage} {...props} />;
+const ProtectedProPortal = (props: any) => <TierProtectedRoute component={ProPortal} allowedTiers={['pro', 'max', 'incubator']} {...props} />;
+const ProtectedMaxPortal = (props: any) => <TierProtectedRoute component={MaxPortal} allowedTiers={['max', 'incubator']} {...props} />;
 const ProtectedAdminPortal = (props: any) => <ProtectedRoute component={AdminPortal} {...props} />;
 const ProtectedIncubatorDashboard = (props: any) => <ProtectedRoute component={IncubatorDashboard} {...props} />;
 const ProtectedInvestorPortal = (props: any) => <ProtectedRoute component={InvestorPortal} {...props} />;
@@ -135,10 +170,39 @@ const ProtectedCreatorDashboard = (props: any) => <ProtectedRoute component={Cre
 const ProtectedCreatorTraction = (props: any) => <ProtectedRoute component={CreatorTraction} {...props} />;
 const ProtectedMarketplace = (props: any) => <ProtectedRoute component={Marketplace} {...props} />;
 const ProtectedDeveloperPortal = (props: any) => <ProtectedRoute component={DeveloperPortal} {...props} />;
-const ProtectedVaultArchive = (props: any) => <ProtectedRoute component={VaultArchive} {...props} />;
-const ProtectedVaultDetail = (props: any) => <ProtectedRoute component={VaultDetail} {...props} />;
-const ProtectedIdeaAgent = (props: any) => <ProtectedRoute component={IdeaAgent} {...props} />;
+const ProtectedVaultArchive = (props: any) => (
+  <ErrorBoundary>
+    <ProtectedRoute component={VaultArchive} {...props} />
+  </ErrorBoundary>
+);
+const ProtectedVaultDetail = (props: any) => (
+  <ErrorBoundary>
+    <ProtectedRoute component={VaultDetail} {...props} />
+  </ErrorBoundary>
+);
+const ProtectedIdeaAgent = (props: any) => (
+  <ErrorBoundary>
+    <ProtectedRoute component={IdeaAgent} {...props} />
+  </ErrorBoundary>
+);
 const ProtectedTemplates = (props: any) => <ProtectedRoute component={TemplatesPage} {...props} />;
+
+function SearchPaletteRoot() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  return <SearchPalette open={open} onOpenChange={setOpen} />;
+}
 
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
@@ -186,12 +250,14 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <ClerkQueryClientCacheInvalidator />
+          <SearchPaletteRoot />
           <Switch>
             <Route path="/" component={HomeRedirect} />
             <Route path="/sign-in" component={CustomSignIn} />
             <Route path="/sign-in/*" component={CustomSignIn} />
             <Route path="/sign-up" component={CustomSignUp} />
             <Route path="/sign-up/*" component={CustomSignUp} />
+            <Route path="/onboarding" component={ProtectedOnboarding} />
             <Route path="/user-portal" component={ProtectedUserPortal} />
             <Route path="/dashboard" component={ProtectedUserPortal} />
             <Route path="/pro-portal" component={ProtectedProPortal} />

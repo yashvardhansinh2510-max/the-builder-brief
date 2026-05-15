@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Flame, Sparkles } from "lucide-react";
 import type { Reward } from "@/lib/rewards";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -23,6 +24,7 @@ interface WelcomeHeroProps {
   eligibleReward: Reward | null;
   nextReward: Reward | null;
   onClaimReward: (reward: Reward) => void;
+  loading?: boolean;
 }
 
 export default function WelcomeHero({
@@ -33,7 +35,26 @@ export default function WelcomeHero({
   eligibleReward,
   nextReward,
   onClaimReward,
+  loading,
 }: WelcomeHeroProps) {
+  if (loading) {
+    return (
+      <div className="p-10 rounded-[3rem] border border-primary/5 space-y-6">
+        <Skeleton className="w-40 h-3 rounded-full" />
+        <div className="space-y-3">
+          <Skeleton className="w-2/3 h-14 rounded-xl" />
+          <Skeleton className="w-1/2 h-14 rounded-xl" />
+        </div>
+        <div className="flex gap-4 mt-4">
+          <Skeleton className="w-32 h-16 rounded-2xl" />
+          <Skeleton className="w-40 h-6 rounded-full self-center" />
+        </div>
+        <Skeleton className="w-full h-5 rounded" />
+        <Skeleton className="w-4/5 h-5 rounded" />
+      </div>
+    );
+  }
+
   return (
     <>
       {/* FREE TIER HERO */}

@@ -1,13 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useMode } from "@/lib/ModeContext";
 import PortalNav from '@/components/PortalNav';
 import Footer from '@/components/Footer';
 import VaultCard from '@/components/VaultCard';
-import { useVaults } from '@/hooks/useVaults';
+import { useVaultList } from '@/hooks/useVaults';
 import { VaultFilter } from '@/lib/vault-types';
-import { usePageTracking } from '@/hooks/useAnalytics';
+import { usePageTracking, useTrack } from '@/hooks/useAnalytics';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -16,49 +17,65 @@ const fadeUp = {
 
 export default function VaultArchive() {
   usePageTracking('/vault-archive');
+  const { track } = useTrack();
   const { mode } = useMode();
-  const { vaults: rawVaults, loading, error, total, page, hasMore, fetchVaults, setPage } = useVaults();
 
-  // Filters
+  // Filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedTier, setSelectedTier] = useState<'free' | 'pro' | 'max' | 'all'>('all');
   const [minScore, setMinScore] = useState(0);
   const [sortBy, setSortBy] = useState<'score' | 'momentum' | 'recent' | 'signals'>('score');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<'compact' | 'expanded'>('expanded');
+  const [page, setPage] = useState(1);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
-  // Apply mode and filter processing
+  const activeFilterCount = [
+    selectedTier !== 'all',
+    minScore > 0,
+    sortBy !== 'score',
+    sortOrder !== 'desc',
+  ].filter(Boolean).length;
+
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+      if (searchQuery) track('search_performed', { query: searchQuery });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Reset page when filters change + track
+  useEffect(() => {
+    setPage(1);
+    track('filter_changed', { tier: selectedTier, minScore, sortBy, sortOrder });
+  }, [selectedTier, minScore, sortBy, sortOrder]);
+
+  const filters: VaultFilter = useMemo(() => ({
+    searchQuery: debouncedSearch || undefined,
+    tier: selectedTier === 'all' ? undefined : selectedTier,
+    minScore: minScore > 0 ? minScore : undefined,
+    sortBy,
+    sortOrder,
+  }), [debouncedSearch, selectedTier, minScore, sortBy, sortOrder]);
+
+  const { data, isLoading: loading, isError, error: queryError } = useVaultList(filters, page);
+  const rawVaults = data?.vaults ?? [];
+  const total = data?.total ?? 0;
+  const hasMore = data?.hasMore ?? false;
+  const error = isError ? (queryError as Error) : null;
+
   const vaults = useMemo(() => {
-    let result = rawVaults;
     if (mode === "offline") {
-      result = result.filter(v => 
-        v.tags?.some(tag => 
-          tag.toLowerCase() === "offline" || tag.toLowerCase() === "hybrid"
-        )
+      return rawVaults.filter(v =>
+        v.tags?.some(tag => tag.toLowerCase() === "offline" || tag.toLowerCase() === "hybrid")
       );
     }
-    return result;
+    return rawVaults;
   }, [rawVaults, mode]);
-
-  // Apply API filters
-  const handleFilterChange = async () => {
-    const filter: VaultFilter = {
-      searchQuery: searchQuery || undefined,
-      tier: selectedTier === 'all' ? undefined : selectedTier,
-      minScore: minScore > 0 ? minScore : undefined,
-      sortBy,
-      sortOrder,
-    };
-    await fetchVaults(filter, 1);
-  };
-
-  // Debounce search
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      handleFilterChange();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedTier, minScore, sortBy, sortOrder]);
 
   const tiers = [
     { value: 'all', label: 'All Tiers', count: total },
@@ -94,25 +111,84 @@ export default function VaultArchive() {
           animate="visible"
           custom={1}
           variants={fadeUp}
-          className="mb-8 space-y-6 bg-card p-6 rounded-2xl border border-border"
+          className="mb-8 space-y-4 bg-card p-4 sm:p-6 rounded-2xl border border-border"
         >
-          {/* Search Bar */}
-          <div className="max-w-md">
-            <label className="block text-sm font-medium text-foreground mb-2">Search ideas</label>
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search by title, problem, market..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-              />
+          {/* Search + mobile filter trigger row */}
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-foreground mb-2">Search ideas</label>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search by title, problem, market..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                />
+              </div>
             </div>
+
+            {/* Mobile-only filters button */}
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <button className="md:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium text-foreground hover:border-primary/50 transition-colors relative">
+                  <SlidersHorizontal className="w-4 h-4" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
+                <SheetHeader className="mb-6">
+                  <SheetTitle className="flex items-center justify-between">
+                    <span>Filters</span>
+                    {activeFilterCount > 0 && (
+                      <button
+                        onClick={() => { setSelectedTier('all'); setMinScore(0); setSortBy('score'); setSortOrder('desc'); }}
+                        className="text-xs text-primary font-semibold flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" /> Clear all
+                      </button>
+                    )}
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="space-y-6 pb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Subscription Tier</label>
+                    <select value={selectedTier} onChange={(e) => setSelectedTier(e.target.value as any)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground outline-none">
+                      {tiers.map(t => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Minimum Score: {minScore}</label>
+                    <input type="range" min="0" max="100" step="5" value={minScore} onChange={(e) => setMinScore(parseInt(e.target.value))} className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer" />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>0</span><span>100</span></div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Sort By</label>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground outline-none">
+                      {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Order</label>
+                    <div className="flex gap-2">
+                      <button onClick={() => setSortOrder('desc')} className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${sortOrder === 'desc' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>Highest</button>
+                      <button onClick={() => setSortOrder('asc')} className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${sortOrder === 'asc' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>Lowest</button>
+                    </div>
+                  </div>
+                  <button onClick={() => setFilterSheetOpen(false)} className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold">Apply Filters</button>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
-          {/* Filters Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Desktop Filters Grid — hidden on mobile */}
+          <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Tier Filter */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Subscription Tier</label>
@@ -225,10 +301,7 @@ export default function VaultArchive() {
         {loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="h-80 bg-muted rounded-2xl animate-pulse"
-              />
+              <div key={i} className="h-80 bg-muted rounded-2xl animate-pulse" />
             ))}
           </div>
         )}
@@ -242,7 +315,7 @@ export default function VaultArchive() {
         )}
 
         {/* Empty State */}
-        {!loading && vaults.length === 0 && (
+        {!loading && vaults.length === 0 && !error && (
           <div className="text-center py-24 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
             <p className="font-serif text-3xl mb-2 text-foreground">No ideas found.</p>
             <p className="text-sm">Try adjusting your filters or search terms.</p>
@@ -277,7 +350,7 @@ export default function VaultArchive() {
                 className="mt-12 text-center"
               >
                 <button
-                  onClick={() => setPage(page + 1)}
+                  onClick={() => setPage(p => p + 1)}
                   className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors"
                 >
                   Load More Ideas

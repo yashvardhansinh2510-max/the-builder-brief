@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import logoPath from "@assets/logo.jpg";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/AuthContext";
 import {
@@ -15,38 +15,12 @@ import PortalNav from "@/components/PortalNav";
 import FounderChat from "@/components/FounderChat";
 import Footer from "@/components/Footer";
 import { useSubscriberCount } from "@/hooks/useSubscriberCount";
+import { useVaultList } from "@/hooks/useVaults";
 import DailyBriefUI from "@/components/DailyBriefUI";
 import PersonalizationUI from "@/components/PersonalizationUI";
 import { FounderSocialLayer } from "@/components/FounderSocialLayer";
-import CompetitorScanner from "@/components/CompetitorScanner";
-import CoFounderMatcher from "@/components/CoFounderMatcher";
-
-
-// --- Vault Structure (Placeholder) ---
-// Actual vault content coming. For now, show titles only.
-const vaultFiles = [
-  {
-    id: "gtm-1",
-    title: "Cold Email Sequences",
-    category: "GTM Architecture",
-    type: "document",
-    tags: ["Sales", "Outbound"],
-  },
-  {
-    id: "tech-1",
-    title: "Technical Scaffolding",
-    category: "Technical Foundations",
-    type: "code",
-    tags: ["Backend", "Infrastructure"],
-  },
-  {
-    id: "scale-1",
-    title: "Scale Systems & Operations",
-    category: "Operations",
-    type: "document",
-    tags: ["Operations", "Automation"],
-  }
-];
+const CompetitorScanner = lazy(() => import("@/components/CompetitorScanner"));
+const CoFounderMatcher = lazy(() => import("@/components/CoFounderMatcher"));
 
 export default function ProPortal() {
   const { session } = useAuth();
@@ -77,8 +51,8 @@ export default function ProPortal() {
   }, []);
 
   // State: The Vault
-  const [activeFileId, setActiveFileId] = useState<string | null>(null);
-  const activeFile = vaultFiles.find(f => f.id === activeFileId);
+  const { data: vaultsData, isLoading: vaultsLoading } = useVaultList({ tier: 'pro' });
+  const proVaults = vaultsData?.vaults ?? [];
   const [chatUsage, setChatUsage] = useState(0);
 
   // Command Field tool state
@@ -163,44 +137,6 @@ export default function ProPortal() {
 
       <PortalNav activePage="pro" />
 
-      {/* ── THE VAULT OVERLAY (FULLSCREEN NOTION STYLE) ── */}
-      <AnimatePresence>
-        {activeFile && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50, transition: { duration: 0.2 } }}
-            className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-3xl overflow-y-auto"
-          >
-            <div className="max-w-[1000px] mx-auto min-h-screen bg-card border-x border-border shadow-2xl relative">
-              <div className="sticky top-0 bg-card/80 backdrop-blur-xl border-b border-border p-6 flex justify-between items-center z-10">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    {activeFile.type === 'code' ? <Code2 className="w-5 h-5 text-primary" /> : <FileText className="w-5 h-5 text-primary" />}
-                  </div>
-                  <div>
-                    <h3 className="font-serif text-xl tracking-tight">{activeFile.title}</h3>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{activeFile.category}</p>
-                  </div>
-                </div>
-                <button onClick={() => setActiveFileId(null)} className="px-6 py-2 bg-foreground text-background text-xs font-bold uppercase tracking-widest rounded-full hover:opacity-80">
-                  Close
-                </button>
-              </div>
-
-              <div className="p-12 md:p-20 flex flex-col items-center justify-center min-h-[500px] text-center">
-                <div className="flex gap-2 mb-10">
-                  {activeFile.tags.map(tag => (
-                    <Badge key={tag} className="bg-primary/5 text-primary border-primary/20">{tag}</Badge>
-                  ))}
-                </div>
-                <h2 className="font-serif text-3xl mb-4">{activeFile.title}</h2>
-                <p className="text-muted-foreground max-w-2xl text-lg mb-8">Coming soon. Your growth partner will unlock this playbook once you're matched.</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <main className="max-w-[1400px] mx-auto py-16 px-5 md:px-8 space-y-40">
 
@@ -247,27 +183,41 @@ export default function ProPortal() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vaultFiles.map((file) => (
+            {vaultsLoading && [...Array(3)].map((_, i) => (
+              <div key={i} className="p-8 bg-card border border-border rounded-3xl animate-pulse min-h-[250px]">
+                <div className="h-8 bg-muted rounded mb-4 w-3/4" />
+                <div className="h-4 bg-muted rounded mb-2" />
+                <div className="h-4 bg-muted rounded w-2/3" />
+              </div>
+            ))}
+            {!vaultsLoading && proVaults.map((vault) => (
               <div
-                key={file.id}
-                onClick={() => setActiveFileId(file.id)}
+                key={vault.id}
+                onClick={() => setLocation(`/vault/${vault.id}`)}
                 className="p-8 bg-card border border-border rounded-3xl hover:border-primary/40 hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between min-h-[250px]"
               >
                 <div>
                   <div className="flex justify-between items-start mb-6">
                     <div className="p-3 bg-primary/5 rounded-xl text-primary group-hover:scale-110 transition-transform">
-                      {file.type === 'code' ? <Code2 className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
+                      <FileText className="w-6 h-6" />
                     </div>
                     <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">{file.category}</p>
-                  <h3 className="font-serif text-2xl tracking-tight group-hover:text-primary transition-colors">{file.title}</h3>
+                  <h3 className="font-serif text-2xl tracking-tight group-hover:text-primary transition-colors">{vault.title}</h3>
+                  {vault.description && (
+                    <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{vault.description}</p>
+                  )}
                 </div>
-                <div className="mt-8 flex gap-2">
-                  {file.tags.map(tag => <Badge key={tag} variant="secondary" className="text-[9px] uppercase">{tag}</Badge>)}
-                </div>
+                {vault.publishedAt && (
+                  <p className="mt-8 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    {new Date(vault.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                )}
               </div>
             ))}
+            {!vaultsLoading && proVaults.length === 0 && (
+              <div className="col-span-3 text-center py-16 text-muted-foreground">No vaults published yet.</div>
+            )}
           </div>
 
           <div className="mt-8 flex justify-center">
@@ -471,12 +421,16 @@ export default function ProPortal() {
 
         {/* ── 9. COMPETITOR VULNERABILITY ENGINE ── */}
         <section>
-          <CompetitorScanner />
+          <Suspense fallback={<div className="w-full h-48 rounded-2xl bg-primary/5 animate-pulse" />}>
+            <CompetitorScanner />
+          </Suspense>
         </section>
 
         {/* ── 10. CO-FOUNDER MATCHER ── */}
         <section>
-          <CoFounderMatcher />
+          <Suspense fallback={<div className="w-full h-48 rounded-2xl bg-primary/5 animate-pulse" />}>
+            <CoFounderMatcher />
+          </Suspense>
         </section>
 
         {/* ── 11. COMMAND FIELD ── */}
