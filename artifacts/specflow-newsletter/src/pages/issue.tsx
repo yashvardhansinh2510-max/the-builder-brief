@@ -22,7 +22,7 @@ import GlobalArbitrageMap from "@/components/blueprints/GlobalArbitrageMap";
 import PLGSequence from "@/components/blueprints/PLGSequence";
 import ExitDashboard from "@/components/blueprints/ExitDashboard";
 import UnitEconomicsCalculator from "@/components/blueprints/UnitEconomicsCalculator";
-import TractioinProofSection from "@/components/blueprints/TractioinProofSection";
+import TractionProofSection from "@/components/blueprints/TractionProofSection";
 import { TierGate } from "@/components/TierGate";
 import { InvestorMatches } from "@/components/InvestorMatches";
 
@@ -341,7 +341,7 @@ export default function IssuePage() {
 
             {/* Traction Proof */}
             {issue.traction?.status === "added" && (
-              <TractioinProofSection traction={issue.traction} />
+              <TractionProofSection traction={issue.traction} />
             )}
 
             {/* PLG Sequence */}
