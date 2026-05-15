@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { Check, X, ArrowRight, Loader2, Shield } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,7 +17,7 @@ import { usePayments } from '@/lib/usePayments';
 import { useAuth } from '@/lib/AuthContext';
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: () => ({ opacity: 0, y: 20 }),
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.1 } }),
 };
 
@@ -131,8 +132,9 @@ export default function PricingPage() {
     setLoadingTier(tier.name);
     try {
       await initiatePayment(tier.name.toLowerCase() as 'pro' | 'max');
-    } catch {
-      setLocation(tier.href);
+    } catch (err) {
+      console.error('Payment failed:', err);
+      toast.error('Payment failed. Please try again.');
     } finally {
       setLoadingTier(null);
     }
