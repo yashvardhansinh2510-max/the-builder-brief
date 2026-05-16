@@ -44,6 +44,16 @@ export function saveStartupContext(ctx: StartupContext): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...ctx, updatedAt: new Date().toISOString() }));
 }
 
+export async function saveStartupContextToBackend(ctx: StartupContext, token: string | null): Promise<void> {
+  saveStartupContext(ctx);
+  if (!token) return;
+  await fetch("/api/subscribers/me/context", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(ctx),
+  }).catch(() => {});
+}
+
 export function clearStartupContext(): void {
   localStorage.removeItem(STORAGE_KEY);
 }

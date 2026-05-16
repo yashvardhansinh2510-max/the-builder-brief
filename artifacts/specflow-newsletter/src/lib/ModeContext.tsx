@@ -15,7 +15,7 @@ const ModeContext = createContext<ModeContextType>({
 export function ModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<BusinessMode>(() => {
     try {
-      return (sessionStorage.getItem("bb_mode") as BusinessMode) || "online";
+      return (localStorage.getItem("builder-brief-mode") as BusinessMode) || "online";
     } catch {
       return "online";
     }
@@ -24,7 +24,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const setMode = (newMode: BusinessMode) => {
     setModeState(newMode);
     try {
-      sessionStorage.setItem("bb_mode", newMode);
+      localStorage.setItem("builder-brief-mode", newMode);
     } catch {
       // ignore
     }

@@ -1,6 +1,6 @@
 import { Router, IRouter } from "express";
 import { db, subscribersTable, referralsTable } from "@workspace/db";
-import { eq, count, and } from "drizzle-orm";
+import { eq, count, desc, sql } from "drizzle-orm";
 import { verifyUser } from "../middleware/verifyUser";
 import { nanoid } from "nanoid";
 
@@ -76,6 +76,34 @@ router.post("/referrals/verify-milestone", verifyUser, async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ error: "Failed to verify milestones" });
+  }
+});
+
+// GET /api/referrals/leaderboard — Top 10 referrers (anonymized)
+router.get("/referrals/leaderboard", async (_req, res) => {
+  try {
+    const rows = await db
+      .select({
+        referrerId: referralsTable.referrerId,
+        referralCount: count(referralsTable.id).as("referral_count"),
+        email: subscribersTable.email,
+      })
+      .from(referralsTable)
+      .leftJoin(subscribersTable, eq(referralsTable.referrerId, subscribersTable.id))
+      .groupBy(referralsTable.referrerId, subscribersTable.email)
+      .orderBy(desc(sql`count(${referralsTable.id})`))
+      .limit(10);
+
+    const leaderboard = rows.map((row, idx) => {
+      const raw = row.email || "Anonymous";
+      const namePart = raw.split("@")[0];
+      const display = namePart.length > 10 ? namePart.substring(0, 10) + "..." : namePart;
+      return { rank: idx + 1, name: display, referralCount: Number((row as any).referral_count) };
+    });
+
+    return res.json({ leaderboard });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });
 

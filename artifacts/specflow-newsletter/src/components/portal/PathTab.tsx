@@ -1,40 +1,9 @@
-import { BookOpen, Zap, Layers, Star } from "lucide-react";
-
-const tierPath = [
-  {
-    title: "Free",
-    sub: "Foundations",
-    icon: BookOpen,
-    val: "Knowledge",
-    detail: "Foundational blueprints and weekly market tracking.",
-  },
-  {
-    title: "Pro",
-    sub: "Industrial",
-    icon: Zap,
-    val: "Execution",
-    detail: "Premium toolkits, scripts, and private community access.",
-  },
-  {
-    title: "Max",
-    sub: "Venture Elite",
-    icon: Layers,
-    val: "Leverage",
-    detail: "Direct advisory, advanced networking, and scaling secrets.",
-  },
-  {
-    title: "Incubator",
-    sub: "Alliance",
-    icon: Star,
-    val: "Partnership",
-    detail: "0-to-1 building, equity alignment, and exit strategy.",
-  },
-];
+import { FOUNDRY_PATH_TIERS } from "@/lib/portal-config";
 
 export default function PathTab() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {tierPath.map((tier) => (
+      {FOUNDRY_PATH_TIERS.map((tier) => (
         <div
           key={tier.title}
           className="bg-card/40 border border-border/20 p-8 rounded-[2.5rem] relative group hover:border-primary/30 transition-all backdrop-blur-sm"

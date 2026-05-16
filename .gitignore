@@ -70,3 +70,19 @@ scratch/
 
 # Claude worktree state
 .claude-flow/
+
+# AI & Editor state
+.claude/
+.cursor/
+.cursorrules
+.gemini/
+.kiro/
+.qoder/
+.agents/
+.code-review-graph/
+.playwright-mcp/
+
+# Logs and reports
+*.log
+artifacts/**/*.log
+artifacts/**/*.report.html

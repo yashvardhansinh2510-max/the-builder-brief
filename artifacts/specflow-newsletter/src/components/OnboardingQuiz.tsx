@@ -28,7 +28,7 @@ type QuestionId = typeof QUESTIONS[number]['id'];
 type Answers = Partial<Record<QuestionId, string>>;
 
 export default function OnboardingQuiz({ onComplete }: { onComplete?: () => void }) {
-  const { session } = useAuth();
+  const { session, getToken } = useAuth();
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
@@ -48,7 +48,7 @@ export default function OnboardingQuiz({ onComplete }: { onComplete?: () => void
 
     setSubmitting(true);
     try {
-      const token = await session?.getToken();
+      const token = await getToken();
       const res = await fetch(`${API_BASE}/subscribers/me`, {
         method: 'PATCH',
         headers: {

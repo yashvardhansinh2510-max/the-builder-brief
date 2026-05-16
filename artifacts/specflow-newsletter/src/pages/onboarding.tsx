@@ -18,7 +18,7 @@ export default function OnboardingPage() {
   }
 
   const handleComplete = () => {
-    setLocation('/pro-portal');
+    setLocation('/dashboard');
   };
 
   return <OnboardingQuiz onComplete={handleComplete} />;

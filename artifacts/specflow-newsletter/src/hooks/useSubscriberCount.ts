@@ -1,16 +1,14 @@
-import { useState, useEffect } from "react";
+import { useQuery } from '@tanstack/react-query';
 
 export function useSubscriberCount(fallback = "15,000+") {
-  const [count, setCount] = useState<string>(fallback);
+  const { data } = useQuery({
+    queryKey: ['subscriberCount'],
+    queryFn: () =>
+      fetch('/api/subscribers/stats')
+        .then(r => (r.ok ? r.json() : null)),
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetch("/api/subscribers/stats")
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.total) setCount(d.total.toLocaleString() + "+");
-      })
-      .catch(() => {});
-  }, []);
-
-  return count;
+  return data?.total ? data.total.toLocaleString() + "+" : fallback;
 }
